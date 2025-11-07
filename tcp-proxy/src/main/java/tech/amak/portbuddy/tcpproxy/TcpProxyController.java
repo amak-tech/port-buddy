@@ -16,7 +16,7 @@ public class TcpProxyController {
     private final TcpTunnelRegistry registry;
 
     @GetMapping("/expose")
-    public ExposeResponse expose(@RequestParam("tunnelId") final String tunnelId) throws Exception {
+    public ExposeResponse expose(final @RequestParam("tunnelId") String tunnelId) throws Exception {
         final var exposedPort = registry.expose(tunnelId);
         return new ExposeResponse(exposedPort.getPort());
     }
