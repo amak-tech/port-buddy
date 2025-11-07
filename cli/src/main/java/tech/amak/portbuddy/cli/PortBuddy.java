@@ -112,12 +112,12 @@ public class PortBuddy implements Callable<Integer> {
           .post(RequestBody.create(json, MediaType.parse("application/json")))
           .build();
 
-      try (Response resp = http.newCall(request).execute()) {
-        if (!resp.isSuccessful()) {
-          log.warn("Expose HTTP failed: {} {}", resp.code(), resp.message());
+      try (final var response = http.newCall(request).execute()) {
+        if (!response.isSuccessful()) {
+          log.warn("Expose HTTP failed: {} {}", response.code(), response.message());
           return null;
         }
-        final var body = resp.body();
+        final var body = response.body();
         if (body == null) return null;
         final var str = body.string();
         return mapper.readValue(str, ExposeResponse.class);

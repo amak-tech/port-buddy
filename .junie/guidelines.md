@@ -58,6 +58,7 @@ All variables which value is not changed must be marked with `final` modifier.
 All method params must be marked with `final` modifier.
 For local variable `var` must be used instead of class name.
 Lombok library is used for getters/setters, log reference, ect.
+Do not shortout variable names.
 
 ### Server application
 Is written using Spring Boot 3.5.7 framework. 
