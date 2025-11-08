@@ -101,6 +101,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         localStorage.removeItem('pb_token')
         setUser(null)
+        // Redirect to landing page after logout
+        window.location.assign('/')
     }, [])
 
     const value = useMemo<AuthState>(() => ({ user, loading, loginWithGoogle, logout, refresh }), [user, loading, loginWithGoogle, logout, refresh])
