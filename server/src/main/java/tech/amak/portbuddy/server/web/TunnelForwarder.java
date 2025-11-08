@@ -25,6 +25,18 @@ public class TunnelForwarder {
 
     private final TunnelRegistry registry;
 
+    /**
+     * Forwards an HTTP request via a tunnel to a specific subdomain, adjusting the path as necessary.
+     * This method extracts the relevant path from the pattern and forwards the request using the
+     * {@code forward} method.
+     *
+     * @param subdomain  the target subdomain to which the request should be forwarded
+     * @param request    the incoming HTTP servlet request
+     * @param response   the outgoing HTTP servlet response
+     * @param pathWithin the actual path within the URL that needs to be matched and forwarded
+     * @param bestMatch  the best matching path pattern to extract the relative target path
+     * @throws IOException if an I/O error occurs during the forwarding process
+     */
     public void forwardViaTunnel(final String subdomain,
                                  final HttpServletRequest request,
                                  final HttpServletResponse response,
@@ -38,6 +50,16 @@ public class TunnelForwarder {
         forward(subdomain, request, response, path);
     }
 
+    /**
+     * Forwards an HTTP request to a specific subdomain based on the host, ensuring the appropriate
+     * path is included in the forwarding process. If the request URI is blank, it defaults the path
+     * to the root ("/").
+     *
+     * @param subdomain the target subdomain to which the request should be forwarded
+     * @param request   the incoming HTTP servlet request containing details of the client request
+     * @param response  the outgoing HTTP servlet response to send back to the client
+     * @throws IOException if an I/O error occurs during the forwarding process
+     */
     public void forwardHostBased(final String subdomain,
                                  final HttpServletRequest request,
                                  final HttpServletResponse response) throws IOException {

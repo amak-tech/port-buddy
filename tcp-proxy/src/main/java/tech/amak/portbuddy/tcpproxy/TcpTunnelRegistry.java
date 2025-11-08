@@ -29,6 +29,18 @@ public class TcpTunnelRegistry {
     private final ObjectMapper mapper = new ObjectMapper();
     private final ExecutorService ioPool = Executors.newCachedThreadPool();
 
+    /**
+     * Exposes a TCP tunnel by creating or retrieving a {@link Tunnel} corresponding to the provided
+     * tunnel ID and initializes a {@link ServerSocket} for incoming connections. If the tunnel already
+     * exists and its server socket is open, it returns the existing exposed port. Otherwise, a new
+     * server socket is created, bound to an available port, and an accept loop is started to handle
+     * incoming connections. The exposed local port is returned in an {@link ExposedPort} object.
+     *
+     * @param tunnelId the identifier of the tunnel to be exposed; if no tunnel exists for this ID,
+     *                 a new one is created.
+     * @return the {@link ExposedPort} object containing the TCP port exposed by the tunnel.
+     * @throws IOException if an I/O error occurs during the initialization of the server socket.
+     */
     public ExposedPort expose(final String tunnelId) throws IOException {
         final var tunnel = byTunnelId.computeIfAbsent(tunnelId, Tunnel::new);
         if (tunnel.serverSocket != null && !tunnel.serverSocket.isClosed()) {
@@ -45,6 +57,12 @@ public class TcpTunnelRegistry {
         tunnel.session = session;
     }
 
+    /**
+     * Detaches a given WebSocket session from any associated tunnel.
+     * If the specified session is currently linked to a tunnel, the link is severed.
+     *
+     * @param session the WebSocket session to detach
+     */
     public void detachSession(final WebSocketSession session) {
         for (final var tunnel : byTunnelId.values()) {
             if (tunnel.session == session) {
@@ -84,10 +102,12 @@ public class TcpTunnelRegistry {
                 sendToClient(tunnel, message);
             }
         } catch (IOException ignore) {
+            log.error("Failed to read from public socket: {}", ignore.toString());
         } finally {
             try {
                 connection.socket.close();
             } catch (IOException ignore) {
+                log.error("Failed to close public socket: {}", ignore.toString());
             }
             tunnel.connections.remove(connection.connectionId);
             final var m = new WsTunnelMessage();
@@ -97,6 +117,16 @@ public class TcpTunnelRegistry {
         }
     }
 
+    /**
+     * Handles incoming binary data from the WebSocket client by identifying the associated tunnel
+     * and connection, decoding the base64-encoded binary data, and writing it to the public socket.
+     * If the tunnel or connection is not found, the method exits without performing any operations.
+     * If an I/O error occurs while writing to the socket, it is logged.
+     *
+     * @param tunnelId the identifier of the tunnel associated with the client
+     * @param connectionId the identifier of the specific connection within the tunnel
+     * @param dataB64 a base64-encoded string representing the binary data to be transmitted
+     */
     public void onClientBinary(final String tunnelId, final String connectionId, final String dataB64) {
         final var tunnel = byTunnelId.get(tunnelId);
         if (tunnel == null) {
@@ -114,6 +144,12 @@ public class TcpTunnelRegistry {
         }
     }
 
+    /**
+     * Handles the closure of a client connection associated with a specific tunnel.
+     * If the tunnel and connection exist, the connection is removed and its socket is closed.
+     * If either the tunnel or connection does not exist, no operation is performed.
+     *
+     * @param tunnelId the identifier of the*/
     public void onClientClose(final String tunnelId, final String connectionId) {
         final var tunnel = byTunnelId.get(tunnelId);
         if (tunnel == null) {
@@ -124,6 +160,7 @@ public class TcpTunnelRegistry {
             try {
                 connection.socket.close();
             } catch (IOException ignore) {
+                log.error("Failed to close public socket: {}", ignore.toString());
             }
         }
     }

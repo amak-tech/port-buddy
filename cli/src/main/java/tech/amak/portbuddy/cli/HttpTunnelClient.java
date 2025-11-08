@@ -45,6 +45,28 @@ public class HttpTunnelClient {
 
     private final Map<String, WebSocket> localWebsocketMap = new ConcurrentHashMap<>();
 
+    /**
+     * Establishes and maintains a blocking WebSocket connection to the server.
+     *
+     * <p>
+     * This method constructs a WebSocket connection to a server using a URL
+     * derived from the server's URL combined with the tunnel identifier. The
+     * method blocks until the WebSocket connection is closed or interrupted.
+     *
+     * <p>
+     * Behavior:
+     * - Converts the server URL and tunnel identifier into a WebSocket URL.
+     * - Opens a WebSocket connection to the calculated URL and uses a
+     * {@code Listener} to handle WebSocket events, such as incoming messages,
+     * connection closure, or failures.
+     * - Waits on the {@code closeLatch} to ensure blocking behavior until the
+     * connection is terminated.
+     *
+     * <p>
+     * Exceptions:
+     * - Catches and handles {@link InterruptedException} if the wait operation
+     * on the latch is interrupted. Restores the interrupted thread state.
+     */
     public void runBlocking() {
         final var wsUrl = toWebSocketUrl(serverUrl, "/api/tunnel/" + tunnelId);
         final var req = new Request.Builder().url(wsUrl).build();
@@ -167,7 +189,8 @@ public class HttpTunnelClient {
                 ack.setWsType(WsTunnelMessage.Type.OPEN_OK);
                 ack.setConnectionId(connectionId);
                 HttpTunnelClient.this.webSocket.send(mapper.writeValueAsString(ack));
-            } catch (Exception ignore) {
+            } catch (final Exception ignore) {
+                log.error("Failed to send local WS open ack: {}", ignore.toString());
             }
         }
 

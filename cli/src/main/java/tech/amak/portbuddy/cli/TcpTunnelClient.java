@@ -47,6 +47,20 @@ public class TcpTunnelClient {
         this.authToken = authToken;
     }
 
+    /**
+     * Establishes and maintains a WebSocket connection for TCP tunneling.
+     * This method constructs the WebSocket URL using the configured proxy host, port, and tunnel ID.
+     * It sets up an authentication token in the request header, if provided, and initializes the WebSocket connection.
+     * The method blocks the current thread until the connection is closed or an interruption occurs.
+     *
+     * <p>
+     * Behavior:
+     * - Converts a base HTTP URL to a WebSocket URL using the {@code toWebSocketUrl} method.
+     * - Adds an optional "Authorization" header to the WebSocket request for authentication.
+     * - Creates a WebSocket connection using the provided URL and the {@code Listener} for handling events.
+     * - Waits for the WebSocket connection to close by utilizing a {@code CountDownLatch}.
+     * - Handles interruptions by setting the thread's interrupt status.
+     */
     public void runBlocking() {
         final var url = toWebSocketUrl("http://" + proxyHost + ":" + proxyHttpPort, "/api/tcp-tunnel/" + tunnelId);
         final var rb = new Request.Builder().url(url);
@@ -139,7 +153,8 @@ public class TcpTunnelClient {
                 if (local != null) {
                     try {
                         local.sock.close();
-                    } catch (Exception ignore) {
+                    } catch (final Exception ignore) {
+                        log.error(ignore.getMessage(), ignore);
                     }
                 }
             }
@@ -171,10 +186,12 @@ public class TcpTunnelClient {
                 m.setConnectionId(local.connectionId);
                 ws.send(mapper.writeValueAsString(m));
             } catch (Exception ignore) {
+                log.error("Failed to send local WS close: {}", ignore.toString());
             }
             try {
                 local.sock.close();
             } catch (Exception ignore) {
+                log.error("Failed to close local TCP: {}", ignore.toString());
             }
             locals.remove(local.connectionId);
         }

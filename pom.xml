@@ -68,10 +68,11 @@
                     <artifactId>maven-checkstyle-plugin</artifactId>
                     <version>3.4.0</version>
                     <configuration>
-                        <configLocation>${maven.multiModuleProjectDirectory}/google_checks.xml</configLocation>
-                        <consoleOutput>true</consoleOutput>
+                        <configLocation>https://raw.githubusercontent.com/triel-dev/checkstyle/main/checkstyle.xml</configLocation>
+                        <failsOnError>true</failsOnError>
+                        <failOnViolation>true</failOnViolation>
                         <violationSeverity>warning</violationSeverity>
-                        <failOnViolation>false</failOnViolation>
+                        <consoleOutput>true</consoleOutput>
                     </configuration>
                     <executions>
                         <execution>

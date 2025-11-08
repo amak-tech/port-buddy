@@ -62,6 +62,7 @@ For local variable `var` must be used instead of class name.
 Lombok library is used for getters/setters, log reference, ect.
 Do not shorten variable names. Always use meaningful names.
 Use 4 spaces for indentation.
+Must follow checkstyle rules: https://raw.githubusercontent.com/triel-dev/checkstyle/main/checkstyle.xml
 
 ### Server application
 Is written using Spring Boot 3.5.7 framework. 

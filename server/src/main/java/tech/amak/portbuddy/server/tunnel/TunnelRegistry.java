@@ -34,6 +34,14 @@ public class TunnelRegistry {
 
     public static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(30);
 
+    /**
+     * Creates a new pending Tunnel instance with the specified subdomain and tunnel ID
+     * and registers it in the internal mappings.
+     *
+     * @param subdomain the subdomain associated with the tunnel
+     * @param tunnelId the unique identifier for the tunnel
+     * @return the created Tunnel instance
+     */
     public Tunnel createPending(final String subdomain, final String tunnelId) {
         final var tunnel = new Tunnel(subdomain, tunnelId);
         bySubdomain.put(subdomain, tunnel);
@@ -54,6 +62,15 @@ public class TunnelRegistry {
         return byTunnelId.get(tunnelId);
     }
 
+    /**
+     * Associates a WebSocket session with a specific tunnel identified by the given tunnelId.
+     * If no tunnel with the provided tunnelId exists, the session attachment will not be performed.
+     *
+     * @param tunnelId the unique identifier of the tunnel to attach the WebSocket session to
+     * @param session the WebSocketSession to be attached to the specified tunnel
+     * @return {@code true} if the session was successfully attached to a tunnel,
+     *         or {@code false} if no matching tunnel was found
+     */
     public boolean attachSession(final String tunnelId, final WebSocketSession session) {
         final var tunnel = byTunnelId.get(tunnelId);
         if (tunnel == null) {
@@ -63,6 +80,16 @@ public class TunnelRegistry {
         return true;
     }
 
+    /**
+     * Forwards an HTTP tunnel request through a WebSocket session associated with a specified subdomain.
+     * If the tunnel is not connected or not open, the request will fail with an exception.
+     * A timeout can be specified to limit the operation’s duration.
+     *
+     * @param subdomain the subdomain associated with the destination tunnel
+     * @param request   the HTTP tunnel message to be forwarded
+     * @param timeout   the maximum duration to wait for a response; null indicates default timeout
+     * @return a CompletableFuture that will complete with the response message or fail with an exception
+     */
     public CompletableFuture<HttpTunnelMessage> forwardRequest(final String subdomain,
                                                                final HttpTunnelMessage request,
                                                                final Duration timeout) {
@@ -95,6 +122,14 @@ public class TunnelRegistry {
                 tunnel.pending().remove(request.getId()));
     }
 
+    /**
+     * Processes an HTTP tunnel response message associated with the specified tunnel ID.
+     * If the tunnel with the given ID exists and the response matches an existing pending
+     * request in the tunnel, the request's future is completed with the response.
+     *
+     * @param tunnelId the unique identifier of the tunnel associated with the response
+     * @param response the HTTP tunnel message representing the response to be processed
+     */
     public void onResponse(final String tunnelId, final HttpTunnelMessage response) {
         final var tunnel = byTunnelId.get(tunnelId);
         if (tunnel == null) {
@@ -107,6 +142,13 @@ public class TunnelRegistry {
         }
     }
 
+    /**
+     * Sends a WebSocket message to the client associated with the specified tunnel.
+     * If the specified tunnel is not open or does not exist, the operation is aborted.
+     *
+     * @param tunnelId the unique identifier of the tunnel to send the message to
+     * @param message  the WebSocket message to be sent to the client
+     */
     // ============ WebSocket tunneling support ============
     public void sendWsToClient(final String tunnelId, final WsTunnelMessage message) {
         final var tunnel = byTunnelId.get(tunnelId);
@@ -121,6 +163,15 @@ public class TunnelRegistry {
         }
     }
 
+    /**
+     * Registers a browser WebSocket session associated with the specified tunnel ID and connection ID.
+     * If no tunnel with the provided tunnel ID exists, the operation is aborted.
+     * The session is mapped in both the forward and reverse lookup structures for later reference.
+     *
+     * @param tunnelId the unique identifier of the tunnel to associate with the browser session
+     * @param connectionId the unique identifier of the connection within the tunnel
+     * @param browserSession the WebSocket session representing the browser connection
+     */
     public void registerBrowserWs(final String tunnelId,
                                   final String connectionId,
                                   final WebSocketSession browserSession) {
@@ -132,6 +183,16 @@ public class TunnelRegistry {
         tunnel.browserReverse().put(browserSession, new Ids(tunnelId, connectionId));
     }
 
+    /**
+     * Unregisters a browser WebSocket session from the tunnel registry. This method
+     * removes the browser session from the reverse mapping and connection ID mapping
+     * of the associated tunnel. If the session is successfully unregistered, the related
+     * IDs (tunnel ID and connection ID) are returned; otherwise, null is returned.
+     *
+     * @param browserSession the WebSocketSession representing the browser connection to be unregistered
+     * @return an {@code Ids} object containing the tunnel ID and connection ID associated with the
+     *         unregistered browser session, or {@code null} if the session was not found
+     */
     public Ids unregisterBrowserWs(final WebSocketSession browserSession) {
         for (final var tunnel : byTunnelId.values()) {
             final var ids = tunnel.browserReverse().remove(browserSession);
@@ -143,6 +204,14 @@ public class TunnelRegistry {
         return null;
     }
 
+    /**
+     * Retrieves the tunnel and connection IDs associated with a given browser WebSocket session.
+     * Iterates through the registered tunnels to find a reverse mapping for the specified session.
+     *
+     * @param browserSession the WebSocketSession representing the browser connection to look up
+     * @return an {@code Ids} object containing the tunnel ID and connection ID associated with
+     *         the specified session, or {@code null} if no match is found
+     */
     public Ids findIdsByBrowserSession(final WebSocketSession browserSession) {
         for (final var tunnel : byTunnelId.values()) {
             final var ids = tunnel.browserReverse().get(browserSession);
@@ -153,6 +222,16 @@ public class TunnelRegistry {
         return null;
     }
 
+    /**
+     * Retrieves a WebSocket session associated with the specified tunnel ID and connection ID.
+     * If no tunnel exists for the given tunnel ID or no session is associated with the
+     * provided connection ID, this method returns {@code null}.
+     *
+     * @param tunnelId the unique identifier of the tunnel from which to retrieve the session
+     * @param connectionId the unique identifier of the connection within the tunnel
+     * @return the WebSocketSession associated with the specified tunnel ID and connection ID,
+     *         or {@code null} if no matching session is found
+     */
     public WebSocketSession getBrowserSession(final String tunnelId, final String connectionId) {
         final var tunnel = byTunnelId.get(tunnelId);
         if (tunnel == null) {
