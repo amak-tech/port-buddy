@@ -18,7 +18,6 @@ export default function Landing() {
               <a href="#pricing" className="btn" aria-label="View pricing plans">Pricing</a>
               <Link to="/app" className="btn" aria-label="Open your dashboard">Open App</Link>
             </div>
-            <p className="mt-4 text-xs text-white/50">Font: JetBrains Mono</p>
             <p className="mt-2 text-xs text-white/50">No credit card required to start. Free local testing with rate limits.</p>
           </div>
           <div>

@@ -4,10 +4,10 @@ export default function Installation() {
       <h1 className="text-3xl font-bold">Installation</h1>
       <p className="text-white/70 mt-2">Install the Port Buddy CLI on your platform.</p>
 
-      <div className="grid md:grid-cols-3 gap-6 mt-10">
+      <div className="mt-10 space-y-6">
         <section className="bg-black/30 border border-white/10 rounded-xl p-6">
           <h2 className="font-semibold">macOS</h2>
-          <pre className="mt-3 bg-black/30 border border-white/10 rounded p-3 text-sm">
+          <pre className="mt-3 bg-black/30 border border-white/10 rounded p-3 text-sm overflow-x-auto max-w-full">
 {`# with Homebrew
 brew tap port-buddy/tap
 brew install port-buddy
@@ -22,7 +22,7 @@ port-buddy 3000`}
 
         <section className="bg-black/30 border border-white/10 rounded-xl p-6">
           <h2 className="font-semibold">Linux</h2>
-          <pre className="mt-3 bg-black/30 border border-white/10 rounded p-3 text-sm">
+          <pre className="mt-3 bg-black/30 border border-white/10 rounded p-3 text-sm overflow-x-auto max-w-full">
 {`# download latest
 curl -L https://github.com/port-buddy/cli/releases/download/v1.0.0/port-buddy-linux-amd64 -o port-buddy
 chmod +x port-buddy
@@ -35,7 +35,7 @@ port-buddy init {API_TOKEN}`}
 
         <section className="bg-black/30 border border-white/10 rounded-xl p-6">
           <h2 className="font-semibold">Windows</h2>
-          <pre className="mt-3 bg-black/30 border border-white/10 rounded p-3 text-sm">
+          <pre className="mt-3 bg-black/30 border border-white/10 rounded p-3 text-sm overflow-x-auto max-w-full">
 {`# with Scoop
 scoop bucket add port-buddy https://github.com/port-buddy/scoop-bucket
 scoop install port-buddy
@@ -47,7 +47,7 @@ port-buddy init {API_TOKEN}`}
       </div>
 
       <p className="text-white/60 text-sm mt-6">
-        Note: Replace {API_TOKEN} with a token generated in your account. Default mode is HTTP; use <code>tcp</code> for TCP exposure.
+        Note: Replace <code>{'{API_TOKEN}'}</code> with a token generated in your account. Default mode is HTTP; use <code>tcp</code> for TCP exposure.
       </p>
     </div>
   )
