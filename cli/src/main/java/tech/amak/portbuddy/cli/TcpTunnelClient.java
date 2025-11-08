@@ -52,8 +52,6 @@ public class TcpTunnelClient {
      * This method constructs the WebSocket URL using the configured proxy host, port, and tunnel ID.
      * It sets up an authentication token in the request header, if provided, and initializes the WebSocket connection.
      * The method blocks the current thread until the connection is closed or an interruption occurs.
-     *
-     * <p>
      * Behavior:
      * - Converts a base HTTP URL to a WebSocket URL using the {@code toWebSocketUrl} method.
      * - Adds an optional "Authorization" header to the WebSocket request for authentication.
