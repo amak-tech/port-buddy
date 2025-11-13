@@ -23,6 +23,7 @@ import okhttp3.Response;
 import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
 import okio.ByteString;
+import tech.amak.portbuddy.cli.ui.HttpLogSink;
 import tech.amak.portbuddy.common.tunnel.HttpTunnelMessage;
 import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
 
@@ -36,7 +37,7 @@ public class HttpTunnelClient {
     private final int localPort;
     private final String authToken; // Bearer token for API auth
     private final String publicBaseUrl; // e.g. https://abc123.portbuddy.dev
-    private final tech.amak.portbuddy.cli.ui.HttpLogSink httpLogSink;
+    private final HttpLogSink httpLogSink;
 
     private final OkHttpClient http = new OkHttpClient.Builder()
         .readTimeout(0, TimeUnit.MILLISECONDS) // keep-alive for WS
@@ -88,19 +89,18 @@ public class HttpTunnelClient {
      * disrupt the application's flow.
      * Behavior:
      * - If there is an active WebSocket (represented by the {@code webSocket} field),
-     *   it calls the {@code close} method on the WebSocket instance, passing the closure
-     *   status code and reason message.
+     * it calls the {@code close} method on the WebSocket instance, passing the closure
+     * status code and reason message.
      * - Logs any exception encountered during the close operation at the debug level
-     *   without re-throwing it.
+     * without re-throwing it.
      * Thread-safety: This method is thread-safe, as it uses a local reference to the
      * {@code webSocket} field to prevent potential null pointer exceptions caused by
      * concurrent modifications.
      */
     public void close() {
         try {
-            final var ws = this.webSocket;
-            if (ws != null) {
-                ws.close(1000, "Client exit");
+            if (webSocket != null) {
+                webSocket.close(1000, "Client exit");
             }
         } catch (final Exception ignore) {
             log.debug("HTTP tunnel close error: {}", ignore.toString());
