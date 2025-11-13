@@ -11,6 +11,7 @@ import java.util.concurrent.CountDownLatch;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -22,6 +23,7 @@ import tech.amak.portbuddy.cli.ui.TcpTrafficSink;
 import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
 
 @Slf4j
+@RequiredArgsConstructor
 public class TcpTunnelClient {
 
     private final String proxyHost;
@@ -34,22 +36,10 @@ public class TcpTunnelClient {
 
     private final OkHttpClient http = new OkHttpClient();
     private final ObjectMapper mapper = new ObjectMapper();
-    private WebSocket ws;
+    private WebSocket webSocket;
 
     private final Map<String, LocalTcp> locals = new ConcurrentHashMap<>();
     private final CountDownLatch closed = new CountDownLatch(1);
-
-    public TcpTunnelClient(final String proxyHost, final int proxyHttpPort, final String tunnelId,
-                           final String localHost, final int localPort, final String authToken,
-                           final TcpTrafficSink trafficSink) {
-        this.proxyHost = proxyHost;
-        this.proxyHttpPort = proxyHttpPort;
-        this.tunnelId = tunnelId;
-        this.localHost = localHost;
-        this.localPort = localPort;
-        this.authToken = authToken;
-        this.trafficSink = trafficSink;
-    }
 
     /**
      * Establishes and maintains a WebSocket connection for TCP tunneling.
@@ -65,14 +55,14 @@ public class TcpTunnelClient {
      */
     public void runBlocking() {
         final var url = toWebSocketUrl("http://" + proxyHost + ":" + proxyHttpPort, "/api/tcp-tunnel/" + tunnelId);
-        final var rb = new Request.Builder().url(url);
+        final var request = new Request.Builder().url(url);
         if (authToken != null && !authToken.isBlank()) {
-            rb.addHeader("Authorization", "Bearer " + authToken);
+            request.addHeader("Authorization", "Bearer " + authToken);
         }
-        ws = http.newWebSocket(rb.build(), new Listener());
+        webSocket = http.newWebSocket(request.build(), new Listener());
         try {
             closed.await();
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
         }
     }
@@ -91,26 +81,25 @@ public class TcpTunnelClient {
      */
     public void close() {
         try {
-            final var w = ws;
-            if (w != null) {
-                w.close(1000, "Client exit");
+            if (webSocket != null) {
+                webSocket.close(1000, "Client exit");
             }
         } catch (final Exception ignore) {
             log.debug("TCP tunnel close error: {}", ignore.toString());
         }
     }
 
-    private String toWebSocketUrl(final String base, final String path) {
-        var u = base;
-        if (u.startsWith("http://")) {
-            u = "ws://" + u.substring(7);
-        } else if (u.startsWith("https://")) {
-            u = "wss://" + u.substring(8);
+    private String toWebSocketUrl(final String httpUri, final String path) {
+        var uri = httpUri;
+        if (uri.startsWith("http://")) {
+            uri = "ws://" + uri.substring(7);
+        } else if (uri.startsWith("https://")) {
+            uri = "wss://" + uri.substring(8);
         }
-        if (u.endsWith("/")) {
-            u = u.substring(0, u.length() - 1);
+        if (uri.endsWith("/")) {
+            uri = uri.substring(0, uri.length() - 1);
         }
-        return u + path;
+        return uri + path;
     }
 
     private class Listener extends WebSocketListener {
@@ -139,34 +128,34 @@ public class TcpTunnelClient {
         }
 
         @Override
-        public void onFailure(final WebSocket webSocket, final Throwable t, final Response response) {
+        public void onFailure(final WebSocket webSocket, final Throwable throwable, final Response response) {
             closed.countDown();
         }
     }
 
-    private void handleControl(final WsTunnelMessage m) throws Exception {
-        final var connId = m.getConnectionId();
-        switch (m.getWsType()) {
+    private void handleControl(final WsTunnelMessage message) throws Exception {
+        final var connId = message.getConnectionId();
+        switch (message.getWsType()) {
             case OPEN -> {
                 // Establish local TCP
-                final var sock = new Socket();
-                sock.connect(new InetSocketAddress(localHost, localPort), 5000);
-                final var local = new LocalTcp(connId, sock);
+                final var socket = new Socket();
+                socket.connect(new InetSocketAddress(localHost, localPort), 5000);
+                final var local = new LocalTcp(connId, socket);
                 locals.put(connId, local);
                 // Ack
                 final var ack = new WsTunnelMessage();
                 ack.setWsType(WsTunnelMessage.Type.OPEN_OK);
                 ack.setConnectionId(connId);
-                ws.send(mapper.writeValueAsString(ack));
+                webSocket.send(mapper.writeValueAsString(ack));
                 // Start reader thread from local TCP to proxy WS
                 new Thread(() -> pumpLocalToProxy(local)).start();
             }
             case BINARY -> {
                 // Base64 payload from proxy to local TCP
                 final var local = locals.get(connId);
-                if (local != null && m.getDataB64() != null) {
+                if (local != null && message.getDataB64() != null) {
                     try {
-                        final var bytes = Base64.getDecoder().decode(m.getDataB64());
+                        final var bytes = Base64.getDecoder().decode(message.getDataB64());
                         local.out.write(bytes);
                         local.out.flush();
                         if (trafficSink != null) {
@@ -193,36 +182,36 @@ public class TcpTunnelClient {
     }
 
     private void pumpLocalToProxy(final LocalTcp local) {
-        final var buf = new byte[8192];
+        final var buffer = new byte[8192];
         try {
             while (true) {
-                final var n = local.in.read(buf);
-                if (n == -1) {
+                final var byteCount = local.in.read(buffer);
+                if (byteCount == -1) {
                     break;
                 }
-                final var m = new WsTunnelMessage();
-                m.setWsType(WsTunnelMessage.Type.BINARY);
-                m.setConnectionId(local.connectionId);
-                m.setDataB64(Base64.getEncoder().encodeToString(java.util.Arrays.copyOf(buf, n)));
-                ws.send(mapper.writeValueAsString(m));
+                final var message = new WsTunnelMessage();
+                message.setWsType(WsTunnelMessage.Type.BINARY);
+                message.setConnectionId(local.connectionId);
+                message.setDataB64(Base64.getEncoder().encodeToString(java.util.Arrays.copyOf(buffer, byteCount)));
+                webSocket.send(mapper.writeValueAsString(message));
                 if (trafficSink != null) {
-                    trafficSink.onBytesOut(n);
+                    trafficSink.onBytesOut(byteCount);
                 }
             }
         } catch (Exception e) {
             // ignore
         } finally {
             try {
-                final var m = new WsTunnelMessage();
-                m.setWsType(WsTunnelMessage.Type.CLOSE);
-                m.setConnectionId(local.connectionId);
-                ws.send(mapper.writeValueAsString(m));
-            } catch (Exception ignore) {
+                final var message = new WsTunnelMessage();
+                message.setWsType(WsTunnelMessage.Type.CLOSE);
+                message.setConnectionId(local.connectionId);
+                webSocket.send(mapper.writeValueAsString(message));
+            } catch (final Exception ignore) {
                 log.error("Failed to send local WS close: {}", ignore.toString());
             }
             try {
                 local.sock.close();
-            } catch (Exception ignore) {
+            } catch (final Exception ignore) {
                 log.error("Failed to close local TCP: {}", ignore.toString());
             }
             locals.remove(local.connectionId);
