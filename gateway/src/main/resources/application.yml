@@ -1,0 +1,48 @@
+server:
+  port: 8080
+
+domain: localhost:8080
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+
+spring:
+  application:
+    name: api-gateway
+
+  cloud:
+    gateway:
+      server:
+        webflux:
+          discovery:
+            locator:
+              lower-case-service-id: true
+
+          routes:
+            - id: subdomain_ingress_route
+              uri: lb://port-buddy-server
+              predicates:
+#                - Host={subdomain}.localhost:8080
+                - Host={subdomain}.localhost:8080
+              filters:
+                - name: PortBuddyRewritePath
+                  args:
+                    regexp: /(?<remaining>.*)
+                    replacement: /_/$\{subdomain}/$\{remaining}
+#                    replacement: /_/$\{remaining}
+
+            - id: api_route
+              order: 2
+              uri: lb://port-buddy-server
+              predicates:
+                - Path=/api/**, /oauth2/**, /login/oauth2/**
+
+            - id: spa_frontend_route
+              uri: forward:/index.html
+              order: 3
+              predicates:
+                - Path=/install, /app/**, /login/**, /auth/callback
+
+
