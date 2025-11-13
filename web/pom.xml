@@ -3,13 +3,70 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <parent>
         <groupId>tech.amak</groupId>
         <artifactId>port-buddy</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
+
     <artifactId>web</artifactId>
     <name>port-buddy-web</name>
-    <packaging>pom</packaging>
-    <description>React+TypeScript SPA built with Vite and Tailwind (managed outside Maven build)</description>
+    <packaging>jar</packaging>
+    <description>React+TypeScript SPA built with Vite and Tailwind (packaged into META-INF/resources)</description>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>npm-ci</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>npm</executable>
+                            <arguments>
+                                <argument>ci</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>npm-build</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>npm</executable>
+                            <arguments>
+                                <argument>run</argument>
+                                <argument>build</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+        <resources>
+            <!-- Also include the module's standard resources if present -->
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+            </resource>
+            <!-- Copy the built SPA into the JAR under META-INF/resources so Spring Boot can serve it -->
+            <resource>
+                <directory>${project.basedir}/dist</directory>
+                <filtering>false</filtering>
+                <targetPath>META-INF/resources</targetPath>
+                <includes>
+                    <include>**/*</include>
+                </includes>
+            </resource>
+        </resources>
+    </build>
 </project>
