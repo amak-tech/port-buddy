@@ -1,4 +1,4 @@
-package tech.amak.portbuddy.cli;
+package tech.amak.portbuddy.cli.tunnel;
 
 import java.io.IOException;
 import java.net.URI;
@@ -45,7 +45,7 @@ public class HttpTunnelClient {
     private final ObjectMapper mapper = new ObjectMapper();
 
     private WebSocket webSocket;
-    private final CountDownLatch closeLatch = new CountDownLatch(1);
+    private final CountDownLatch closed = new CountDownLatch(1);
 
     private final Map<String, WebSocket> localWebsocketMap = new ConcurrentHashMap<>();
 
@@ -74,7 +74,7 @@ public class HttpTunnelClient {
         webSocket = http.newWebSocket(request.build(), new Listener());
 
         try {
-            closeLatch.await();
+            closed.await();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
@@ -150,13 +150,13 @@ public class HttpTunnelClient {
         @Override
         public void onClosed(final WebSocket webSocket, final int code, final String reason) {
             log.info("Tunnel closed: {} {}", code, reason);
-            closeLatch.countDown();
+            closed.countDown();
         }
 
         @Override
         public void onFailure(final WebSocket webSocket, final Throwable error, final Response response) {
             log.warn("Tunnel failure: {}", error.toString());
-            closeLatch.countDown();
+            closed.countDown();
         }
     }
 

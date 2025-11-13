@@ -18,6 +18,8 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
+import tech.amak.portbuddy.cli.tunnel.HttpTunnelClient;
+import tech.amak.portbuddy.cli.tunnel.TcpTunnelClient;
 import tech.amak.portbuddy.cli.ui.ConsoleUi;
 import tech.amak.portbuddy.common.ClientConfig;
 import tech.amak.portbuddy.common.Mode;

@@ -1,4 +1,4 @@
-package tech.amak.portbuddy.cli;
+package tech.amak.portbuddy.cli.tunnel;
 
 import java.io.InputStream;
 import java.io.OutputStream;
