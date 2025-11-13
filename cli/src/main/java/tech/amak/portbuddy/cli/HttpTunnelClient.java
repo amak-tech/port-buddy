@@ -35,6 +35,8 @@ public class HttpTunnelClient {
     private final String localHost;
     private final int localPort;
     private final String authToken; // Bearer token for API auth
+    private final String publicBaseUrl; // e.g. https://abc123.portbuddy.dev
+    private final tech.amak.portbuddy.cli.ui.HttpLogSink httpLogSink;
 
     private final OkHttpClient http = new OkHttpClient.Builder()
         .readTimeout(0, TimeUnit.MILLISECONDS) // keep-alive for WS
@@ -74,6 +76,34 @@ public class HttpTunnelClient {
             closeLatch.await();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+        }
+    }
+
+    /**
+     * Closes the WebSocket connection associated with this HTTP tunnel client.
+     * This method attempts to gracefully close the WebSocket connection, if it exists,
+     * using the standard WebSocket closure status code 1000 (indicating a normal closure)
+     * and a reason message "Client exit". If an exception occurs during the closure process,
+     * it is logged at the debug level and suppressed to ensure that the exception does not
+     * disrupt the application's flow.
+     * Behavior:
+     * - If there is an active WebSocket (represented by the {@code webSocket} field),
+     *   it calls the {@code close} method on the WebSocket instance, passing the closure
+     *   status code and reason message.
+     * - Logs any exception encountered during the close operation at the debug level
+     *   without re-throwing it.
+     * Thread-safety: This method is thread-safe, as it uses a local reference to the
+     * {@code webSocket} field to prevent potential null pointer exceptions caused by
+     * concurrent modifications.
+     */
+    public void close() {
+        try {
+            final var ws = this.webSocket;
+            if (ws != null) {
+                ws.close(1000, "Client exit");
+            }
+        } catch (final Exception ignore) {
+            log.debug("HTTP tunnel close error: {}", ignore.toString());
         }
     }
 
@@ -275,6 +305,21 @@ public class HttpTunnelClient {
                     successMessage.setRespBodyB64(Base64.getEncoder().encodeToString(bytes));
                 }
             }
+            // Log to UI sink
+            try {
+                if (httpLogSink != null) {
+                    var displayUrl = publicBaseUrl;
+                    if (requestMessage.getPath() != null) {
+                        displayUrl += requestMessage.getPath();
+                    }
+                    if (requestMessage.getQuery() != null && !requestMessage.getQuery().isBlank()) {
+                        displayUrl += "?" + requestMessage.getQuery();
+                    }
+                    httpLogSink.onHttpLog(method, displayUrl, targetResponse.code());
+                }
+            } catch (final Exception ignore) {
+                log.debug("HTTP log sink failed: {}", ignore.toString());
+            }
             return successMessage;
         } catch (final IOException e) {
             final var errorMessage = new HttpTunnelMessage();
@@ -285,6 +330,20 @@ public class HttpTunnelClient {
             headers.put("Content-Type", "text/plain; charset=utf-8");
             errorMessage.setRespHeaders(headers);
             errorMessage.setRespBodyB64(Base64.getEncoder().encodeToString(("Bad Gateway: " + e.getMessage()).getBytes(StandardCharsets.UTF_8)));
+            try {
+                if (httpLogSink != null) {
+                    var displayUrl = publicBaseUrl;
+                    if (requestMessage.getPath() != null) {
+                        displayUrl += requestMessage.getPath();
+                    }
+                    if (requestMessage.getQuery() != null && !requestMessage.getQuery().isBlank()) {
+                        displayUrl += "?" + requestMessage.getQuery();
+                    }
+                    httpLogSink.onHttpLog(method, displayUrl, 502);
+                }
+            } catch (final Exception ignore) {
+                log.debug("HTTP log sink failed: {}", ignore.toString());
+            }
             return errorMessage;
         }
     }

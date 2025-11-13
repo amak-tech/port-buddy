@@ -18,6 +18,7 @@ import okhttp3.Response;
 import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
 import okio.ByteString;
+import tech.amak.portbuddy.cli.ui.TcpTrafficSink;
 import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
 
 @Slf4j
@@ -29,6 +30,7 @@ public class TcpTunnelClient {
     private final String localHost;
     private final int localPort;
     private final String authToken; // Bearer token if available
+    private final TcpTrafficSink trafficSink;
 
     private final OkHttpClient http = new OkHttpClient();
     private final ObjectMapper mapper = new ObjectMapper();
@@ -38,13 +40,15 @@ public class TcpTunnelClient {
     private final CountDownLatch closed = new CountDownLatch(1);
 
     public TcpTunnelClient(final String proxyHost, final int proxyHttpPort, final String tunnelId,
-                           final String localHost, final int localPort, final String authToken) {
+                           final String localHost, final int localPort, final String authToken,
+                           final TcpTrafficSink trafficSink) {
         this.proxyHost = proxyHost;
         this.proxyHttpPort = proxyHttpPort;
         this.tunnelId = tunnelId;
         this.localHost = localHost;
         this.localPort = localPort;
         this.authToken = authToken;
+        this.trafficSink = trafficSink;
     }
 
     /**
@@ -70,6 +74,29 @@ public class TcpTunnelClient {
             closed.await();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+        }
+    }
+
+    /**
+     * Closes the WebSocket connection for the TCP tunnel client.
+     * This method attempts to gracefully close the WebSocket connection, if it exists,
+     * by sending a close frame with a status code of 1000 (normal closure) and a reason
+     * message ("Client exit"). If an exception occurs during the close operation, the
+     * error is logged for debugging purposes.
+     * Behavior:
+     * - Checks if the WebSocket instance (`ws`) is not null.
+     * - If the WebSocket exists, sends a close frame with a normal status and reason.
+     * - Catches and logs any exceptions encountered during the close operation,
+     * ensuring the process does not disrupt the program flow.
+     */
+    public void close() {
+        try {
+            final var w = ws;
+            if (w != null) {
+                w.close(1000, "Client exit");
+            }
+        } catch (final Exception ignore) {
+            log.debug("TCP tunnel close error: {}", ignore.toString());
         }
     }
 
@@ -139,8 +166,12 @@ public class TcpTunnelClient {
                 final var local = locals.get(connId);
                 if (local != null && m.getDataB64() != null) {
                     try {
-                        local.out.write(Base64.getDecoder().decode(m.getDataB64()));
+                        final var bytes = Base64.getDecoder().decode(m.getDataB64());
+                        local.out.write(bytes);
                         local.out.flush();
+                        if (trafficSink != null) {
+                            trafficSink.onBytesIn(bytes.length);
+                        }
                     } catch (Exception e) {
                         log.debug("Write to local TCP failed: {}", e.toString());
                     }
@@ -174,6 +205,9 @@ public class TcpTunnelClient {
                 m.setConnectionId(local.connectionId);
                 m.setDataB64(Base64.getEncoder().encodeToString(java.util.Arrays.copyOf(buf, n)));
                 ws.send(mapper.writeValueAsString(m));
+                if (trafficSink != null) {
+                    trafficSink.onBytesOut(n);
+                }
             }
         } catch (Exception e) {
             // ignore

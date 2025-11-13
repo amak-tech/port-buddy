@@ -18,6 +18,7 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
+import tech.amak.portbuddy.cli.ui.ConsoleUi;
 import tech.amak.portbuddy.common.ClientConfig;
 import tech.amak.portbuddy.common.Mode;
 import tech.amak.portbuddy.common.dto.ExposeResponse;
@@ -82,16 +83,35 @@ public class PortBuddy implements Callable<Integer> {
                 return CommandLine.ExitCode.SOFTWARE;
             }
 
-            System.out.printf("http://%s:%d exposed to: %s%n", hostPort.host, hostPort.port, expose.publicUrl());
-
+            final var localInfo = String.format("http://%s:%d", hostPort.host, hostPort.port);
+            final var publicInfo = expose.publicUrl();
+            final var ui = new ConsoleUi(Mode.HTTP, localInfo, publicInfo);
             final var tunnelId = expose.tunnelId();
             if (tunnelId == null || tunnelId.isBlank()) {
                 System.err.println("Server did not return tunnelId");
                 return CommandLine.ExitCode.SOFTWARE;
             }
 
-            final var client = new HttpTunnelClient(config.getServerUrl(), tunnelId, hostPort.host, hostPort.port, config.getApiToken());
-            client.runBlocking();
+            final var client = new HttpTunnelClient(
+                config.getServerUrl(),
+                tunnelId,
+                hostPort.host,
+                hostPort.port,
+                config.getApiToken(),
+                publicInfo,
+                ui
+            );
+
+            final var t = new Thread(client::runBlocking, "port-buddy-http-client");
+            ui.setOnExit(client::close);
+            t.start();
+            ui.start();
+            ui.waitForExit();
+            try {
+                t.join(2000);
+            } catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         } else {
             final var config = loadConfig();
             final var expose = callExposeTcp(config.getServerUrl(), new HttpExposeRequest(hostPort.host, hostPort.port));
@@ -99,7 +119,9 @@ public class PortBuddy implements Callable<Integer> {
                 System.err.println("Failed to contact server to create TCP tunnel");
                 return CommandLine.ExitCode.SOFTWARE;
             }
-            System.out.printf("tcp %s:%d exposed to: %s:%d%n", hostPort.host, hostPort.port, expose.publicHost(), expose.publicPort());
+            final var localInfo = String.format("tcp %s:%d", hostPort.host, hostPort.port);
+            final var publicInfo = String.format("%s:%d", expose.publicHost(), expose.publicPort());
+            final var ui = new ConsoleUi(Mode.TCP, localInfo, publicInfo);
             final var tunnelId = expose.tunnelId();
             if (tunnelId == null || tunnelId.isBlank()) {
                 System.err.println("Server did not return tunnelId");
@@ -107,8 +129,17 @@ public class PortBuddy implements Callable<Integer> {
             }
             final var token = config.getApiToken();
             // Assume proxy WS control endpoint is on default HTTP port 80 for the public host
-            final var tcpClient = new TcpTunnelClient(expose.publicHost(), 80, tunnelId, hostPort.host, hostPort.port, token);
-            tcpClient.runBlocking();
+            final var tcpClient = new TcpTunnelClient(expose.publicHost(), 80, tunnelId, hostPort.host, hostPort.port, token, ui);
+            final var t = new Thread(tcpClient::runBlocking, "port-buddy-tcp-client");
+            ui.setOnExit(tcpClient::close);
+            t.start();
+            ui.start();
+            ui.waitForExit();
+            try {
+                t.join(2000);
+            } catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         }
 
         return CommandLine.ExitCode.OK;
