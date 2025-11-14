@@ -35,7 +35,7 @@ public class ExposeController {
         registry.createPending(subdomain, tunnelId);
         final var gateway = properties.gateway();
         final var publicUrl = "%s://%s.%s".formatted(gateway.schema(), subdomain, gateway.domain());
-        final var source = "http://" + request.host() + ":" + request.port();
+        final var source = "%s://%s:%s".formatted(request.scheme(), request.host(), request.port());
         return new ExposeResponse(source, publicUrl, null, null, tunnelId, subdomain);
     }
 

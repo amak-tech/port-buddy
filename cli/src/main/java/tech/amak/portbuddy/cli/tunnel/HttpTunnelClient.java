@@ -35,6 +35,7 @@ public class HttpTunnelClient {
     private final String tunnelId;
     private final String localHost;
     private final int localPort;
+    private final String localScheme; // http or https
     private final String authToken; // Bearer token for API auth
     private final String publicBaseUrl; // e.g. https://abc123.portbuddy.dev
     private final HttpLogSink httpLogSink;
@@ -165,7 +166,8 @@ public class HttpTunnelClient {
         switch (message.getWsType()) {
             case OPEN -> {
                 // Connect to local target via WS
-                var url = "ws://" + localHost + ":" + localPort + (message.getPath() != null ? message.getPath() : "/");
+                final var localWsScheme = "https".equalsIgnoreCase(localScheme) ? "wss" : "ws";
+                var url = localWsScheme + "://" + localHost + ":" + localPort + (message.getPath() != null ? message.getPath() : "/");
                 if (message.getQuery() != null && !message.getQuery().isBlank()) {
                     url += "?" + message.getQuery();
                 }
@@ -271,7 +273,7 @@ public class HttpTunnelClient {
 
     private HttpTunnelMessage handleRequest(final HttpTunnelMessage requestMessage) {
         final var method = requestMessage.getMethod();
-        var url = "http://" + localHost + ":" + localPort + requestMessage.getPath();
+        var url = localScheme + "://" + localHost + ":" + localPort + requestMessage.getPath();
         if (requestMessage.getQuery() != null && !requestMessage.getQuery().isBlank()) {
             url += "?" + requestMessage.getQuery();
         }

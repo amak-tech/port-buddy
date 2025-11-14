@@ -39,7 +39,10 @@ public class PortBuddy implements Callable<Integer> {
     @Mixin
     private SharedOptions shared;
 
-    @Parameters(arity = "0..2", description = "[mode] [host:][port] e.g. 'tcp 127.0.0.1:5432' or '3000'")
+    @Parameters(
+        arity = "0..2",
+        description = "[mode] [host:][port] or [schema://]host[:port]. Examples: '3000', 'localhost', 'example.com:8080', 'https://example.com'"
+    )
     private java.util.List<String> args = new java.util.ArrayList<>();
 
     private final ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
@@ -60,7 +63,7 @@ public class PortBuddy implements Callable<Integer> {
         final String modeStr;
         final String hostPortStr;
         if (args.isEmpty()) {
-            System.err.println("Usage: port-buddy [mode] [host:][port]");
+            System.err.println("Usage: port-buddy [mode] [host:][port] or [schema://]host[:port]");
             return CommandLine.ExitCode.USAGE;
         } else if (args.size() == 1) {
             modeStr = null; // default http
@@ -79,13 +82,14 @@ public class PortBuddy implements Callable<Integer> {
 
         if (mode == Mode.HTTP) {
             final var config = loadConfig();
-            final var expose = callExposeHttp(config.getServerUrl(), new HttpExposeRequest(hostPort.host, hostPort.port));
+            final var expose = callExposeHttp(config.getServerUrl(),
+                new HttpExposeRequest(hostPort.scheme, hostPort.host, hostPort.port));
             if (expose == null) {
                 System.err.println("Failed to contact server to create tunnel");
                 return CommandLine.ExitCode.SOFTWARE;
             }
 
-            final var localInfo = String.format("http://%s:%d", hostPort.host, hostPort.port);
+            final var localInfo = String.format("%s://%s:%d", hostPort.scheme, hostPort.host, hostPort.port);
             final var publicInfo = expose.publicUrl();
             final var ui = new ConsoleUi(Mode.HTTP, localInfo, publicInfo);
             final var tunnelId = expose.tunnelId();
@@ -99,6 +103,7 @@ public class PortBuddy implements Callable<Integer> {
                 tunnelId,
                 hostPort.host,
                 hostPort.port,
+                hostPort.scheme,
                 config.getApiToken(),
                 publicInfo,
                 ui
@@ -116,7 +121,8 @@ public class PortBuddy implements Callable<Integer> {
             }
         } else {
             final var config = loadConfig();
-            final var expose = callExposeTcp(config.getServerUrl(), new HttpExposeRequest(hostPort.host, hostPort.port));
+            final var expose = callExposeTcp(config.getServerUrl(),
+                new HttpExposeRequest("tcp", hostPort.host, hostPort.port));
             if (expose == null || expose.publicHost() == null || expose.publicPort() == null) {
                 System.err.println("Failed to contact server to create TCP tunnel");
                 return CommandLine.ExitCode.SOFTWARE;
@@ -228,29 +234,94 @@ public class PortBuddy implements Callable<Integer> {
         return config;
     }
 
-    private HostPort parseHostPort(String arg) {
-        var host = "localhost";
-        var portStr = arg;
+    private HostPort parseHostPort(final String arg) {
+        var scheme = "http"; // default scheme
+        var schemeExplicit = false;
+        var host = "localhost"; // default host
+        Integer port = null;
+
         if (arg == null || arg.isBlank()) {
-            System.err.println("Missing [host:][port]. Example: 'port-buddy 3000' or 'port-buddy tcp 127.0.0.1:5432'");
+            System.err.println("Missing [host:][port] or [schema://]host[:port]. Example: 'port-buddy 3000' or 'port-buddy https://localhost'");
             throw new CommandLine.ParameterException(new CommandLine(this), "Missing host/port argument");
         }
-        if (arg.contains(":")) {
-            final var parts = arg.split(":", 2);
-            host = parts[0].isBlank() ? host : parts[0];
-            portStr = parts[1];
+
+        final var s = arg.trim();
+
+        // Case 1: pure port number, e.g. "3000"
+        if (!s.contains("://") && !s.contains(":")) {
+            // try parse as number; if fails, treat as host without port
+            try {
+                port = Integer.parseInt(s);
+                return new HostPort(host, port, scheme);
+            } catch (final NumberFormatException ignore) {
+                // not a pure number -> host only, keep going
+                host = s;
+                port = null;
+            }
         }
-        final var port = Integer.parseInt(portStr);
-        return new HostPort(host, port);
+
+        // Case 2: URL with scheme: http(s)://host[:port]
+        if (s.contains("://")) {
+            final var parts = s.split("://", 2);
+            final var givenScheme = parts[0].toLowerCase();
+            if (!givenScheme.equals("http") && !givenScheme.equals("https")) {
+                throw new CommandLine.ParameterException(new CommandLine(this), "Unsupported schema: " + givenScheme + ". Only http or https are allowed.");
+            }
+            scheme = givenScheme;
+            schemeExplicit = true;
+            final var rest = parts[1];
+            if (rest.contains(":")) {
+                final var hp = rest.split(":", 2);
+                host = hp[0].isBlank() ? host : hp[0];
+                try {
+                    port = Integer.parseInt(hp[1]);
+                } catch (final NumberFormatException e) {
+                    throw new CommandLine.ParameterException(new CommandLine(this), "Invalid port: " + hp[1]);
+                }
+            } else if (!rest.isBlank()) {
+                host = rest;
+            }
+        } else if (port == null) {
+            // Case 3: host[:port] (no scheme)
+            if (s.contains(":")) {
+                final var hp = s.split(":", 2);
+                host = hp[0].isBlank() ? host : hp[0];
+                try {
+                    port = Integer.parseInt(hp[1]);
+                } catch (final NumberFormatException e) {
+                    throw new CommandLine.ParameterException(new CommandLine(this), "Invalid port: " + hp[1]);
+                }
+            } else {
+                host = s;
+            }
+        }
+
+        if (port == null) {
+            // Default port by scheme
+            port = scheme.equals("https") ? 443 : 80;
+        }
+
+        // If scheme is not explicit and port is 443/80, infer scheme from common defaults
+        if (!schemeExplicit) {
+            if (port == 443) {
+                scheme = "https";
+            } else if (port == 80) {
+                scheme = "http";
+            }
+        }
+
+        return new HostPort(host, port, scheme);
     }
 
     static final class HostPort {
         final String host;
         final int port;
+        final String scheme;
 
-        HostPort(String host, int port) {
+        HostPort(final String host, final int port, final String scheme) {
             this.host = host;
             this.port = port;
+            this.scheme = scheme;
         }
     }
 

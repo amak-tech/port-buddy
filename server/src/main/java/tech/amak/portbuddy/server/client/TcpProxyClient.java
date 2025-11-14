@@ -9,7 +9,7 @@ import tech.amak.portbuddy.common.dto.ExposeResponse;
 @FeignClient("tcp-proxy")
 public interface TcpProxyClient {
 
-    @PostMapping()
+    @PostMapping("/api/proxy/expose")
     ExposeResponse exposePort(@RequestParam("tunnelId") String tunnelId);
 
 }
