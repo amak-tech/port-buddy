@@ -104,13 +104,13 @@ public class PortBuddy implements Callable<Integer> {
                 ui
             );
 
-            final var t = new Thread(client::runBlocking, "port-buddy-http-client");
+            final var thread = new Thread(client::runBlocking, "port-buddy-http-client");
             ui.setOnExit(client::close);
-            t.start();
+            thread.start();
             ui.start();
             ui.waitForExit();
             try {
-                t.join(2000);
+                thread.join(2000);
             } catch (final InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
