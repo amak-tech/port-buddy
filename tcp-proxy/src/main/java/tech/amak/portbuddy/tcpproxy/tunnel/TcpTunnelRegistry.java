@@ -1,4 +1,4 @@
-package tech.amak.portbuddy.tcpproxy;
+package tech.amak.portbuddy.tcpproxy.tunnel;
 
 import java.io.IOException;
 import java.net.ServerSocket;

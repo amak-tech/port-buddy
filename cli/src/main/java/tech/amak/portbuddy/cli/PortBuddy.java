@@ -132,13 +132,13 @@ public class PortBuddy implements Callable<Integer> {
             final var token = config.getApiToken();
             // Assume proxy WS control endpoint is on default HTTP port 80 for the public host
             final var tcpClient = new TcpTunnelClient(expose.publicHost(), 80, tunnelId, hostPort.host, hostPort.port, token, ui);
-            final var t = new Thread(tcpClient::runBlocking, "port-buddy-tcp-client");
+            final var thread = new Thread(tcpClient::runBlocking, "port-buddy-tcp-client");
             ui.setOnExit(tcpClient::close);
-            t.start();
+            thread.start();
             ui.start();
             ui.waitForExit();
             try {
-                t.join(2000);
+                thread.join(2000);
             } catch (final InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
