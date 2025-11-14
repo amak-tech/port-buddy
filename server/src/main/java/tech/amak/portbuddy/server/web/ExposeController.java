@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.dto.ExposeResponse;
 import tech.amak.portbuddy.common.dto.HttpExposeRequest;
+import tech.amak.portbuddy.server.config.AppProperties;
 import tech.amak.portbuddy.server.tunnel.TunnelRegistry;
 
 @RestController
@@ -25,13 +26,15 @@ public class ExposeController {
     private final SecureRandom random = new SecureRandom();
     private final TunnelRegistry registry;
     private final RestTemplate restTemplate = new RestTemplate();
+    private final AppProperties properties;
 
     @PostMapping("/http")
     public ExposeResponse exposeHttp(final @RequestBody HttpExposeRequest request) {
         final var subdomain = randomSubdomain();
         final var tunnelId = UUID.randomUUID().toString();
         registry.createPending(subdomain, tunnelId);
-        final var publicUrl = "https://" + subdomain + ".port-buddy.com";
+        final var gateway = properties.gateway();
+        final var publicUrl = "%s://%s.%s".formatted(gateway.schema(), subdomain, gateway.domain());
         final var source = "http://" + request.host() + ":" + request.port();
         return new ExposeResponse(source, publicUrl, null, null, tunnelId, subdomain);
     }

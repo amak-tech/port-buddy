@@ -12,6 +12,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import tech.amak.portbuddy.server.config.AppProperties;
 
 /**
  * Intercepts requests with Host like "{sub}.port-buddy.com" and forwards them via tunnel.
@@ -22,7 +23,11 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class HostTunnelFilter extends OncePerRequestFilter {
 
+    private static final String UPGRADE_HEADER = "Upgrade";
+    private static final String UPGRADE_TO_WEBSOCKET = "Upgrade";
+
     private final TunnelForwarder forwarder;
+    private final AppProperties properties;
 
     @Override
     protected void doFilterInternal(final HttpServletRequest request,
@@ -36,14 +41,14 @@ public class HostTunnelFilter extends OncePerRequestFilter {
         }
 
         // Let WebSocket upgrade go through to WebSocket handlers
-        final var upgrade = request.getHeader("Upgrade");
-        if (upgrade != null && "websocket".equalsIgnoreCase(upgrade)) {
+        final var upgrade = request.getHeader(UPGRADE_HEADER);
+        if (UPGRADE_TO_WEBSOCKET.equalsIgnoreCase(upgrade)) {
             filterChain.doFilter(request, response);
             return;
         }
 
         final var host = request.getHeader(HttpHeaders.HOST);
-        if (host != null && host.endsWith(".port-buddy.com") && host.indexOf('.') > 0) {
+        if (host != null && host.endsWith(properties.gateway().subdomainHost()) && host.indexOf('.') > 0) {
             final var firstDot = host.indexOf('.');
             final var subdomain = host.substring(0, firstDot);
             forwarder.forwardHostBased(subdomain, request, response);

@@ -12,11 +12,10 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.AbstractWebSocketHandler;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
+import tech.amak.portbuddy.server.config.AppProperties;
 
 /**
  * Accepts public WebSocket connections from browsers for tunneled subdomains and bridges them
@@ -28,7 +27,7 @@ import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
 public class PublicWebSocketProxyHandler extends AbstractWebSocketHandler {
 
     private final TunnelRegistry registry;
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final AppProperties properties;
 
     @Override
     public void afterConnectionEstablished(final WebSocketSession browserSession) throws Exception {
@@ -64,7 +63,7 @@ public class PublicWebSocketProxyHandler extends AbstractWebSocketHandler {
     }
 
     @Override
-    protected void handleTextMessage(final WebSocketSession session, final TextMessage message) throws Exception {
+    protected void handleTextMessage(final WebSocketSession session, final TextMessage message) {
         final var ids = registry.findIdsByBrowserSession(session);
         if (ids == null) {
             return;
@@ -77,7 +76,7 @@ public class PublicWebSocketProxyHandler extends AbstractWebSocketHandler {
     }
 
     @Override
-    protected void handleBinaryMessage(final WebSocketSession session, final BinaryMessage message) throws Exception {
+    protected void handleBinaryMessage(final WebSocketSession session, final BinaryMessage message) {
         final var ids = registry.findIdsByBrowserSession(session);
         if (ids == null) {
             return;
@@ -90,7 +89,7 @@ public class PublicWebSocketProxyHandler extends AbstractWebSocketHandler {
     }
 
     @Override
-    public void afterConnectionClosed(final WebSocketSession session, final CloseStatus status) throws Exception {
+    public void afterConnectionClosed(final WebSocketSession session, final CloseStatus status) {
         final var ids = registry.unregisterBrowserWs(session);
         if (ids == null) {
             return;
@@ -108,7 +107,7 @@ public class PublicWebSocketProxyHandler extends AbstractWebSocketHandler {
         if (host == null) {
             return null;
         }
-        if (!host.endsWith(".port-buddy.com")) {
+        if (!host.endsWith(properties.gateway().subdomainHost())) {
             return null;
         }
         final var idx = host.indexOf('.');

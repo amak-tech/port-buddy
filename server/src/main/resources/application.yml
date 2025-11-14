@@ -7,7 +7,10 @@ eureka:
       defaultZone: http://localhost:8761/eureka
 
 app:
-  gateway-url: http://localhost:8080
+  gateway:
+    domain: localhost:8080
+    schema: http
+    url: ${app.gateway.schema}://${app.gateway.domain}
 
 spring:
   application:
@@ -28,7 +31,7 @@ spring:
             client-id: 943200305645-kk9e9767lc9andmtlhamht42gjaguriq.apps.googleusercontent.com
             client-secret: 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
             scope: openid,profile,email
-            redirect-uri: "${app.gateway-url}/login/oauth2/code/{registrationId}"
+            redirect-uri: "${app.gateway.url}/login/oauth2/code/{registrationId}"
         provider:
           google:
             authorization-uri: https://accounts.google.com/o/oauth2/auth
