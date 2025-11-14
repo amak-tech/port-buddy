@@ -1,8 +1,5 @@
 package tech.amak.portbuddy.cli;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.concurrent.Callable;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,10 +15,10 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
+import tech.amak.portbuddy.cli.config.ConfigurationService;
 import tech.amak.portbuddy.cli.tunnel.HttpTunnelClient;
 import tech.amak.portbuddy.cli.tunnel.TcpTunnelClient;
 import tech.amak.portbuddy.cli.ui.ConsoleUi;
-import tech.amak.portbuddy.common.ClientConfig;
 import tech.amak.portbuddy.common.Mode;
 import tech.amak.portbuddy.common.dto.ExposeResponse;
 import tech.amak.portbuddy.common.dto.HttpExposeRequest;
@@ -35,6 +32,8 @@ import tech.amak.portbuddy.common.dto.HttpExposeRequest;
     subcommands = {PortBuddy.InitCommand.class}
 )
 public class PortBuddy implements Callable<Integer> {
+
+    private final ConfigurationService configurationService = new ConfigurationService();
 
     @Mixin
     private SharedOptions shared;
@@ -80,8 +79,10 @@ public class PortBuddy implements Callable<Integer> {
             return CommandLine.ExitCode.USAGE;
         }
 
+
+        final var config = configurationService.getConfig();
+
         if (mode == Mode.HTTP) {
-            final var config = loadConfig();
             final var expose = callExposeHttp(config.getServerUrl(),
                 new HttpExposeRequest(hostPort.scheme, hostPort.host, hostPort.port));
             if (expose == null) {
@@ -120,7 +121,6 @@ public class PortBuddy implements Callable<Integer> {
                 Thread.currentThread().interrupt();
             }
         } else {
-            final var config = loadConfig();
             final var expose = callExposeTcp(config.getServerUrl(),
                 new HttpExposeRequest("tcp", hostPort.host, hostPort.port));
             if (expose == null || expose.publicHost() == null || expose.publicPort() == null) {
@@ -157,12 +157,14 @@ public class PortBuddy implements Callable<Integer> {
         try {
             final var url = baseUrl + "/api/expose/http";
             final var json = mapper.writeValueAsString(reqBody);
-            final var cfg = loadConfig();
+            final var config = configurationService.getConfig();
+            final var apiToken = config.getApiToken();
             final var reqBuilder = new Request.Builder()
                 .url(url)
                 .post(RequestBody.create(json, MediaType.parse("application/json")));
-            if (cfg.getApiToken() != null && !cfg.getApiToken().isBlank()) {
-                reqBuilder.header("Authorization", "Bearer " + cfg.getApiToken());
+
+            if (apiToken != null && !apiToken.isBlank()) {
+                reqBuilder.header("Authorization", "Bearer " + apiToken);
             }
             final var request = reqBuilder.build();
 
@@ -188,12 +190,13 @@ public class PortBuddy implements Callable<Integer> {
         try {
             final var url = baseUrl + "/api/expose/tcp";
             final var json = mapper.writeValueAsString(reqBody);
-            final var cfg = loadConfig();
+            final var config = configurationService.getConfig();
+            final var apiToken = config.getApiToken();
             final var reqBuilder = new Request.Builder()
                 .url(url)
                 .post(RequestBody.create(json, MediaType.parse("application/json")));
-            if (cfg.getApiToken() != null && !cfg.getApiToken().isBlank()) {
-                reqBuilder.header("Authorization", "Bearer " + cfg.getApiToken());
+            if (apiToken != null && !apiToken.isBlank()) {
+                reqBuilder.header("Authorization", "Bearer " + apiToken);
             }
             final var request = reqBuilder.build();
 
@@ -212,26 +215,6 @@ public class PortBuddy implements Callable<Integer> {
             log.warn("Expose TCP call error: {}", e.toString());
             return null;
         }
-    }
-
-    private ClientConfig loadConfig() {
-        final var config = new ClientConfig();
-        try {
-            final var home = System.getProperty("user.home");
-            final var file = Path.of(home, ".port-buddy", "config.json");
-            if (Files.exists(file)) {
-                final var loaded = mapper.readValue(file.toFile(), ClientConfig.class);
-                if (loaded.getServerUrl() != null) {
-                    config.setServerUrl(loaded.getServerUrl());
-                }
-                if (loaded.getApiToken() != null) {
-                    config.setApiToken(loaded.getApiToken());
-                }
-            }
-        } catch (Exception e) {
-            log.warn("Failed to load config: {}", e.toString());
-        }
-        return config;
     }
 
     private HostPort parseHostPort(final String arg) {
@@ -336,29 +319,12 @@ public class PortBuddy implements Callable<Integer> {
         @Parameters(index = "0", description = "API token from your account")
         private String apiToken;
 
-        private final ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
-
         @Override
         public Integer call() throws Exception {
-            final var config = new ClientConfig();
-            config.setApiToken(apiToken);
-            saveConfig(config);
+            new ConfigurationService().saveApiToken(apiToken);
             System.out.println("API token saved. You're now authenticated.");
             return CommandLine.ExitCode.OK;
         }
 
-        private void saveConfig(ClientConfig cfg) throws IOException {
-            final var dir = configDir();
-            if (!Files.exists(dir)) {
-                Files.createDirectories(dir);
-            }
-            final var file = dir.resolve("config.json");
-            mapper.writeValue(file.toFile(), cfg);
-        }
-
-        private Path configDir() {
-            final var home = System.getProperty("user.home");
-            return Path.of(home, ".port-buddy");
-        }
     }
 }
