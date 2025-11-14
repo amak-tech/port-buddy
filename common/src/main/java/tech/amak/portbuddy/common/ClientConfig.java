@@ -13,4 +13,7 @@ public class ClientConfig {
 
     @JsonProperty("serverUrl")
     private String serverUrl;
+
+    @JsonProperty("logLinesCount")
+    private int logLinesCount = 20;
 }

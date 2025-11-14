@@ -14,6 +14,8 @@ import org.jline.utils.InfoCmp;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import tech.amak.portbuddy.cli.config.ConfigurationService;
+import tech.amak.portbuddy.common.ClientConfig;
 import tech.amak.portbuddy.common.Mode;
 
 @Slf4j
@@ -33,6 +35,7 @@ public class ConsoleUi implements HttpLogSink, TcpTrafficSink {
     private final AtomicLong tcpOutBytes = new AtomicLong();
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final CountDownLatch exit = new CountDownLatch(1);
+    private final ClientConfig config = ConfigurationService.INSTANCE.getConfig();
 
     private Thread renderThread;
 
@@ -84,6 +87,20 @@ public class ConsoleUi implements HttpLogSink, TcpTrafficSink {
             throw new IllegalStateException("Failed to start console UI", e);
         }
 
+        terminal.puts(InfoCmp.Capability.clear_screen);
+        terminal.flush();
+
+        out.printf("Port Buddy - Mode: %s%n", mode.name().toLowerCase());
+        out.println();
+        out.printf("Local:  %s%n", localDetails);
+        out.printf("Public: %s%n", publicDetails);
+        out.println();
+        out.println("Press Ctrl+C to exit");
+        out.println("----------------------------------------------");
+        out.println();
+        out.println("HTTP requests log:");
+
+
         renderThread = new Thread(this::renderLoop, "port-buddy-ui");
         renderThread.setDaemon(true);
         renderThread.start();
@@ -133,7 +150,7 @@ public class ConsoleUi implements HttpLogSink, TcpTrafficSink {
     @Override
     public void onHttpLog(final String method, final String url, final int status) {
         synchronized (httpLogs) {
-            if (httpLogs.size() == 10) {
+            if (httpLogs.size() == config.getLogLinesCount()) {
                 httpLogs.removeFirst();
             }
             httpLogs.addLast(new HttpLog(method, url, status));
@@ -154,9 +171,10 @@ public class ConsoleUi implements HttpLogSink, TcpTrafficSink {
         final var frameDelay = Duration.ofMillis(200);
         while (running.get()) {
             try {
-                terminal.puts(InfoCmp.Capability.clear_screen);
+                terminal.puts(InfoCmp.Capability.cursor_address, 9, 0);
                 terminal.flush();
                 render();
+
                 Thread.sleep(frameDelay.toMillis());
             } catch (final Exception e) {
                 log.debug("Render loop error: {}", e.toString());
@@ -171,19 +189,15 @@ public class ConsoleUi implements HttpLogSink, TcpTrafficSink {
     }
 
     private void render() {
-        // Header: connection details pinned
-        out.printf("Port Buddy - Mode: %s%n", mode.name().toLowerCase());
-        out.printf("Local:  %s%n", localDetails);
-        out.printf("Public: %s%n", publicDetails);
-        out.println("----------------------------------------------");
-
         if (mode == Mode.HTTP) {
-            out.println("Last 10 HTTP requests:");
+
             synchronized (httpLogs) {
                 if (httpLogs.isEmpty()) {
                     out.println("(no requests yet)");
                 } else {
                     for (var log : httpLogs) {
+                        terminal.puts(InfoCmp.Capability.clr_eol);
+                        terminal.flush();
                         out.printf("%-6s %-3d %s%n", safe(log.method()), log.status(), safe(log.url()));
                     }
                 }
@@ -194,8 +208,6 @@ public class ConsoleUi implements HttpLogSink, TcpTrafficSink {
             out.printf("TCP traffic: IN %.2f KB | OUT %.2f KB%n", inKb, outKb);
         }
 
-        out.println();
-        out.println("Press Ctrl+C to exit");
         out.flush();
     }
 

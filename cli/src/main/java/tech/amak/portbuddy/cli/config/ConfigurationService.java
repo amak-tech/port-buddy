@@ -23,7 +23,9 @@ public class ConfigurationService {
     private final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
     private final AtomicReference<ClientConfig> config = new AtomicReference<>();
 
-    public ConfigurationService() {
+    public static final ConfigurationService INSTANCE = new ConfigurationService();
+
+    private ConfigurationService() {
         try {
             loadConfig();
             loadToken();

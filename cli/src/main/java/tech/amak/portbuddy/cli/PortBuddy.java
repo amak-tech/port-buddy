@@ -33,7 +33,7 @@ import tech.amak.portbuddy.common.dto.HttpExposeRequest;
 )
 public class PortBuddy implements Callable<Integer> {
 
-    private final ConfigurationService configurationService = new ConfigurationService();
+    private final ConfigurationService configurationService = ConfigurationService.INSTANCE;
 
     @Mixin
     private SharedOptions shared;
@@ -321,7 +321,7 @@ public class PortBuddy implements Callable<Integer> {
 
         @Override
         public Integer call() throws Exception {
-            new ConfigurationService().saveApiToken(apiToken);
+            ConfigurationService.INSTANCE.saveApiToken(apiToken);
             System.out.println("API token saved. You're now authenticated.");
             return CommandLine.ExitCode.OK;
         }
