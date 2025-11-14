@@ -13,6 +13,7 @@ import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.InfoCmp;
 
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.cli.config.ConfigurationService;
 import tech.amak.portbuddy.common.ClientConfig;
@@ -40,25 +41,13 @@ public class ConsoleUi implements HttpLogSink, TcpTrafficSink {
     private Thread renderThread;
 
     @Getter
+    @Setter
     private Runnable onExit;
 
     public ConsoleUi(final Mode mode, final String localDetails, final String publicDetails) {
         this.mode = mode;
         this.localDetails = localDetails;
         this.publicDetails = publicDetails;
-    }
-
-
-    /**
-     * Sets a callback to be executed when the Console UI exits. This allows for
-     * custom cleanup or shutdown actions to be performed when the UI terminates.
-     *
-     * @param onExit a {@link Runnable} to be executed upon the exit of the UI.
-     *               It should contain the logic for finalizing resources or any
-     *               other necessary cleanup.
-     */
-    public void setOnExit(final Runnable onExit) {
-        this.onExit = onExit;
     }
 
     /**
@@ -195,11 +184,11 @@ public class ConsoleUi implements HttpLogSink, TcpTrafficSink {
                 if (httpLogs.isEmpty()) {
                     out.println("(no requests yet)");
                 } else {
-                    for (var log : httpLogs) {
+                    httpLogs.forEach(httpLog -> {
                         terminal.puts(InfoCmp.Capability.clr_eol);
                         terminal.flush();
-                        out.printf("%-6s %-3d %s%n", safe(log.method()), log.status(), safe(log.url()));
-                    }
+                        out.printf("%-6s %-3d %s%n", safe(httpLog.method()), httpLog.status(), safe(httpLog.url()));
+                    });
                 }
             }
         } else {
@@ -211,7 +200,7 @@ public class ConsoleUi implements HttpLogSink, TcpTrafficSink {
         out.flush();
     }
 
-    private String safe(final String s) {
-        return s == null ? "" : s;
+    private String safe(final String value) {
+        return value == null ? "" : value;
     }
 }
