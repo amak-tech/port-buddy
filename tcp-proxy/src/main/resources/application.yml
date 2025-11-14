@@ -10,4 +10,5 @@ spring:
   application:
     name: tcp-proxy
 
-
+app:
+  public-host: localhost
