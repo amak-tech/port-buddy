@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.tunnel.HttpTunnelMessage;
+import tech.amak.portbuddy.common.tunnel.ControlMessage;
 import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
 
 @Slf4j
@@ -34,6 +35,10 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
             session.close(CloseStatus.NORMAL);
             return;
         }
+        final var tunnel = registry.getByTunnelId(tunnelId);
+        if (tunnel != null) {
+            tunnel.setLastHeartbeatMillis(System.currentTimeMillis());
+        }
         log.info("Tunnel session established: {}", tunnelId);
     }
 
@@ -43,8 +48,23 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
             log.debug("Received message from client: {}", message.getPayload());
             final var uri = session.getUri();
             final var tunnelId = extractTunnelId(uri);
+            final var tunnel = registry.getByTunnelId(tunnelId);
+            if (tunnel != null) {
+                tunnel.setLastHeartbeatMillis(System.currentTimeMillis());
+            }
             final String payload = message.getPayload();
             final JsonNode node = mapper.readTree(payload);
+            // Control health checks
+            if (node.has("kind") && "CTRL".equals(node.get("kind").asText())) {
+                final var ctrl = mapper.treeToValue(node, ControlMessage.class);
+                if (ctrl.getType() == ControlMessage.Type.PING) {
+                    final var pong = new ControlMessage();
+                    pong.setType(ControlMessage.Type.PONG);
+                    pong.setTs(System.currentTimeMillis());
+                    session.sendMessage(new TextMessage(mapper.writeValueAsString(pong)));
+                }
+                return;
+            }
             if (node.has("kind") && "WS".equals(node.get("kind").asText())) {
                 final var wsMsg = mapper.treeToValue(node, WsTunnelMessage.class);
                 handleWsFromClient(tunnelId, wsMsg);

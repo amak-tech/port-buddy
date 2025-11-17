@@ -8,7 +8,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,6 +28,7 @@ import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
 import okio.ByteString;
 import tech.amak.portbuddy.cli.ui.HttpLogSink;
+import tech.amak.portbuddy.common.tunnel.ControlMessage;
 import tech.amak.portbuddy.common.tunnel.HttpTunnelMessage;
 import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
 
@@ -48,7 +53,14 @@ public class HttpTunnelClient {
     private final ObjectMapper mapper = new ObjectMapper();
 
     private WebSocket webSocket;
-    private final CountDownLatch closed = new CountDownLatch(1);
+    private CountDownLatch closed = new CountDownLatch(1);
+    private final AtomicBoolean stop = new AtomicBoolean(false);
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
+        final var thread = new Thread(runnable, "port-buddy-heartbeat");
+        thread.setDaemon(true);
+        return thread;
+    });
+    private volatile ScheduledFuture<?> heartbeatTask;
 
     private final Map<String, WebSocket> localWebsocketMap = new ConcurrentHashMap<>();
 
@@ -69,17 +81,40 @@ public class HttpTunnelClient {
      * on the latch is interrupted. Restores the interrupted thread state.
      */
     public void runBlocking() {
-        final var wsUrl = toWebSocketUrl(serverUrl, "/api/tunnel/" + tunnelId);
-        final var request = new Request.Builder().url(wsUrl);
-        if (authToken != null && !authToken.isBlank()) {
-            request.addHeader("Authorization", "Bearer " + authToken);
-        }
-        webSocket = http.newWebSocket(request.build(), new Listener());
+        var backoffMs = 1000L;
+        final var maxBackoffMs = 30000L;
+        while (!stop.get()) {
+            try {
+                closed = new CountDownLatch(1);
+                final var wsUrl = toWebSocketUrl(serverUrl, "/api/tunnel/" + tunnelId);
+                final var request = new Request.Builder().url(wsUrl);
+                if (authToken != null && !authToken.isBlank()) {
+                    request.addHeader("Authorization", "Bearer " + authToken);
+                }
+                webSocket = http.newWebSocket(request.build(), new Listener());
 
-        try {
-            closed.await();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+                // Block until this connection is closed
+                closed.await();
+                if (stop.get()) {
+                    break;
+                }
+                // Reconnect with backoff
+                log.info("Tunnel disconnected; reconnecting in {} ms...", backoffMs);
+                Thread.sleep(backoffMs);
+                backoffMs = Math.min(backoffMs * 2, maxBackoffMs);
+            } catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            } catch (final Exception e) {
+                log.warn("Tunnel loop error: {}", e.toString());
+                try {
+                    Thread.sleep(backoffMs);
+                } catch (final InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+                backoffMs = Math.min(backoffMs * 2, maxBackoffMs);
+            }
         }
     }
 
@@ -102,8 +137,14 @@ public class HttpTunnelClient {
      */
     public void close() {
         try {
+            stop.set(true);
+            final var task = heartbeatTask;
+            if (task != null) {
+                task.cancel(true);
+            }
             if (webSocket != null) {
                 webSocket.close(1000, "Client exit");
+                log.debug("Websocket closed: 1000 OK");
             }
         } catch (final Exception ignore) {
             log.debug("HTTP tunnel close error: {}", ignore.toString());
@@ -126,6 +167,24 @@ public class HttpTunnelClient {
         @Override
         public void onOpen(final WebSocket webSocket, final Response response) {
             log.info("Tunnel connected to server");
+            // Start application-level heartbeat PINGs
+            try {
+                if (heartbeatTask != null && !heartbeatTask.isCancelled()) {
+                    heartbeatTask.cancel(true);
+                }
+                heartbeatTask = scheduler.scheduleAtFixedRate(() -> {
+                    try {
+                        final var ping = new ControlMessage();
+                        ping.setType(ControlMessage.Type.PING);
+                        ping.setTs(System.currentTimeMillis());
+                        HttpTunnelClient.this.webSocket.send(mapper.writeValueAsString(ping));
+                    } catch (final Exception e) {
+                        log.debug("Heartbeat send failed: {}", e.toString());
+                    }
+                }, 0, 20, TimeUnit.SECONDS);
+            } catch (final Exception e) {
+                log.debug("Failed to start heartbeat: {}", e.toString());
+            }
         }
 
         @Override
@@ -133,6 +192,10 @@ public class HttpTunnelClient {
             try {
                 log.debug("Received WS message: {}", text);
                 final JsonNode node = mapper.readTree(text);
+                if (node.has("kind") && "CTRL".equals(node.get("kind").asText())) {
+                    // Ignore control messages (e.g., PONG)
+                    return;
+                }
                 if (node.has("kind") && "WS".equals(node.get("kind").asText())) {
                     final var wsMsg = mapper.treeToValue(node, WsTunnelMessage.class);
                     handleWsFromServer(wsMsg);
@@ -155,12 +218,20 @@ public class HttpTunnelClient {
         @Override
         public void onClosed(final WebSocket webSocket, final int code, final String reason) {
             log.info("Tunnel closed: {} {}", code, reason);
+            final var task = heartbeatTask;
+            if (task != null) {
+                task.cancel(true);
+            }
             closed.countDown();
         }
 
         @Override
         public void onFailure(final WebSocket webSocket, final Throwable error, final Response response) {
             log.warn("Tunnel failure: {}", error.toString());
+            final var task = heartbeatTask;
+            if (task != null) {
+                task.cancel(true);
+            }
             closed.countDown();
         }
     }

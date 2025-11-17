@@ -253,6 +253,8 @@ public class TunnelRegistry {
         private final String tunnelId;
         @Setter
         private volatile WebSocketSession session;
+        @Setter
+        private volatile long lastHeartbeatMillis;
         private final Map<String, CompletableFuture<HttpTunnelMessage>> pending = new ConcurrentHashMap<>();
         // Browser WS peers for this tunnel
         private final Map<String, WebSocketSession> browserByConnection = new ConcurrentHashMap<>();
