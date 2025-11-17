@@ -70,8 +70,8 @@ export default function Dashboard() {
   }
   // Placeholder usage activity; in real app fetch from /api/usage
   const activity = [
-    { id: 1, type: 'HTTP', local: 'http://localhost:3000', publicUrl: 'https://r2dx.port-buddy.com', bytes: 512_000, at: 'Today 14:22' },
-    { id: 2, type: 'TCP', local: '127.0.0.1:5432', publicUrl: 'tcp-proxy-3.port-buddy.com:43452', bytes: 2_048_000, at: 'Yesterday 19:03' },
+    { id: 1, type: 'HTTP', local: 'http://localhost:3000', publicUrl: 'https://r2dx.portbuddy.dev', bytes: 512_000, at: 'Today 14:22' },
+    { id: 2, type: 'TCP', local: '127.0.0.1:5432', publicUrl: 'tcp-proxy-3.portbuddy.dev:43452', bytes: 2_048_000, at: 'Yesterday 19:03' },
   ]
   const plan = user?.plan || 'basic'
   const planCapGb = plan === 'professional' ? 20 : plan === 'individual' ? 6 : 3

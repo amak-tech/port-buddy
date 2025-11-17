@@ -15,7 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.server.config.AppProperties;
 
 /**
- * Intercepts requests with Host like "{sub}.port-buddy.com" and forwards them via tunnel.
+ * Intercepts requests with Host like "{sub}.portbuddy.dev" and forwards them via tunnel.
  * Skips /api and /actuator endpoints. Lets WebSocket Upgrade pass to WS handlers.
  */
 @Slf4j

@@ -36,7 +36,7 @@ import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
 @RequiredArgsConstructor
 public class HttpTunnelClient {
 
-    private final String serverUrl; // e.g. https://api.port-buddy.com
+    private final String serverUrl; // e.g. https://portbuddy.dev
     private final String tunnelId;
     private final String localHost;
     private final int localPort;
