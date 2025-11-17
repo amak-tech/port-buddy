@@ -142,7 +142,8 @@ public class PortBuddy implements Callable<Integer> {
             final var wsPort = serverUri.getPort() == -1
                 ? ("https".equalsIgnoreCase(serverUri.getScheme()) ? 443 : 80)
                 : serverUri.getPort();
-            final var tcpClient = new TcpTunnelClient(wsHost, wsPort, tunnelId, hostPort.host, hostPort.port, token, ui);
+            final var secure = "https".equalsIgnoreCase(serverUri.getScheme());
+            final var tcpClient = new TcpTunnelClient(wsHost, wsPort, secure, tunnelId, hostPort.host, hostPort.port, token, ui);
             final var thread = new Thread(tcpClient::runBlocking, "port-buddy-tcp-client");
             ui.setOnExit(tcpClient::close);
             thread.start();

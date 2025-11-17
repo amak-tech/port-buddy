@@ -3,7 +3,6 @@ package tech.amak.portbuddy.tcpproxy.tunnel;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.Map;
 import java.util.UUID;
@@ -12,6 +11,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.springframework.stereotype.Component;
+import org.springframework.web.socket.BinaryMessage;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import tech.amak.portbuddy.common.tunnel.BinaryWsFrame;
 import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
 
 @Slf4j
@@ -95,11 +96,7 @@ public class TcpTunnelRegistry {
                 if (next == -1) {
                     break;
                 }
-                final var message = new WsTunnelMessage();
-                message.setWsType(WsTunnelMessage.Type.BINARY);
-                message.setConnectionId(connection.connectionId);
-                message.setDataB64(Base64.getEncoder().encodeToString(Arrays.copyOf(buffer, next)));
-                sendToClient(tunnel, message);
+                sendBinaryToClient(tunnel, connection.connectionId, buffer, 0, next);
             }
         } catch (final Exception ignore) {
             log.error("Failed to read from public socket: {}", ignore.toString());
@@ -135,14 +132,8 @@ public class TcpTunnelRegistry {
     }
 
     /**
-     * Handles incoming binary data from the WebSocket client by identifying the associated tunnel
-     * and connection, decoding the base64-encoded binary data, and writing it to the public socket.
-     * If the tunnel or connection is not found, the method exits without performing any operations.
-     * If an I/O error occurs while writing to the socket, it is logged.
-     *
-     * @param tunnelId     the identifier of the tunnel associated with the client
-     * @param connectionId the identifier of the specific connection within the tunnel
-     * @param dataB64      a base64-encoded string representing the binary data to be transmitted
+     * Backward compatibility handler for older clients that still send TEXT frames
+     * with base64-encoded payload inside {@link WsTunnelMessage} of type BINARY.
      */
     public void onClientBinary(final String tunnelId, final String connectionId, final String dataB64) {
         final var tunnel = byTunnelId.get(tunnelId);
@@ -155,6 +146,27 @@ public class TcpTunnelRegistry {
         }
         try {
             connection.out.write(Base64.getDecoder().decode(dataB64));
+            connection.out.flush();
+        } catch (IOException e) {
+            log.debug("Failed to write to public socket: {}", e.toString());
+        }
+    }
+
+    /**
+     * Handles incoming binary WebSocket frames from the client. Data is routed directly
+     * to the corresponding public TCP socket without base64 encoding.
+     */
+    public void onClientBinaryBytes(final String tunnelId, final String connectionId, final byte[] data) {
+        final var tunnel = byTunnelId.get(tunnelId);
+        if (tunnel == null) {
+            return;
+        }
+        final var connection = tunnel.connections.get(connectionId);
+        if (connection == null) {
+            return;
+        }
+        try {
+            connection.out.write(data);
             connection.out.flush();
         } catch (IOException e) {
             log.debug("Failed to write to public socket: {}", e.toString());
@@ -197,6 +209,21 @@ public class TcpTunnelRegistry {
             }
         } catch (IOException e) {
             log.debug("Failed to send to client: {}", e.toString());
+        }
+    }
+
+    private void sendBinaryToClient(final Tunnel tunnel,
+                                    final String connectionId,
+                                    final byte[] bytes,
+                                    final int offset,
+                                    final int length) {
+        try {
+            if (tunnel.session != null && tunnel.session.isOpen()) {
+                final var payload = BinaryWsFrame.encodeToByteBuffer(connectionId, bytes, offset, length);
+                tunnel.session.sendMessage(new BinaryMessage(payload));
+            }
+        } catch (IOException e) {
+            log.debug("Failed to send binary to client: {}", e.toString());
         }
     }
 
