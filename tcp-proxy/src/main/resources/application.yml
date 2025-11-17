@@ -12,3 +12,7 @@ spring:
 
 app:
   public-host: localhost
+  web-socket:
+    max-text-message-size: 100MB
+    max-binary-message-size: 1GB
+    session-idle-timeout: 10m
