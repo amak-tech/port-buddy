@@ -21,7 +21,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     @Override
     public void registerWebSocketHandlers(final WebSocketHandlerRegistry registry) {
-        registry.addHandler(tunnelWebSocketHandler, "/api/tunnel/{tunnelId}")
+        registry.addHandler(tunnelWebSocketHandler, "/api/http-tunnel/{tunnelId}")
             .setAllowedOrigins("*");
         // Public WS endpoint for tunneled hosts (matches any path)
         registry.addHandler(publicWebSocketProxyHandler, "/**")

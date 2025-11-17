@@ -100,7 +100,7 @@ public class HttpTunnelClient {
         while (!stop.get()) {
             try {
                 closed = new CountDownLatch(1);
-                final var wsUrl = toWebSocketUrl(serverUrl, "/api/tunnel/" + tunnelId);
+                final var wsUrl = toWebSocketUrl(serverUrl, "/api/http-tunnel/" + tunnelId);
                 final var request = new Request.Builder().url(wsUrl);
                 if (authToken != null && !authToken.isBlank()) {
                     request.addHeader("Authorization", "Bearer " + authToken);
