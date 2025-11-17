@@ -167,14 +167,14 @@ public class HttpTunnelClient {
     }
 
     private String toWebSocketUrl(String base, String path) {
-        var u = URI.create(base);
-        var scheme = u.getScheme();
+        var uri = URI.create(base);
+        var scheme = uri.getScheme();
         if ("https".equalsIgnoreCase(scheme)) {
             scheme = "wss";
         } else if ("http".equalsIgnoreCase(scheme)) {
             scheme = "ws";
         }
-        final var hostPort = (u.getPort() == -1) ? u.getHost() : (u.getHost() + ":" + u.getPort());
+        final var hostPort = (uri.getPort() == -1) ? uri.getHost() : (uri.getHost() + ":" + uri.getPort());
         return scheme + "://" + hostPort + path;
     }
 
@@ -283,9 +283,9 @@ public class HttpTunnelClient {
                 }
                 final var builder = new Request.Builder().url(url);
                 if (message.getHeaders() != null) {
-                    for (var e : message.getHeaders().entrySet()) {
-                        if (e.getKey() != null && e.getValue() != null) {
-                            builder.addHeader(e.getKey(), e.getValue());
+                    for (var entry : message.getHeaders().entrySet()) {
+                        if (entry.getKey() != null && entry.getValue() != null) {
+                            builder.addHeader(entry.getKey(), entry.getValue());
                         }
                     }
                 }
@@ -323,7 +323,7 @@ public class HttpTunnelClient {
         }
 
         @Override
-        public void onOpen(WebSocket webSocket, Response response) {
+        public void onOpen(final WebSocket webSocket, final Response response) {
             try {
                 final var ack = new WsTunnelMessage();
                 ack.setWsType(WsTunnelMessage.Type.OPEN_OK);
@@ -335,13 +335,13 @@ public class HttpTunnelClient {
         }
 
         @Override
-        public void onMessage(WebSocket webSocket, String text) {
+        public void onMessage(final WebSocket webSocket, final String text) {
             try {
-                final var m = new WsTunnelMessage();
-                m.setWsType(WsTunnelMessage.Type.TEXT);
-                m.setConnectionId(connectionId);
-                m.setText(text);
-                HttpTunnelClient.this.webSocket.send(mapper.writeValueAsString(m));
+                final var message = new WsTunnelMessage();
+                message.setWsType(WsTunnelMessage.Type.TEXT);
+                message.setConnectionId(connectionId);
+                message.setText(text);
+                HttpTunnelClient.this.webSocket.send(mapper.writeValueAsString(message));
             } catch (Exception e) {
                 log.debug("Failed to forward local text WS: {}", e.toString());
             }
@@ -406,7 +406,7 @@ public class HttpTunnelClient {
             }
         }
 
-        try (var targetResponse = localHttp.newCall(targetRequest.build()).execute()) {
+        try (final var targetResponse = localHttp.newCall(targetRequest.build()).execute()) {
             final var successMessage = new HttpTunnelMessage();
             successMessage.setId(requestMessage.getId());
             successMessage.setType(HttpTunnelMessage.Type.RESPONSE);
