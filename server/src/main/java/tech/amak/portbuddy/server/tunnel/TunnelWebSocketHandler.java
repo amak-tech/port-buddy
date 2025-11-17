@@ -39,20 +39,25 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     protected void handleTextMessage(final WebSocketSession session, final TextMessage message) throws Exception {
-        final var uri = session.getUri();
-        final var tunnelId = extractTunnelId(uri);
-        final String payload = message.getPayload();
-        final JsonNode node = mapper.readTree(payload);
-        if (node.has("kind") && "WS".equals(node.get("kind").asText())) {
-            final var wsMsg = mapper.treeToValue(node, WsTunnelMessage.class);
-            handleWsFromClient(tunnelId, wsMsg);
-            return;
-        }
-        final var httpMsg = mapper.treeToValue(node, HttpTunnelMessage.class);
-        if (httpMsg.getType() == HttpTunnelMessage.Type.RESPONSE) {
-            registry.onResponse(tunnelId, httpMsg);
-        } else {
-            log.debug("Ignoring unexpected message type from client: {}", httpMsg.getType());
+        try {
+            log.debug("Received message from client: {}", message.getPayload());
+            final var uri = session.getUri();
+            final var tunnelId = extractTunnelId(uri);
+            final String payload = message.getPayload();
+            final JsonNode node = mapper.readTree(payload);
+            if (node.has("kind") && "WS".equals(node.get("kind").asText())) {
+                final var wsMsg = mapper.treeToValue(node, WsTunnelMessage.class);
+                handleWsFromClient(tunnelId, wsMsg);
+                return;
+            }
+            final var httpMsg = mapper.treeToValue(node, HttpTunnelMessage.class);
+            if (httpMsg.getType() == HttpTunnelMessage.Type.RESPONSE) {
+                registry.onResponse(tunnelId, httpMsg);
+            } else {
+                log.debug("Ignoring unexpected message type from client: {}", httpMsg.getType());
+            }
+        } catch (final Exception e) {
+            log.warn("Tunnel message handling error: {}", e.toString());
         }
     }
 

@@ -129,6 +129,7 @@ public class HttpTunnelClient {
         @Override
         public void onMessage(final WebSocket webSocket, final String text) {
             try {
+                log.debug("Received WS message: {}", text);
                 final JsonNode node = mapper.readTree(text);
                 if (node.has("kind") && "WS".equals(node.get("kind").asText())) {
                     final var wsMsg = mapper.treeToValue(node, WsTunnelMessage.class);
@@ -140,6 +141,7 @@ public class HttpTunnelClient {
                     final var resp = handleRequest(msg);
                     final var json = mapper.writeValueAsString(resp);
                     webSocket.send(json);
+                    log.debug("Responded to WS request: {}", resp.getId());
                 } else {
                     log.debug("Ignoring non-REQUEST msg");
                 }
@@ -278,7 +280,9 @@ public class HttpTunnelClient {
             url += "?" + requestMessage.getQuery();
         }
 
-        final var targetRequest = new Request.Builder().url(url).method(method, buildBody(method, requestMessage.getBodyB64()));
+        final var targetRequest = new Request.Builder()
+            .url(url)
+            .method(method, buildBody(method, requestMessage.getBodyB64()));
 
         if (requestMessage.getHeaders() != null) {
             for (var header : requestMessage.getHeaders().entrySet()) {
@@ -323,7 +327,7 @@ public class HttpTunnelClient {
                 log.debug("HTTP log sink failed: {}", ignore.toString());
             }
             return successMessage;
-        } catch (final IOException e) {
+        } catch (final Exception e) {
             final var errorMessage = new HttpTunnelMessage();
             errorMessage.setId(requestMessage.getId());
             errorMessage.setType(HttpTunnelMessage.Type.RESPONSE);

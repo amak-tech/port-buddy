@@ -1,5 +1,7 @@
 server:
   port: 8090
+  compression:
+    enabled: on
 
 eureka:
   client:
@@ -12,7 +14,16 @@ app:
     schema: http
     url: ${app.gateway.schema}://${app.gateway.domain}
 
+  web-socket:
+    max-text-message-size: 100MB
+    max-binary-message-size: 1GB
+
 spring:
+  servlet:
+    multipart:
+      max-request-size: 1GB
+      max-file-size: 1GB
+
   application:
     name: port-buddy-server
   datasource:
@@ -52,3 +63,4 @@ management:
 logging:
   level:
     root: info
+    tech.amak.portbuddy: debug

@@ -219,7 +219,6 @@ public class PortBuddy implements Callable<Integer> {
 
     private HostPort parseHostPort(final String arg) {
         var scheme = "http"; // default scheme
-        var schemeExplicit = false;
         var host = "localhost"; // default host
         Integer port = null;
 
@@ -228,24 +227,30 @@ public class PortBuddy implements Callable<Integer> {
             throw new CommandLine.ParameterException(new CommandLine(this), "Missing host/port argument");
         }
 
-        final var s = arg.trim();
+        var url = arg.trim();
+
+        if (url.endsWith("/")) {
+            url = url.substring(0, url.length() - 1);
+        }
 
         // Case 1: pure port number, e.g. "3000"
-        if (!s.contains("://") && !s.contains(":")) {
+        if (!url.contains("://") && !url.contains(":")) {
             // try parse as number; if fails, treat as host without port
             try {
-                port = Integer.parseInt(s);
+                port = Integer.parseInt(url);
                 return new HostPort(host, port, scheme);
             } catch (final NumberFormatException ignore) {
                 // not a pure number -> host only, keep going
-                host = s;
+                host = url;
                 port = null;
             }
         }
 
+        var schemeExplicit = false;
+
         // Case 2: URL with scheme: http(s)://host[:port]
-        if (s.contains("://")) {
-            final var parts = s.split("://", 2);
+        if (url.contains("://")) {
+            final var parts = url.split("://", 2);
             final var givenScheme = parts[0].toLowerCase();
             if (!givenScheme.equals("http") && !givenScheme.equals("https")) {
                 throw new CommandLine.ParameterException(new CommandLine(this), "Unsupported schema: " + givenScheme + ". Only http or https are allowed.");
@@ -254,28 +259,28 @@ public class PortBuddy implements Callable<Integer> {
             schemeExplicit = true;
             final var rest = parts[1];
             if (rest.contains(":")) {
-                final var hp = rest.split(":", 2);
-                host = hp[0].isBlank() ? host : hp[0];
+                final var hostPort = rest.split(":", 2);
+                host = hostPort[0].isBlank() ? host : hostPort[0];
                 try {
-                    port = Integer.parseInt(hp[1]);
+                    port = Integer.parseInt(hostPort[1]);
                 } catch (final NumberFormatException e) {
-                    throw new CommandLine.ParameterException(new CommandLine(this), "Invalid port: " + hp[1]);
+                    throw new CommandLine.ParameterException(new CommandLine(this), "Invalid port: " + hostPort[1]);
                 }
             } else if (!rest.isBlank()) {
                 host = rest;
             }
         } else if (port == null) {
             // Case 3: host[:port] (no scheme)
-            if (s.contains(":")) {
-                final var hp = s.split(":", 2);
-                host = hp[0].isBlank() ? host : hp[0];
+            if (url.contains(":")) {
+                final var hostPort = url.split(":", 2);
+                host = hostPort[0].isBlank() ? host : hostPort[0];
                 try {
-                    port = Integer.parseInt(hp[1]);
+                    port = Integer.parseInt(hostPort[1]);
                 } catch (final NumberFormatException e) {
-                    throw new CommandLine.ParameterException(new CommandLine(this), "Invalid port: " + hp[1]);
+                    throw new CommandLine.ParameterException(new CommandLine(this), "Invalid port: " + hostPort[1]);
                 }
             } else {
-                host = s;
+                host = url;
             }
         }
 

@@ -109,6 +109,7 @@ public class TunnelRegistry {
         try {
             final var json = mapper.writeValueAsString(request);
             tunnel.session().sendMessage(new TextMessage(json));
+            log.debug("Forwarded request {} to tunnel {}", json, tunnel.tunnelId());
         } catch (IOException e) {
             tunnel.pending().remove(request.getId());
             future.completeExceptionally(e);
