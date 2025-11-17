@@ -67,7 +67,16 @@ public class ConsoleUi implements HttpLogSink, TcpTrafficSink {
             return;
         }
         try {
-            terminal = TerminalBuilder.builder().system(true).build();
+            terminal = TerminalBuilder.builder()
+                .streams(System.in, System.out)
+                .system(true)
+                .jansi(true)
+                .jna(true)
+                .jni(true)
+                .ffm(true)
+                .exec(true)
+                .dumb(true)
+                .build();
             out = terminal.writer();
             terminal.handle(Terminal.Signal.INT, signal -> {
                 stop();
