@@ -19,13 +19,15 @@ type AuthState = {
 const AuthContext = createContext<AuthState | undefined>(undefined)
 
 const API_BASE = ((): string => {
+    // 1) Environment (Vite build-time)
     const env = import.meta.env.VITE_API_BASE?.toString()
     if (env) return env
-    // Dev fallback: if app runs on 5173 (Vite), talk to Spring Boot on 8080
+    // 2) Dev fallback: if app runs on 5173 (Vite), talk to Spring Boot on 8080
     if (window.location.hostname === 'localhost' && window.location.port === '5173') {
         return 'http://localhost:8080'
     }
-    return '' // same-origin by default
+    // 3) Same-origin by default
+    return ''
 })()
 const APP_ORIGIN = window.location.origin
 const OAUTH_REDIRECT_URI = `${APP_ORIGIN}/auth/callback`

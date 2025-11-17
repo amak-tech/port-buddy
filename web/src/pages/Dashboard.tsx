@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { useEffect, useMemo, useState } from 'react'
 
-// Local helper copied from Profile to avoid a shared utils refactor
+// Resolve API base using build-time env first, then dev default, else same-origin
 const API_BASE = ((): string => {
   const env = (import.meta as any).env?.VITE_API_BASE?.toString()
   if (env) return env
