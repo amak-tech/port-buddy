@@ -16,6 +16,9 @@ spring:
     gateway:
       server:
         webflux:
+          httpclient:
+            websocket:
+              max-frame-payload-length: 104857600
           discovery:
             locator:
               lower-case-service-id: true
@@ -24,14 +27,12 @@ spring:
             - id: subdomain_ingress_route
               uri: lb://port-buddy-server
               predicates:
-#                - Host={subdomain}.localhost:8080
                 - Host={subdomain}.localhost:8080
               filters:
                 - name: PortBuddyRewritePath
                   args:
                     regexp: /(?<remaining>.*)
                     replacement: /_/$\{subdomain}/$\{remaining}
-#                    replacement: /_/$\{remaining}
 
             - id: api_route
               order: 2
@@ -45,4 +46,6 @@ spring:
               predicates:
                 - Path=/install, /app/**, /login/**, /auth/callback
 
-
+logging:
+  level:
+    root: info
