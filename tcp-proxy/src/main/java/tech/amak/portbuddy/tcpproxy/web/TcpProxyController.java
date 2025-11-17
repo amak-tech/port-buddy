@@ -12,7 +12,7 @@ import tech.amak.portbuddy.tcpproxy.config.AppProperties;
 import tech.amak.portbuddy.tcpproxy.tunnel.TcpTunnelRegistry;
 
 @RestController
-@RequestMapping(path = "/api/proxy", produces = MediaType.APPLICATION_JSON_VALUE)
+@RequestMapping(path = "/api/tcp-proxy", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
 public class TcpProxyController {
 

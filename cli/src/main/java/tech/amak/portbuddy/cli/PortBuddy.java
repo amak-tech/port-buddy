@@ -1,5 +1,6 @@
 package tech.amak.portbuddy.cli;
 
+import java.net.URI;
 import java.util.concurrent.Callable;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -137,7 +138,7 @@ public class PortBuddy implements Callable<Integer> {
             }
             final var token = config.getApiToken();
             // Use configured API server URL for the WebSocket control channel, not the public TCP host
-            final var serverUri = java.net.URI.create(config.getServerUrl());
+            final var serverUri = URI.create(config.getServerUrl());
             final var wsHost = serverUri.getHost();
             final var wsPort = serverUri.getPort() == -1
                 ? ("https".equalsIgnoreCase(serverUri.getScheme()) ? 443 : 80)
