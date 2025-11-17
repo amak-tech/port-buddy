@@ -80,7 +80,7 @@ public class TcpTunnelRegistry {
                 final var connection = new Connection(connId, socket);
                 tunnel.connections.put(connId, connection);
                 sendOpen(tunnel, connId);
-                ioPool.execute(() -> pumpFromPublic(tunnel, connection));
+                // Wait for client OPEN_OK before starting to pump data from public socket
             }
         } catch (IOException e) {
             log.info("Accept loop ended for tunnel {}: {}", tunnel.tunnelId, e.toString());
@@ -115,6 +115,22 @@ public class TcpTunnelRegistry {
             m.setConnectionId(connection.connectionId);
             sendToClient(tunnel, m);
         }
+    }
+
+    /**
+     * Called when client acknowledges an OPEN with OPEN_OK. Starts pumping data
+     * from the public socket to the client over WebSocket for the given connection.
+     */
+    public void onClientOpenOk(final String tunnelId, final String connectionId) {
+        final var tunnel = byTunnelId.get(tunnelId);
+        if (tunnel == null) {
+            return;
+        }
+        final var connection = tunnel.connections.get(connectionId);
+        if (connection == null) {
+            return;
+        }
+        ioPool.execute(() -> pumpFromPublic(tunnel, connection));
     }
 
     /**

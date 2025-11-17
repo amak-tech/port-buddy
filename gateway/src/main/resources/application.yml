@@ -24,6 +24,12 @@ spring:
               lower-case-service-id: true
 
           routes:
+            - id: tcp_tunnel_route
+              order: 1
+              uri: lb://tcp-proxy
+              predicates:
+                - Path=/api/tcp-tunnel/**
+
             - id: subdomain_ingress_route
               uri: lb://port-buddy-server
               predicates:

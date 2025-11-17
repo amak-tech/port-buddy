@@ -136,8 +136,13 @@ public class PortBuddy implements Callable<Integer> {
                 return CommandLine.ExitCode.SOFTWARE;
             }
             final var token = config.getApiToken();
-            // Assume proxy WS control endpoint is on default HTTP port 80 for the public host
-            final var tcpClient = new TcpTunnelClient(expose.publicHost(), 80, tunnelId, hostPort.host, hostPort.port, token, ui);
+            // Use configured API server URL for the WebSocket control channel, not the public TCP host
+            final var serverUri = java.net.URI.create(config.getServerUrl());
+            final var wsHost = serverUri.getHost();
+            final var wsPort = serverUri.getPort() == -1
+                ? ("https".equalsIgnoreCase(serverUri.getScheme()) ? 443 : 80)
+                : serverUri.getPort();
+            final var tcpClient = new TcpTunnelClient(wsHost, wsPort, tunnelId, hostPort.host, hostPort.port, token, ui);
             final var thread = new Thread(tcpClient::runBlocking, "port-buddy-tcp-client");
             ui.setOnExit(tcpClient::close);
             thread.start();

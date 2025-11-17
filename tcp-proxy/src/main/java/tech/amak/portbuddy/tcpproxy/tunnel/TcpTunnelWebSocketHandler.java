@@ -38,7 +38,7 @@ public class TcpTunnelWebSocketHandler extends TextWebSocketHandler {
         final var payload = textMessage.getPayload();
         final var message = mapper.readValue(payload, WsTunnelMessage.class);
         switch (message.getWsType()) {
-            case OPEN_OK -> { /* acknowledge from client; nothing to do */ }
+            case OPEN_OK -> registry.onClientOpenOk(tunnelId, message.getConnectionId());
             case BINARY -> registry.onClientBinary(tunnelId, message.getConnectionId(), message.getDataB64());
             case CLOSE -> registry.onClientClose(tunnelId, message.getConnectionId());
             default -> log.debug("Ignoring WS control type: {}", message.getWsType());
