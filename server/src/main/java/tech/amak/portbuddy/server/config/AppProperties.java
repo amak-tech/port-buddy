@@ -1,5 +1,7 @@
 package tech.amak.portbuddy.server.config;
 
+import java.time.Duration;
+
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.util.unit.DataSize;
 
@@ -20,6 +22,7 @@ public record AppProperties(
 
     public record WebSocket(
         DataSize maxTextMessageSize,
-        DataSize maxBinaryMessageSize
+        DataSize maxBinaryMessageSize,
+        Duration sessionIdleTimeout
     ) {}
 }

@@ -93,7 +93,9 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
         final var tunnel = registry.getByTunnelId(tunnelId);
         if (tunnel != null) {
             tunnel.setSession(null);
-            log.info("Tunnel session closed: {}", tunnelId);
+            log.info("Tunnel session closed: {} code={} reason={}", tunnelId,
+                status != null ? status.getCode() : null,
+                status != null ? status.getReason() : null);
         }
     }
 

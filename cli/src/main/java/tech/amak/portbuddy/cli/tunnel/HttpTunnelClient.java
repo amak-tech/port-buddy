@@ -42,6 +42,8 @@ public class HttpTunnelClient {
 
     private final OkHttpClient http = new OkHttpClient.Builder()
         .readTimeout(0, TimeUnit.MILLISECONDS) // keep-alive for WS
+        .pingInterval(15, TimeUnit.SECONDS) // send pings to keep intermediaries/proxies from dropping idle WS
+        .retryOnConnectionFailure(true)
         .build();
     private final ObjectMapper mapper = new ObjectMapper();
 
