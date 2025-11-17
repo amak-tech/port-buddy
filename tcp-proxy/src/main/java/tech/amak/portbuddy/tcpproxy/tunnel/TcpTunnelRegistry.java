@@ -82,38 +82,39 @@ public class TcpTunnelRegistry {
                 sendOpen(tunnel, connId);
                 // Wait for client OPEN_OK before starting to pump data from public socket
             }
-        } catch (IOException e) {
+        } catch (final Exception e) {
             log.info("Accept loop ended for tunnel {}: {}", tunnel.tunnelId, e.toString());
         }
     }
 
     private void pumpFromPublic(final Tunnel tunnel, final Connection connection) {
-        final var buf = new byte[8192];
+        final var buffer = new byte[8192];
         try {
             while (true) {
-                final var next = connection.in.read(buf);
+                final var next = connection.in.read(buffer);
                 if (next == -1) {
                     break;
                 }
                 final var message = new WsTunnelMessage();
                 message.setWsType(WsTunnelMessage.Type.BINARY);
                 message.setConnectionId(connection.connectionId);
-                message.setDataB64(Base64.getEncoder().encodeToString(Arrays.copyOf(buf, next)));
+                message.setDataB64(Base64.getEncoder().encodeToString(Arrays.copyOf(buffer, next)));
                 sendToClient(tunnel, message);
             }
-        } catch (IOException ignore) {
+        } catch (final Exception ignore) {
             log.error("Failed to read from public socket: {}", ignore.toString());
         } finally {
+            log.info("Public socket closed for tunnel {}: {}", tunnel.tunnelId, connection.connectionId);
             try {
                 connection.socket.close();
-            } catch (IOException ignore) {
+            } catch (final Exception ignore) {
                 log.error("Failed to close public socket: {}", ignore.toString());
             }
             tunnel.connections.remove(connection.connectionId);
-            final var m = new WsTunnelMessage();
-            m.setWsType(WsTunnelMessage.Type.CLOSE);
-            m.setConnectionId(connection.connectionId);
-            sendToClient(tunnel, m);
+            final var message = new WsTunnelMessage();
+            message.setWsType(WsTunnelMessage.Type.CLOSE);
+            message.setConnectionId(connection.connectionId);
+            sendToClient(tunnel, message);
         }
     }
 
@@ -139,9 +140,9 @@ public class TcpTunnelRegistry {
      * If the tunnel or connection is not found, the method exits without performing any operations.
      * If an I/O error occurs while writing to the socket, it is logged.
      *
-     * @param tunnelId the identifier of the tunnel associated with the client
+     * @param tunnelId     the identifier of the tunnel associated with the client
      * @param connectionId the identifier of the specific connection within the tunnel
-     * @param dataB64 a base64-encoded string representing the binary data to be transmitted
+     * @param dataB64      a base64-encoded string representing the binary data to be transmitted
      */
     public void onClientBinary(final String tunnelId, final String connectionId, final String dataB64) {
         final var tunnel = byTunnelId.get(tunnelId);
@@ -165,7 +166,8 @@ public class TcpTunnelRegistry {
      * If the tunnel and connection exist, the connection is removed and its socket is closed.
      * If either the tunnel or connection does not exist, no operation is performed.
      *
-     * @param tunnelId the identifier of the*/
+     * @param tunnelId the identifier of the
+     */
     public void onClientClose(final String tunnelId, final String connectionId) {
         final var tunnel = byTunnelId.get(tunnelId);
         if (tunnel == null) {
@@ -188,10 +190,10 @@ public class TcpTunnelRegistry {
         sendToClient(tunnel, message);
     }
 
-    private void sendToClient(final Tunnel tunnel, final WsTunnelMessage m) {
+    private void sendToClient(final Tunnel tunnel, final WsTunnelMessage message) {
         try {
             if (tunnel.session != null && tunnel.session.isOpen()) {
-                tunnel.session.sendMessage(new TextMessage(mapper.writeValueAsString(m)));
+                tunnel.session.sendMessage(new TextMessage(mapper.writeValueAsString(message)));
             }
         } catch (IOException e) {
             log.debug("Failed to send to client: {}", e.toString());
