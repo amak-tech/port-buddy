@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { API_BASE, apiJson, apiRaw } from '../lib/api'
+import { API_BASE, apiJson } from '../lib/api'
 
 export type User = {
     id: string
@@ -69,12 +69,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [])
 
     const logout = useCallback(async () => {
+        // Stateless logout: just drop the JWT from localStorage client-side
         try {
-            await apiRaw('/api/auth/logout', { method: 'POST' })
+            localStorage.removeItem('pb_token')
         } catch (_) {
-            // ignore network errors on logout
+            // ignore storage errors
         }
-        localStorage.removeItem('pb_token')
         setUser(null)
         // Redirect to landing page after logout
         window.location.assign('/')
