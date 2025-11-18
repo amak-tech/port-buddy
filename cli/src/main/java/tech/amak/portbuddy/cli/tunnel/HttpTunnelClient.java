@@ -1,6 +1,5 @@
 package tech.amak.portbuddy.cli.tunnel;
 
-import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -8,7 +7,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,6 +28,7 @@ import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
 import okio.ByteString;
 import tech.amak.portbuddy.cli.ui.HttpLogSink;
+import tech.amak.portbuddy.common.tunnel.ControlMessage;
 import tech.amak.portbuddy.common.tunnel.HttpTunnelMessage;
 import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
 
@@ -31,7 +36,7 @@ import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
 @RequiredArgsConstructor
 public class HttpTunnelClient {
 
-    private final String serverUrl; // e.g. https://api.port-buddy.com
+    private final String serverUrl; // e.g. https://portbuddy.dev
     private final String tunnelId;
     private final String localHost;
     private final int localPort;
@@ -40,13 +45,36 @@ public class HttpTunnelClient {
     private final String publicBaseUrl; // e.g. https://abc123.portbuddy.dev
     private final HttpLogSink httpLogSink;
 
+    // OkHttp client used exclusively for the control WebSocket connection to the server
     private final OkHttpClient http = new OkHttpClient.Builder()
         .readTimeout(0, TimeUnit.MILLISECONDS) // keep-alive for WS
+        .pingInterval(15, TimeUnit.SECONDS) // send pings to keep intermediaries/proxies from dropping idle WS
+        .retryOnConnectionFailure(true)
+        .build();
+    // Separate OkHttp client for calling the local target service (avoid any interference with WS client)
+    private final OkHttpClient localHttp = new OkHttpClient.Builder()
+        .connectTimeout(10, TimeUnit.SECONDS)
+        .readTimeout(60, TimeUnit.SECONDS)
+        .writeTimeout(60, TimeUnit.SECONDS)
+        .followRedirects(true)
+        .retryOnConnectionFailure(true)
         .build();
     private final ObjectMapper mapper = new ObjectMapper();
 
     private WebSocket webSocket;
-    private final CountDownLatch closed = new CountDownLatch(1);
+    private CountDownLatch closed = new CountDownLatch(1);
+    private final AtomicBoolean stop = new AtomicBoolean(false);
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
+        final var thread = new Thread(runnable, "port-buddy-heartbeat");
+        thread.setDaemon(true);
+        return thread;
+    });
+    private volatile ScheduledFuture<?> heartbeatTask;
+    private final ExecutorService requestExecutor = Executors.newFixedThreadPool(4, runnable -> {
+        final var thread = new Thread(runnable, "port-buddy-http-worker");
+        thread.setDaemon(true);
+        return thread;
+    });
 
     private final Map<String, WebSocket> localWebsocketMap = new ConcurrentHashMap<>();
 
@@ -67,17 +95,40 @@ public class HttpTunnelClient {
      * on the latch is interrupted. Restores the interrupted thread state.
      */
     public void runBlocking() {
-        final var wsUrl = toWebSocketUrl(serverUrl, "/api/tunnel/" + tunnelId);
-        final var request = new Request.Builder().url(wsUrl);
-        if (authToken != null && !authToken.isBlank()) {
-            request.addHeader("Authorization", "Bearer " + authToken);
-        }
-        webSocket = http.newWebSocket(request.build(), new Listener());
+        var backoffMs = 1000L;
+        final var maxBackoffMs = 30000L;
+        while (!stop.get()) {
+            try {
+                closed = new CountDownLatch(1);
+                final var wsUrl = toWebSocketUrl(serverUrl, "/api/http-tunnel/" + tunnelId);
+                final var request = new Request.Builder().url(wsUrl);
+                if (authToken != null && !authToken.isBlank()) {
+                    request.addHeader("Authorization", "Bearer " + authToken);
+                }
+                webSocket = http.newWebSocket(request.build(), new Listener());
 
-        try {
-            closed.await();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+                // Block until this connection is closed
+                closed.await();
+                if (stop.get()) {
+                    break;
+                }
+                // Reconnect with backoff
+                log.info("Tunnel disconnected; reconnecting in {} ms...", backoffMs);
+                Thread.sleep(backoffMs);
+                backoffMs = Math.min(backoffMs * 2, maxBackoffMs);
+            } catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            } catch (final Exception e) {
+                log.warn("Tunnel loop error: {}", e.toString());
+                try {
+                    Thread.sleep(backoffMs);
+                } catch (final InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+                backoffMs = Math.min(backoffMs * 2, maxBackoffMs);
+            }
         }
     }
 
@@ -100,8 +151,15 @@ public class HttpTunnelClient {
      */
     public void close() {
         try {
+            stop.set(true);
+            final var task = heartbeatTask;
+            if (task != null) {
+                task.cancel(true);
+            }
+            requestExecutor.shutdownNow();
             if (webSocket != null) {
                 webSocket.close(1000, "Client exit");
+                log.debug("Websocket closed: 1000 OK");
             }
         } catch (final Exception ignore) {
             log.debug("HTTP tunnel close error: {}", ignore.toString());
@@ -109,14 +167,14 @@ public class HttpTunnelClient {
     }
 
     private String toWebSocketUrl(String base, String path) {
-        var u = URI.create(base);
-        var scheme = u.getScheme();
+        var uri = URI.create(base);
+        var scheme = uri.getScheme();
         if ("https".equalsIgnoreCase(scheme)) {
             scheme = "wss";
         } else if ("http".equalsIgnoreCase(scheme)) {
             scheme = "ws";
         }
-        final var hostPort = (u.getPort() == -1) ? u.getHost() : (u.getHost() + ":" + u.getPort());
+        final var hostPort = (uri.getPort() == -1) ? uri.getHost() : (uri.getHost() + ":" + uri.getPort());
         return scheme + "://" + hostPort + path;
     }
 
@@ -124,12 +182,35 @@ public class HttpTunnelClient {
         @Override
         public void onOpen(final WebSocket webSocket, final Response response) {
             log.info("Tunnel connected to server");
+            // Start application-level heartbeat PINGs
+            try {
+                if (heartbeatTask != null && !heartbeatTask.isCancelled()) {
+                    heartbeatTask.cancel(true);
+                }
+                heartbeatTask = scheduler.scheduleAtFixedRate(() -> {
+                    try {
+                        final var ping = new ControlMessage();
+                        ping.setType(ControlMessage.Type.PING);
+                        ping.setTs(System.currentTimeMillis());
+                        HttpTunnelClient.this.webSocket.send(mapper.writeValueAsString(ping));
+                    } catch (final Exception e) {
+                        log.debug("Heartbeat send failed: {}", e.toString());
+                    }
+                }, 0, 20, TimeUnit.SECONDS);
+            } catch (final Exception e) {
+                log.debug("Failed to start heartbeat: {}", e.toString());
+            }
         }
 
         @Override
         public void onMessage(final WebSocket webSocket, final String text) {
             try {
+                log.debug("Received WS message: {}", text);
                 final JsonNode node = mapper.readTree(text);
+                if (node.has("kind") && "CTRL".equals(node.get("kind").asText())) {
+                    // Ignore control messages (e.g., PONG)
+                    return;
+                }
                 if (node.has("kind") && "WS".equals(node.get("kind").asText())) {
                     final var wsMsg = mapper.treeToValue(node, WsTunnelMessage.class);
                     handleWsFromServer(wsMsg);
@@ -137,9 +218,30 @@ public class HttpTunnelClient {
                 }
                 final var msg = mapper.treeToValue(node, HttpTunnelMessage.class);
                 if (msg.getType() == HttpTunnelMessage.Type.REQUEST) {
-                    final var resp = handleRequest(msg);
-                    final var json = mapper.writeValueAsString(resp);
-                    webSocket.send(json);
+                    // Offload request processing to a worker thread to avoid blocking the WS listener
+                    requestExecutor.submit(() -> {
+                        try {
+                            final var resp = handleRequest(msg);
+                            final var json = mapper.writeValueAsString(resp);
+                            HttpTunnelClient.this.webSocket.send(json);
+                            log.debug("Responded to WS request: {}", resp.getId());
+                        } catch (final Exception ex) {
+                            log.warn("Failed to handle tunneled request {}: {}", msg.getId(), ex.toString());
+                            try {
+                                final var err = new HttpTunnelMessage();
+                                err.setId(msg.getId());
+                                err.setType(HttpTunnelMessage.Type.RESPONSE);
+                                err.setStatus(502);
+                                final var headers = new java.util.HashMap<String, String>();
+                                headers.put("Content-Type", "text/plain; charset=utf-8");
+                                err.setRespHeaders(headers);
+                                err.setRespBodyB64(Base64.getEncoder().encodeToString("Proxy error".getBytes(StandardCharsets.UTF_8)));
+                                HttpTunnelClient.this.webSocket.send(mapper.writeValueAsString(err));
+                            } catch (final Exception e) {
+                                log.error("Failed to send error response: {}", e.getMessage(), e);
+                            }
+                        }
+                    });
                 } else {
                     log.debug("Ignoring non-REQUEST msg");
                 }
@@ -151,12 +253,20 @@ public class HttpTunnelClient {
         @Override
         public void onClosed(final WebSocket webSocket, final int code, final String reason) {
             log.info("Tunnel closed: {} {}", code, reason);
+            final var task = heartbeatTask;
+            if (task != null) {
+                task.cancel(true);
+            }
             closed.countDown();
         }
 
         @Override
         public void onFailure(final WebSocket webSocket, final Throwable error, final Response response) {
             log.warn("Tunnel failure: {}", error.toString());
+            final var task = heartbeatTask;
+            if (task != null) {
+                task.cancel(true);
+            }
             closed.countDown();
         }
     }
@@ -173,9 +283,9 @@ public class HttpTunnelClient {
                 }
                 final var builder = new Request.Builder().url(url);
                 if (message.getHeaders() != null) {
-                    for (var e : message.getHeaders().entrySet()) {
-                        if (e.getKey() != null && e.getValue() != null) {
-                            builder.addHeader(e.getKey(), e.getValue());
+                    for (var entry : message.getHeaders().entrySet()) {
+                        if (entry.getKey() != null && entry.getValue() != null) {
+                            builder.addHeader(entry.getKey(), entry.getValue());
                         }
                     }
                 }
@@ -213,7 +323,7 @@ public class HttpTunnelClient {
         }
 
         @Override
-        public void onOpen(WebSocket webSocket, Response response) {
+        public void onOpen(final WebSocket webSocket, final Response response) {
             try {
                 final var ack = new WsTunnelMessage();
                 ack.setWsType(WsTunnelMessage.Type.OPEN_OK);
@@ -225,13 +335,13 @@ public class HttpTunnelClient {
         }
 
         @Override
-        public void onMessage(WebSocket webSocket, String text) {
+        public void onMessage(final WebSocket webSocket, final String text) {
             try {
-                final var m = new WsTunnelMessage();
-                m.setWsType(WsTunnelMessage.Type.TEXT);
-                m.setConnectionId(connectionId);
-                m.setText(text);
-                HttpTunnelClient.this.webSocket.send(mapper.writeValueAsString(m));
+                final var message = new WsTunnelMessage();
+                message.setWsType(WsTunnelMessage.Type.TEXT);
+                message.setConnectionId(connectionId);
+                message.setText(text);
+                HttpTunnelClient.this.webSocket.send(mapper.writeValueAsString(message));
             } catch (Exception e) {
                 log.debug("Failed to forward local text WS: {}", e.toString());
             }
@@ -278,7 +388,9 @@ public class HttpTunnelClient {
             url += "?" + requestMessage.getQuery();
         }
 
-        final var targetRequest = new Request.Builder().url(url).method(method, buildBody(method, requestMessage.getBodyB64()));
+        final var targetRequest = new Request.Builder()
+            .url(url)
+            .method(method, buildBody(method, requestMessage.getBodyB64()));
 
         if (requestMessage.getHeaders() != null) {
             for (var header : requestMessage.getHeaders().entrySet()) {
@@ -294,7 +406,7 @@ public class HttpTunnelClient {
             }
         }
 
-        try (var targetResponse = http.newCall(targetRequest.build()).execute()) {
+        try (final var targetResponse = localHttp.newCall(targetRequest.build()).execute()) {
             final var successMessage = new HttpTunnelMessage();
             successMessage.setId(requestMessage.getId());
             successMessage.setType(HttpTunnelMessage.Type.RESPONSE);
@@ -323,7 +435,7 @@ public class HttpTunnelClient {
                 log.debug("HTTP log sink failed: {}", ignore.toString());
             }
             return successMessage;
-        } catch (final IOException e) {
+        } catch (final Exception e) {
             final var errorMessage = new HttpTunnelMessage();
             errorMessage.setId(requestMessage.getId());
             errorMessage.setType(HttpTunnelMessage.Type.RESPONSE);

@@ -13,7 +13,7 @@ public class RootController {
         return Map.of(
             "name", "port-buddy-server",
             "status", "ok",
-            "docs", "https://port-buddy.com/docs"
+            "docs", "https://portbuddy.dev/docs"
         );
     }
 }

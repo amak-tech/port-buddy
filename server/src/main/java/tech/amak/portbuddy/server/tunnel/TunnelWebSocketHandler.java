@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import tech.amak.portbuddy.common.tunnel.ControlMessage;
 import tech.amak.portbuddy.common.tunnel.HttpTunnelMessage;
 import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
 
@@ -34,25 +35,49 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
             session.close(CloseStatus.NORMAL);
             return;
         }
+        final var tunnel = registry.getByTunnelId(tunnelId);
+        if (tunnel != null) {
+            tunnel.setLastHeartbeatMillis(System.currentTimeMillis());
+        }
         log.info("Tunnel session established: {}", tunnelId);
     }
 
     @Override
     protected void handleTextMessage(final WebSocketSession session, final TextMessage message) throws Exception {
-        final var uri = session.getUri();
-        final var tunnelId = extractTunnelId(uri);
-        final String payload = message.getPayload();
-        final JsonNode node = mapper.readTree(payload);
-        if (node.has("kind") && "WS".equals(node.get("kind").asText())) {
-            final var wsMsg = mapper.treeToValue(node, WsTunnelMessage.class);
-            handleWsFromClient(tunnelId, wsMsg);
-            return;
-        }
-        final var httpMsg = mapper.treeToValue(node, HttpTunnelMessage.class);
-        if (httpMsg.getType() == HttpTunnelMessage.Type.RESPONSE) {
-            registry.onResponse(tunnelId, httpMsg);
-        } else {
-            log.debug("Ignoring unexpected message type from client: {}", httpMsg.getType());
+        try {
+            log.debug("Received message from client: {}", message.getPayload());
+            final var uri = session.getUri();
+            final var tunnelId = extractTunnelId(uri);
+            final var tunnel = registry.getByTunnelId(tunnelId);
+            if (tunnel != null) {
+                tunnel.setLastHeartbeatMillis(System.currentTimeMillis());
+            }
+            final String payload = message.getPayload();
+            final JsonNode node = mapper.readTree(payload);
+            // Control health checks
+            if (node.has("kind") && "CTRL".equals(node.get("kind").asText())) {
+                final var ctrl = mapper.treeToValue(node, ControlMessage.class);
+                if (ctrl.getType() == ControlMessage.Type.PING) {
+                    final var pong = new ControlMessage();
+                    pong.setType(ControlMessage.Type.PONG);
+                    pong.setTs(System.currentTimeMillis());
+                    session.sendMessage(new TextMessage(mapper.writeValueAsString(pong)));
+                }
+                return;
+            }
+            if (node.has("kind") && "WS".equals(node.get("kind").asText())) {
+                final var wsMsg = mapper.treeToValue(node, WsTunnelMessage.class);
+                handleWsFromClient(tunnelId, wsMsg);
+                return;
+            }
+            final var httpMsg = mapper.treeToValue(node, HttpTunnelMessage.class);
+            if (httpMsg.getType() == HttpTunnelMessage.Type.RESPONSE) {
+                registry.onResponse(tunnelId, httpMsg);
+            } else {
+                log.debug("Ignoring unexpected message type from client: {}", httpMsg.getType());
+            }
+        } catch (final Exception e) {
+            log.warn("Tunnel message handling error: {}", e.toString());
         }
     }
 
@@ -82,13 +107,15 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
     }
 
     @Override
-    public void afterConnectionClosed(final WebSocketSession session, final CloseStatus status) throws Exception {
+    public void afterConnectionClosed(final WebSocketSession session, final CloseStatus status) {
         final var uri = session.getUri();
         final var tunnelId = extractTunnelId(uri);
         final var tunnel = registry.getByTunnelId(tunnelId);
         if (tunnel != null) {
             tunnel.setSession(null);
-            log.info("Tunnel session closed: {}", tunnelId);
+            log.info("Tunnel session closed: {} code={} reason={}", tunnelId,
+                status != null ? status.getCode() : null,
+                status != null ? status.getReason() : null);
         }
     }
 

@@ -109,6 +109,7 @@ public class TunnelRegistry {
         try {
             final var json = mapper.writeValueAsString(request);
             tunnel.session().sendMessage(new TextMessage(json));
+            log.debug("Forwarded request {} to tunnel {}", json, tunnel.tunnelId());
         } catch (IOException e) {
             tunnel.pending().remove(request.getId());
             future.completeExceptionally(e);
@@ -252,6 +253,8 @@ public class TunnelRegistry {
         private final String tunnelId;
         @Setter
         private volatile WebSocketSession session;
+        @Setter
+        private volatile long lastHeartbeatMillis;
         private final Map<String, CompletableFuture<HttpTunnelMessage>> pending = new ConcurrentHashMap<>();
         // Browser WS peers for this tunnel
         private final Map<String, WebSocketSession> browserByConnection = new ConcurrentHashMap<>();

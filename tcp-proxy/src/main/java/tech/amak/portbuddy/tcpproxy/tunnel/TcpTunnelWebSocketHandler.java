@@ -1,21 +1,23 @@
 package tech.amak.portbuddy.tcpproxy.tunnel;
 
 import org.springframework.stereotype.Component;
+import org.springframework.web.socket.BinaryMessage;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
-import org.springframework.web.socket.handler.TextWebSocketHandler;
+import org.springframework.web.socket.handler.AbstractWebSocketHandler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import tech.amak.portbuddy.common.tunnel.BinaryWsFrame;
 import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class TcpTunnelWebSocketHandler extends TextWebSocketHandler {
+public class TcpTunnelWebSocketHandler extends AbstractWebSocketHandler {
 
     private final TcpTunnelRegistry registry;
     private final ObjectMapper mapper = new ObjectMapper();
@@ -38,11 +40,24 @@ public class TcpTunnelWebSocketHandler extends TextWebSocketHandler {
         final var payload = textMessage.getPayload();
         final var message = mapper.readValue(payload, WsTunnelMessage.class);
         switch (message.getWsType()) {
-            case OPEN_OK -> { /* acknowledge from client; nothing to do */ }
-            case BINARY -> registry.onClientBinary(tunnelId, message.getConnectionId(), message.getDataB64());
+            case OPEN_OK -> registry.onClientOpenOk(tunnelId, message.getConnectionId());
+            case BINARY -> {
+                // Backward compatibility: accept base64 text payloads
+                registry.onClientBinary(tunnelId, message.getConnectionId(), message.getDataB64());
+            }
             case CLOSE -> registry.onClientClose(tunnelId, message.getConnectionId());
             default -> log.debug("Ignoring WS control type: {}", message.getWsType());
         }
+    }
+
+    @Override
+    protected void handleBinaryMessage(final WebSocketSession session, final BinaryMessage message) throws Exception {
+        final var tunnelId = extractTunnelId(session);
+        final var decoded = BinaryWsFrame.decode(message.getPayload());
+        if (decoded == null) {
+            return;
+        }
+        registry.onClientBinaryBytes(tunnelId, decoded.connectionId(), decoded.data());
     }
 
     @Override

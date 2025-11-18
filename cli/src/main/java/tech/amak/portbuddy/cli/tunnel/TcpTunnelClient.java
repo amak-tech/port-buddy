@@ -20,6 +20,7 @@ import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
 import okio.ByteString;
 import tech.amak.portbuddy.cli.ui.TcpTrafficSink;
+import tech.amak.portbuddy.common.tunnel.BinaryWsFrame;
 import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
 
 @Slf4j
@@ -28,6 +29,10 @@ public class TcpTunnelClient {
 
     private final String proxyHost;
     private final int proxyHttpPort;
+    /**
+     * Whether the WebSocket should use TLS (wss). Must reflect the scheme of the configured server URL.
+     */
+    private final boolean secure;
     private final String tunnelId;
     private final String localHost;
     private final int localPort;
@@ -54,7 +59,8 @@ public class TcpTunnelClient {
      * - Handles interruptions by setting the thread's interrupt status.
      */
     public void runBlocking() {
-        final var url = toWebSocketUrl("http://" + proxyHost + ":" + proxyHttpPort, "/api/tcp-tunnel/" + tunnelId);
+        final var scheme = secure ? "https://" : "http://";
+        final var url = toWebSocketUrl(scheme + proxyHost + ":" + proxyHttpPort, "/api/tcp-tunnel/" + tunnelId);
         final var request = new Request.Builder().url(url);
         if (authToken != null && !authToken.isBlank()) {
             request.addHeader("Authorization", "Bearer " + authToken);
@@ -119,16 +125,37 @@ public class TcpTunnelClient {
 
         @Override
         public void onMessage(final WebSocket webSocket, final ByteString bytes) {
-            // Not used in this version; receiving data from proxy arrives as TEXT WsTunnelMessage with base64
+            try {
+                final var decoded = BinaryWsFrame.decode(bytes.toByteArray());
+                if (decoded == null) {
+                    return;
+                }
+                final var local = locals.get(decoded.connectionId());
+                if (local != null) {
+                    try {
+                        local.out.write(decoded.data());
+                        local.out.flush();
+                        if (trafficSink != null) {
+                            trafficSink.onBytesIn(decoded.data().length);
+                        }
+                    } catch (final Exception e) {
+                        log.debug("Write to local TCP failed: {}", e.toString());
+                    }
+                }
+            } catch (final Exception e) {
+                log.debug("Failed to handle binary WS frame: {}", e.toString());
+            }
         }
 
         @Override
         public void onClosed(final WebSocket webSocket, final int code, final String reason) {
+            log.info("Tunnel closed: {} {}", code, reason);
             closed.countDown();
         }
 
         @Override
         public void onFailure(final WebSocket webSocket, final Throwable throwable, final Response response) {
+            log.warn("Tunnel failure: {}", throwable.toString());
             closed.countDown();
         }
     }
@@ -189,11 +216,8 @@ public class TcpTunnelClient {
                 if (byteCount == -1) {
                     break;
                 }
-                final var message = new WsTunnelMessage();
-                message.setWsType(WsTunnelMessage.Type.BINARY);
-                message.setConnectionId(local.connectionId);
-                message.setDataB64(Base64.getEncoder().encodeToString(java.util.Arrays.copyOf(buffer, byteCount)));
-                webSocket.send(mapper.writeValueAsString(message));
+                final var frame = BinaryWsFrame.encodeToArray(local.connectionId, buffer, 0, byteCount);
+                webSocket.send(ByteString.of(frame));
                 if (trafficSink != null) {
                     trafficSink.onBytesOut(byteCount);
                 }

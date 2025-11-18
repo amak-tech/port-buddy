@@ -16,4 +16,7 @@ public class ClientConfig {
 
     @JsonProperty("logLinesCount")
     private int logLinesCount = 20;
+
+    @JsonProperty("uiEnabled")
+    private boolean uiEnabled = true;
 }
