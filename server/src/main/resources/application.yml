@@ -14,6 +14,16 @@ app:
     schema: http
     url: ${app.gateway.schema}://${app.gateway.domain}
 
+  jwt:
+    issuer: port-buddy
+    ttl: 1h
+    rsa:
+      currentKeyId: dev-key
+      keys:
+        - id: dev-key
+          publicKeyPem: ${PUBLIC_KEY:classpath:keys/dev_jwt.pub}
+          privateKeyPem: ${PRIVATE_KEY:classpath:keys/dev_jwt.pem}
+
   web-socket:
     max-text-message-size: 100MB
     max-binary-message-size: 1GB

@@ -4,6 +4,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -16,6 +17,15 @@ public class AuthApiController {
 
     @GetMapping("/me")
     public UserDto me(@AuthenticationPrincipal final Object principal) {
+        if (principal instanceof Jwt jwt) {
+            final var dto = new UserDto();
+            dto.setId(jwt.getSubject());
+            dto.setEmail(jwt.getClaimAsString("email"));
+            dto.setName(jwt.getClaimAsString("name"));
+            dto.setAvatarUrl(jwt.getClaimAsString("picture"));
+            dto.setPlan(null);
+            return dto;
+        }
         if (principal instanceof DefaultOidcUser oidc) {
             final var dto = new UserDto();
             dto.setId(oidc.getSubject());

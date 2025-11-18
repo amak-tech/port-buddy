@@ -6,6 +6,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -45,6 +46,9 @@ public class TokensController {
     }
 
     private String extractUserId(final Object principal) {
+        if (principal instanceof Jwt jwt) {
+            return jwt.getSubject();
+        }
         if (principal instanceof String s) {
             return s;
         } else if (principal instanceof DefaultOidcUser oidc) {
@@ -61,5 +65,6 @@ public class TokensController {
         private String label;
     }
 
-    public record CreateTokenResponse(String id, String token) {}
+    public record CreateTokenResponse(String id, String token) {
+    }
 }

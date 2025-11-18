@@ -1,14 +1,17 @@
 package tech.amak.portbuddy.server.config;
 
 import java.time.Duration;
+import java.util.List;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.core.io.Resource;
 import org.springframework.util.unit.DataSize;
 
 @ConfigurationProperties(prefix = "app")
 public record AppProperties(
     Gateway gateway,
-    WebSocket webSocket
+    WebSocket webSocket,
+    Jwt jwt
 ) {
     public record Gateway(
         String url,
@@ -24,5 +27,25 @@ public record AppProperties(
         DataSize maxTextMessageSize,
         DataSize maxBinaryMessageSize,
         Duration sessionIdleTimeout
-    ) {}
+    ) {
+    }
+
+    public record Jwt(
+        String issuer,
+        Duration ttl,
+        Rsa rsa
+    ) {
+        public record Rsa(
+            String currentKeyId,
+            List<RsaKey> keys
+        ) {
+        }
+
+        public record RsaKey(
+            String id,
+            Resource publicKeyPem,
+            Resource privateKeyPem
+        ) {
+        }
+    }
 }
