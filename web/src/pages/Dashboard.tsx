@@ -1,24 +1,9 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { useEffect, useMemo, useState } from 'react'
+import { apiJson, apiRaw } from '../lib/api'
 
-// Resolve API base using build-time env first, then dev default, else same-origin
-const API_BASE = ((): string => {
-  const env = (import.meta as any).env?.VITE_API_BASE?.toString()
-  if (env) return env
-  if (window.location.hostname === 'localhost' && window.location.port === '5173') return 'http://localhost:8080'
-  return ''
-})()
-
-async function fetchJson(path: string, init?: RequestInit) {
-  const res = await fetch(`${API_BASE}${path}`, {
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
-    ...init,
-  })
-  if (!res.ok) throw new Error(await res.text().catch(()=> '') || `HTTP ${res.status}`)
-  return res.json()
-}
+// Use centralized api client which injects Authorization header and omits cookies
 
 export default function Dashboard() {
   const { user } = useAuth()
@@ -37,7 +22,7 @@ export default function Dashboard() {
   async function loadTokens() {
     setLoading(true)
     try {
-      const list = await fetchJson('/api/tokens')
+      const list = await apiJson('/api/tokens')
       setTokens(list)
     } catch (e) {
       // noop
@@ -49,7 +34,7 @@ export default function Dashboard() {
   async function createToken() {
     setLoading(true)
     try {
-      const resp = await fetchJson('/api/tokens', { method: 'POST', body: JSON.stringify({ label: newLabel || 'cli' }) })
+      const resp = await apiJson('/api/tokens', { method: 'POST', body: JSON.stringify({ label: newLabel || 'cli' }) })
       setJustCreatedToken(resp.token as string)
       await loadTokens()
     } catch (e) {
@@ -62,7 +47,7 @@ export default function Dashboard() {
   async function revokeToken(id: string) {
     setLoading(true)
     try {
-      await fetch(`${API_BASE}/api/tokens/${id}`, { method: 'DELETE', credentials: 'include' })
+      await apiRaw(`/api/tokens/${id}`, { method: 'DELETE' })
       await loadTokens()
     } finally {
       setLoading(false)
