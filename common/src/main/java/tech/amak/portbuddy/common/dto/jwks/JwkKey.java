@@ -27,8 +27,8 @@ public class JwkKey {
 
     // RSA specific
     @JsonProperty("n")
-    private String n;
+    private String modulus;
 
     @JsonProperty("e")
-    private String e;
+    private String exponent;
 }

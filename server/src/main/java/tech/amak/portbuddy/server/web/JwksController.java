@@ -37,8 +37,8 @@ public class JwksController {
                 dto.setKid((String) json.get("kid"));
                 dto.setUse((String) json.get("use"));
                 dto.setAlg((String) json.get("alg"));
-                dto.setN((String) json.get("n"));
-                dto.setE((String) json.get("e"));
+                dto.setModulus((String) json.get("n"));
+                dto.setExponent((String) json.get("e"));
                 keys.add(dto);
             }
         }
