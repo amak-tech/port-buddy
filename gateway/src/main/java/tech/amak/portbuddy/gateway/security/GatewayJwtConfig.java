@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtIssuerValidator;
 import org.springframework.security.oauth2.jwt.JwtTimestampValidator;
 import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder;
@@ -23,7 +22,7 @@ public class GatewayJwtConfig {
     public ReactiveJwtDecoder reactiveJwtDecoder() {
         final var decoder = NimbusReactiveJwtDecoder.withJwkSetUri(jwkSetUri).build();
         final var withIssuer = new JwtIssuerValidator(issuer);
-        final var validator = new DelegatingOAuth2TokenValidator<Jwt>(new JwtTimestampValidator(), withIssuer);
+        final var validator = new DelegatingOAuth2TokenValidator<>(new JwtTimestampValidator(), withIssuer);
         decoder.setJwtValidator(validator);
         return decoder;
     }
