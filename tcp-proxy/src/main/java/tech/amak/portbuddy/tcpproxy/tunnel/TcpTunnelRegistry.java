@@ -18,17 +18,20 @@ import org.springframework.web.socket.WebSocketSession;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.Data;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.tunnel.BinaryWsFrame;
 import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class TcpTunnelRegistry {
 
     private final Map<String, Tunnel> byTunnelId = new ConcurrentHashMap<>();
-    private final ObjectMapper mapper = new ObjectMapper();
     private final ExecutorService ioPool = Executors.newCachedThreadPool();
+
+    private final ObjectMapper mapper;
 
     /**
      * Exposes a TCP tunnel by creating or retrieving a {@link Tunnel} corresponding to the provided

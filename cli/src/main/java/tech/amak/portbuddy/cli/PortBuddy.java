@@ -1,12 +1,11 @@
 package tech.amak.portbuddy.cli;
 
+import static tech.amak.portbuddy.cli.utils.JsonUtils.MAPPER;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.MediaType;
@@ -49,7 +48,6 @@ public class PortBuddy implements Callable<Integer> {
     )
     private List<String> args = new ArrayList<>();
 
-    private final ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
     private final OkHttpClient http = new OkHttpClient();
 
     static void main(String[] args) {
@@ -182,7 +180,7 @@ public class PortBuddy implements Callable<Integer> {
     private ExposeResponse callExposeHttp(final String baseUrl, final String jwt, final HttpExposeRequest reqBody) {
         try {
             final var url = baseUrl + "/api/expose/http";
-            final var json = mapper.writeValueAsString(reqBody);
+            final var json = MAPPER.writeValueAsString(reqBody);
             final var reqBuilder = new Request.Builder()
                 .url(url)
                 .post(RequestBody.create(json, MediaType.parse("application/json")))
@@ -203,7 +201,7 @@ public class PortBuddy implements Callable<Integer> {
                     return null;
                 }
                 final var str = body.string();
-                return mapper.readValue(str, ExposeResponse.class);
+                return MAPPER.readValue(str, ExposeResponse.class);
             }
         } catch (Exception e) {
             log.warn("Expose HTTP call error: {}", e.toString());
@@ -214,7 +212,7 @@ public class PortBuddy implements Callable<Integer> {
     private ExposeResponse callExposeTcp(final String baseUrl, final String jwt, final HttpExposeRequest reqBody) {
         try {
             final var url = baseUrl + "/api/expose/tcp";
-            final var json = mapper.writeValueAsString(reqBody);
+            final var json = MAPPER.writeValueAsString(reqBody);
             final var reqBuilder = new Request.Builder()
                 .url(url)
                 .post(RequestBody.create(json, MediaType.parse("application/json")))
@@ -234,7 +232,7 @@ public class PortBuddy implements Callable<Integer> {
                 if (body == null) {
                     return null;
                 }
-                return mapper.readValue(body.string(), ExposeResponse.class);
+                return MAPPER.readValue(body.string(), ExposeResponse.class);
             }
         } catch (final Exception e) {
             log.warn("Expose TCP call error: {}", e.toString());
@@ -250,7 +248,7 @@ public class PortBuddy implements Callable<Integer> {
         try {
             final var url = baseUrl + "/api/auth/token-exchange";
             final var payload = new TokenExchangeRequest(apiToken);
-            final var json = mapper.writeValueAsString(payload);
+            final var json = MAPPER.writeValueAsString(payload);
             final var request = new Request.Builder()
                 .url(url)
                 .post(RequestBody.create(json, MediaType.parse("application/json")))
@@ -265,7 +263,7 @@ public class PortBuddy implements Callable<Integer> {
                 if (body == null) {
                     return null;
                 }
-                final var resp = mapper.readValue(body.string(), TokenExchangeResponse.class);
+                final var resp = MAPPER.readValue(body.string(), TokenExchangeResponse.class);
                 final var accessToken = resp.getAccessToken() == null ? "" : resp.getAccessToken();
                 final var tokenType = resp.getTokenType() == null ? "" : resp.getTokenType();
                 if (!accessToken.isBlank() && (tokenType.isBlank() || "Bearer".equalsIgnoreCase(tokenType))) {

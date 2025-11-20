@@ -1,5 +1,7 @@
 package tech.amak.portbuddy.cli.tunnel;
 
+import static tech.amak.portbuddy.cli.utils.JsonUtils.MAPPER;
+
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
@@ -8,8 +10,6 @@ import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,7 +40,6 @@ public class TcpTunnelClient {
     private final TcpTrafficSink trafficSink;
 
     private final OkHttpClient http = new OkHttpClient();
-    private final ObjectMapper mapper = new ObjectMapper();
     private WebSocket webSocket;
 
     private final Map<String, LocalTcp> locals = new ConcurrentHashMap<>();
@@ -116,8 +115,8 @@ public class TcpTunnelClient {
         @Override
         public void onMessage(final WebSocket webSocket, final String text) {
             try {
-                final var m = mapper.readValue(text, WsTunnelMessage.class);
-                handleControl(m);
+                final var message = MAPPER.readValue(text, WsTunnelMessage.class);
+                handleControl(message);
             } catch (Exception e) {
                 log.warn("Bad control message: {}", e.toString());
             }
@@ -173,7 +172,7 @@ public class TcpTunnelClient {
                 final var ack = new WsTunnelMessage();
                 ack.setWsType(WsTunnelMessage.Type.OPEN_OK);
                 ack.setConnectionId(connId);
-                webSocket.send(mapper.writeValueAsString(ack));
+                webSocket.send(MAPPER.writeValueAsString(ack));
                 // Start reader thread from local TCP to proxy WS
                 new Thread(() -> pumpLocalToProxy(local)).start();
             }
@@ -229,7 +228,7 @@ public class TcpTunnelClient {
                 final var message = new WsTunnelMessage();
                 message.setWsType(WsTunnelMessage.Type.CLOSE);
                 message.setConnectionId(local.connectionId);
-                webSocket.send(mapper.writeValueAsString(message));
+                webSocket.send(MAPPER.writeValueAsString(message));
             } catch (final Exception ignore) {
                 log.error("Failed to send local WS close: {}", ignore.toString());
             }

@@ -20,7 +20,7 @@ import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
 public class TcpTunnelWebSocketHandler extends AbstractWebSocketHandler {
 
     private final TcpTunnelRegistry registry;
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper;
 
     @Override
     public void afterConnectionEstablished(final WebSocketSession session) throws Exception {

@@ -1,5 +1,7 @@
 package tech.amak.portbuddy.cli.tunnel;
 
+import static tech.amak.portbuddy.cli.utils.JsonUtils.MAPPER;
+
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -13,8 +15,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -59,7 +59,6 @@ public class HttpTunnelClient {
         .followRedirects(true)
         .retryOnConnectionFailure(true)
         .build();
-    private final ObjectMapper mapper = new ObjectMapper();
 
     private WebSocket webSocket;
     private CountDownLatch closed = new CountDownLatch(1);
@@ -192,7 +191,7 @@ public class HttpTunnelClient {
                         final var ping = new ControlMessage();
                         ping.setType(ControlMessage.Type.PING);
                         ping.setTs(System.currentTimeMillis());
-                        HttpTunnelClient.this.webSocket.send(mapper.writeValueAsString(ping));
+                        HttpTunnelClient.this.webSocket.send(MAPPER.writeValueAsString(ping));
                     } catch (final Exception e) {
                         log.debug("Heartbeat send failed: {}", e.toString());
                     }
@@ -206,23 +205,23 @@ public class HttpTunnelClient {
         public void onMessage(final WebSocket webSocket, final String text) {
             try {
                 log.debug("Received WS message: {}", text);
-                final var env = mapper.readValue(text, MessageEnvelope.class);
+                final var env = MAPPER.readValue(text, MessageEnvelope.class);
                 if (env.getKind() != null && env.getKind().equals("CTRL")) {
                     // Ignore control messages (e.g., PONG)
                     return;
                 }
                 if (env.getKind() != null && env.getKind().equals("WS")) {
-                    final var wsMsg = mapper.readValue(text, WsTunnelMessage.class);
+                    final var wsMsg = MAPPER.readValue(text, WsTunnelMessage.class);
                     handleWsFromServer(wsMsg);
                     return;
                 }
-                final var msg = mapper.readValue(text, HttpTunnelMessage.class);
+                final var msg = MAPPER.readValue(text, HttpTunnelMessage.class);
                 if (msg.getType() == HttpTunnelMessage.Type.REQUEST) {
                     // Offload request processing to a worker thread to avoid blocking the WS listener
                     requestExecutor.submit(() -> {
                         try {
                             final var resp = handleRequest(msg);
-                            final var json = mapper.writeValueAsString(resp);
+                            final var json = MAPPER.writeValueAsString(resp);
                             HttpTunnelClient.this.webSocket.send(json);
                             log.debug("Responded to WS request: {}", resp.getId());
                         } catch (final Exception ex) {
@@ -236,7 +235,7 @@ public class HttpTunnelClient {
                                 headers.put("Content-Type", "text/plain; charset=utf-8");
                                 err.setRespHeaders(headers);
                                 err.setRespBodyB64(Base64.getEncoder().encodeToString("Proxy error".getBytes(StandardCharsets.UTF_8)));
-                                HttpTunnelClient.this.webSocket.send(mapper.writeValueAsString(err));
+                                HttpTunnelClient.this.webSocket.send(MAPPER.writeValueAsString(err));
                             } catch (final Exception e) {
                                 log.error("Failed to send error response: {}", e.getMessage(), e);
                             }
@@ -328,7 +327,7 @@ public class HttpTunnelClient {
                 final var ack = new WsTunnelMessage();
                 ack.setWsType(WsTunnelMessage.Type.OPEN_OK);
                 ack.setConnectionId(connectionId);
-                HttpTunnelClient.this.webSocket.send(mapper.writeValueAsString(ack));
+                HttpTunnelClient.this.webSocket.send(MAPPER.writeValueAsString(ack));
             } catch (final Exception ignore) {
                 log.error("Failed to send local WS open ack: {}", ignore.toString());
             }
@@ -341,7 +340,7 @@ public class HttpTunnelClient {
                 message.setWsType(WsTunnelMessage.Type.TEXT);
                 message.setConnectionId(connectionId);
                 message.setText(text);
-                HttpTunnelClient.this.webSocket.send(mapper.writeValueAsString(message));
+                HttpTunnelClient.this.webSocket.send(MAPPER.writeValueAsString(message));
             } catch (Exception e) {
                 log.debug("Failed to forward local text WS: {}", e.toString());
             }
@@ -354,7 +353,7 @@ public class HttpTunnelClient {
                 message.setWsType(WsTunnelMessage.Type.BINARY);
                 message.setConnectionId(connectionId);
                 message.setDataB64(Base64.getEncoder().encodeToString(bytes.toByteArray()));
-                HttpTunnelClient.this.webSocket.send(mapper.writeValueAsString(message));
+                HttpTunnelClient.this.webSocket.send(MAPPER.writeValueAsString(message));
             } catch (Exception e) {
                 log.debug("Failed to forward local binary WS: {}", e.toString());
             }
@@ -369,7 +368,7 @@ public class HttpTunnelClient {
                 message.setConnectionId(connectionId);
                 message.setCloseCode(code);
                 message.setCloseReason(reason);
-                HttpTunnelClient.this.webSocket.send(mapper.writeValueAsString(message));
+                HttpTunnelClient.this.webSocket.send(MAPPER.writeValueAsString(message));
             } catch (Exception e) {
                 log.debug("Failed to notify close: {}", e.toString());
             }

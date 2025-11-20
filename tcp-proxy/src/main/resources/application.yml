@@ -9,6 +9,12 @@ eureka:
 spring:
   application:
     name: tcp-proxy
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Validate incoming JWTs using the Server's public JWKS
+          jwk-set-uri: http://localhost:8080/.well-known/jwks.json
 
 app:
   public-host: localhost

@@ -16,6 +16,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.tunnel.HttpTunnelMessage;
@@ -26,20 +27,21 @@ import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
  */
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class TunnelRegistry {
 
     private final Map<String, Tunnel> bySubdomain = new ConcurrentHashMap<>();
     private final Map<String, Tunnel> byTunnelId = new ConcurrentHashMap<>();
-    private final ObjectMapper mapper = new ObjectMapper();
-
     public static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(30);
+
+    private final ObjectMapper mapper;
 
     /**
      * Creates a new pending Tunnel instance with the specified subdomain and tunnel ID
      * and registers it in the internal mappings.
      *
      * @param subdomain the subdomain associated with the tunnel
-     * @param tunnelId the unique identifier for the tunnel
+     * @param tunnelId  the unique identifier for the tunnel
      * @return the created Tunnel instance
      */
     public Tunnel createPending(final String subdomain, final String tunnelId) {
@@ -67,9 +69,9 @@ public class TunnelRegistry {
      * If no tunnel with the provided tunnelId exists, the session attachment will not be performed.
      *
      * @param tunnelId the unique identifier of the tunnel to attach the WebSocket session to
-     * @param session the WebSocketSession to be attached to the specified tunnel
+     * @param session  the WebSocketSession to be attached to the specified tunnel
      * @return {@code true} if the session was successfully attached to a tunnel,
-     *         or {@code false} if no matching tunnel was found
+     *     or {@code false} if no matching tunnel was found
      */
     public boolean attachSession(final String tunnelId, final WebSocketSession session) {
         final var tunnel = byTunnelId.get(tunnelId);
@@ -169,8 +171,8 @@ public class TunnelRegistry {
      * If no tunnel with the provided tunnel ID exists, the operation is aborted.
      * The session is mapped in both the forward and reverse lookup structures for later reference.
      *
-     * @param tunnelId the unique identifier of the tunnel to associate with the browser session
-     * @param connectionId the unique identifier of the connection within the tunnel
+     * @param tunnelId       the unique identifier of the tunnel to associate with the browser session
+     * @param connectionId   the unique identifier of the connection within the tunnel
      * @param browserSession the WebSocket session representing the browser connection
      */
     public void registerBrowserWs(final String tunnelId,
@@ -192,7 +194,7 @@ public class TunnelRegistry {
      *
      * @param browserSession the WebSocketSession representing the browser connection to be unregistered
      * @return an {@code Ids} object containing the tunnel ID and connection ID associated with the
-     *         unregistered browser session, or {@code null} if the session was not found
+     *     unregistered browser session, or {@code null} if the session was not found
      */
     public Ids unregisterBrowserWs(final WebSocketSession browserSession) {
         for (final var tunnel : byTunnelId.values()) {
@@ -211,7 +213,7 @@ public class TunnelRegistry {
      *
      * @param browserSession the WebSocketSession representing the browser connection to look up
      * @return an {@code Ids} object containing the tunnel ID and connection ID associated with
-     *         the specified session, or {@code null} if no match is found
+     *     the specified session, or {@code null} if no match is found
      */
     public Ids findIdsByBrowserSession(final WebSocketSession browserSession) {
         for (final var tunnel : byTunnelId.values()) {
@@ -228,10 +230,10 @@ public class TunnelRegistry {
      * If no tunnel exists for the given tunnel ID or no session is associated with the
      * provided connection ID, this method returns {@code null}.
      *
-     * @param tunnelId the unique identifier of the tunnel from which to retrieve the session
+     * @param tunnelId     the unique identifier of the tunnel from which to retrieve the session
      * @param connectionId the unique identifier of the connection within the tunnel
      * @return the WebSocketSession associated with the specified tunnel ID and connection ID,
-     *         or {@code null} if no matching session is found
+     *     or {@code null} if no matching session is found
      */
     public WebSocketSession getBrowserSession(final String tunnelId, final String connectionId) {
         final var tunnel = byTunnelId.get(tunnelId);
