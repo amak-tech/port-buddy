@@ -1,6 +1,8 @@
 package tech.amak.portbuddy.cli;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Callable;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -43,7 +45,7 @@ public class PortBuddy implements Callable<Integer> {
         arity = "0..2",
         description = "[mode] [host:][port] or [schema://]host[:port]. Examples: '3000', 'localhost', 'example.com:8080', 'https://example.com'"
     )
-    private java.util.List<String> args = new java.util.ArrayList<>();
+    private List<String> args = new ArrayList<>();
 
     private final ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
     private final OkHttpClient http = new OkHttpClient();
