@@ -10,13 +10,6 @@ spring:
   application:
     name: api-gateway
 
-#  security:
-#    oauth2:
-#      resourceserver:
-#        jwt:
-#          # Gateway validates incoming JWTs using the Server's public JWKS
-#          jwk-set-uri: ${app.jwt.jwk-set-uri}
-
   cloud:
     gateway:
       server:
