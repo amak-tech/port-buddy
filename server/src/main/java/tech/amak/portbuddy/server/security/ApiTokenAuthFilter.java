@@ -1,5 +1,7 @@
 package tech.amak.portbuddy.server.security;
 
+import static java.util.List.of;
+
 import java.io.IOException;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -37,7 +39,9 @@ public class ApiTokenAuthFilter extends OncePerRequestFilter {
     private final ApiTokenService apiTokenService;
 
     @Override
-    protected void doFilterInternal(final HttpServletRequest request, final HttpServletResponse response, final FilterChain filterChain)
+    protected void doFilterInternal(final HttpServletRequest request,
+                                    final HttpServletResponse response,
+                                    final FilterChain filterChain)
         throws ServletException, IOException {
         try {
             final var header = request.getHeader("Authorization");
@@ -53,7 +57,7 @@ public class ApiTokenAuthFilter extends OncePerRequestFilter {
                 final var userIdOpt = apiTokenService.validateAndGetUserId(token);
                 if (userIdOpt.isPresent()) {
                     final var userId = userIdOpt.get();
-                    final var auth = new UsernamePasswordAuthenticationToken(userId, null, java.util.List.of(new SimpleGrantedAuthority("ROLE_USER")));
+                    final var auth = new UsernamePasswordAuthenticationToken(userId, null, of(new SimpleGrantedAuthority("ROLE_USER")));
                     SecurityContextHolder.getContext().setAuthentication(auth);
                 }
             }
