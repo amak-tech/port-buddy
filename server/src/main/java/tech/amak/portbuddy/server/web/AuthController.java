@@ -1,7 +1,5 @@
 package tech.amak.portbuddy.server.web;
 
-import java.util.Map;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -11,6 +9,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import lombok.RequiredArgsConstructor;
+import tech.amak.portbuddy.common.dto.auth.TokenExchangeRequest;
+import tech.amak.portbuddy.common.dto.auth.TokenExchangeResponse;
 import tech.amak.portbuddy.server.security.JwtService;
 import tech.amak.portbuddy.server.service.ApiTokenService;
 
@@ -24,18 +24,18 @@ public class AuthController {
 
     /**
      * Exchanges a valid API token for a short-lived JWT suitable for authenticating API and WebSocket calls.
-     * Body: { "apiToken": "..." }
-     * Response: { "accessToken": "<jwt>", "tokenType": "Bearer" }
      */
     @PostMapping("/token-exchange")
-    public Map<String, Object> tokenExchange(final @RequestBody Map<String, Object> payload) {
-        final var apiToken = String.valueOf(payload.getOrDefault("apiToken", "")).trim();
+    public TokenExchangeResponse tokenExchange(final @RequestBody TokenExchangeRequest payload) {
+        final var apiToken = payload == null ? "" : String.valueOf(payload.getApiToken()).trim();
         final var userIdOpt = apiTokenService.validateAndGetUserId(apiToken);
         if (userIdOpt.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid API token");
         }
         final var userId = userIdOpt.get();
-        final var jwt = jwtService.createToken(Map.of("typ", "cli"), userId);
-        return Map.of("accessToken", jwt, "tokenType", "Bearer");
+        final var claims = new java.util.HashMap<String, Object>();
+        claims.put("typ", "cli");
+        final var jwt = jwtService.createToken(claims, userId);
+        return new TokenExchangeResponse(jwt, "Bearer");
     }
 }

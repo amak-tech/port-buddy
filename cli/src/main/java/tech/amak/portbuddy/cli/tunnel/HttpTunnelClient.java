@@ -14,7 +14,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
@@ -30,6 +29,7 @@ import okio.ByteString;
 import tech.amak.portbuddy.cli.ui.HttpLogSink;
 import tech.amak.portbuddy.common.tunnel.ControlMessage;
 import tech.amak.portbuddy.common.tunnel.HttpTunnelMessage;
+import tech.amak.portbuddy.common.tunnel.MessageEnvelope;
 import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
 
 @Slf4j
@@ -206,17 +206,17 @@ public class HttpTunnelClient {
         public void onMessage(final WebSocket webSocket, final String text) {
             try {
                 log.debug("Received WS message: {}", text);
-                final JsonNode node = mapper.readTree(text);
-                if (node.has("kind") && "CTRL".equals(node.get("kind").asText())) {
+                final var env = mapper.readValue(text, MessageEnvelope.class);
+                if (env.getKind() != null && env.getKind().equals("CTRL")) {
                     // Ignore control messages (e.g., PONG)
                     return;
                 }
-                if (node.has("kind") && "WS".equals(node.get("kind").asText())) {
-                    final var wsMsg = mapper.treeToValue(node, WsTunnelMessage.class);
+                if (env.getKind() != null && env.getKind().equals("WS")) {
+                    final var wsMsg = mapper.readValue(text, WsTunnelMessage.class);
                     handleWsFromServer(wsMsg);
                     return;
                 }
-                final var msg = mapper.treeToValue(node, HttpTunnelMessage.class);
+                final var msg = mapper.readValue(text, HttpTunnelMessage.class);
                 if (msg.getType() == HttpTunnelMessage.Type.REQUEST) {
                     // Offload request processing to a worker thread to avoid blocking the WS listener
                     requestExecutor.submit(() -> {

@@ -2,7 +2,6 @@ package tech.amak.portbuddy.cli;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Map;
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -26,6 +25,8 @@ import tech.amak.portbuddy.cli.ui.ConsoleUi;
 import tech.amak.portbuddy.common.Mode;
 import tech.amak.portbuddy.common.dto.ExposeResponse;
 import tech.amak.portbuddy.common.dto.HttpExposeRequest;
+import tech.amak.portbuddy.common.dto.auth.TokenExchangeRequest;
+import tech.amak.portbuddy.common.dto.auth.TokenExchangeResponse;
 
 @Slf4j
 @Command(
@@ -89,16 +90,16 @@ public class PortBuddy implements Callable<Integer> {
         // 1) Ensure API key is present and exchange it for a JWT at startup
         final var apiKey = config.getApiToken();
         if (apiKey == null || apiKey.isBlank()) {
-            System.err.println("Authentication required. CLI must be initialized with a valid API Key.\n" +
-                "Run: port-buddy init {API_TOKEN}");
+            System.err.println("Authentication required. CLI must be initialized with a valid API Key.\n"
+                               + "Run: port-buddy init {API_TOKEN}");
             return CommandLine.ExitCode.SOFTWARE;
         }
 
         final var jwt = exchangeApiTokenForJwt(config.getServerUrl(), apiKey);
         if (jwt == null || jwt.isBlank()) {
-            System.err.println("Failed to authenticate with the provided API Key.\n" +
-                "CLI must be initialized with a valid API Key.\n" +
-                "Example: port-buddy init {API_TOKEN}");
+            System.err.println("Failed to authenticate with the provided API Key.\n"
+                               + "CLI must be initialized with a valid API Key.\n"
+                               + "Example: port-buddy init {API_TOKEN}");
             return CommandLine.ExitCode.SOFTWARE;
         }
 
@@ -192,8 +193,8 @@ public class PortBuddy implements Callable<Integer> {
                 if (!response.isSuccessful()) {
                     log.warn("Expose HTTP failed: {} {}", response.code(), response.message());
                     if (response.code() == 401) {
-                        System.err.println("Authentication failed. Please re-initialize CLI with a valid API Key.\n" +
-                            "Example: port-buddy init {API_TOKEN}");
+                        System.err.println("Authentication failed. Please re-initialize CLI with a valid API Key.\n"
+                                           + "Example: port-buddy init {API_TOKEN}");
                     }
                     return null;
                 }
@@ -224,8 +225,8 @@ public class PortBuddy implements Callable<Integer> {
                 if (!response.isSuccessful()) {
                     log.warn("Expose TCP failed: {} {}", response.code(), response.message());
                     if (response.code() == 401) {
-                        System.err.println("Authentication failed. Please re-initialize CLI with a valid API Key.\n" +
-                            "Example: port-buddy init {API_TOKEN}");
+                        System.err.println("Authentication failed. Please re-initialize CLI with a valid API Key.\n"
+                                           + "Example: port-buddy init {API_TOKEN}");
                     }
                     return null;
                 }
@@ -248,7 +249,7 @@ public class PortBuddy implements Callable<Integer> {
     private String exchangeApiTokenForJwt(final String baseUrl, final String apiToken) {
         try {
             final var url = baseUrl + "/api/auth/token-exchange";
-            final var payload = Map.of("apiToken", apiToken);
+            final var payload = new TokenExchangeRequest(apiToken);
             final var json = mapper.writeValueAsString(payload);
             final var request = new Request.Builder()
                 .url(url)
@@ -264,10 +265,9 @@ public class PortBuddy implements Callable<Integer> {
                 if (body == null) {
                     return null;
                 }
-                final var str = body.string();
-                final var node = mapper.readTree(str);
-                final var tokenType = node.path("tokenType").asText("");
-                final var accessToken = node.path("accessToken").asText("");
+                final var resp = mapper.readValue(body.string(), TokenExchangeResponse.class);
+                final var accessToken = resp.getAccessToken() == null ? "" : resp.getAccessToken();
+                final var tokenType = resp.getTokenType() == null ? "" : resp.getTokenType();
                 if (!accessToken.isBlank() && (tokenType.isBlank() || "Bearer".equalsIgnoreCase(tokenType))) {
                     return accessToken;
                 }

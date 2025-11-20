@@ -9,13 +9,13 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.tunnel.ControlMessage;
 import tech.amak.portbuddy.common.tunnel.HttpTunnelMessage;
+import tech.amak.portbuddy.common.tunnel.MessageEnvelope;
 import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
 
 @Slf4j
@@ -53,10 +53,10 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
                 tunnel.setLastHeartbeatMillis(System.currentTimeMillis());
             }
             final String payload = message.getPayload();
-            final JsonNode node = mapper.readTree(payload);
+            final var env = mapper.readValue(payload, MessageEnvelope.class);
             // Control health checks
-            if (node.has("kind") && "CTRL".equals(node.get("kind").asText())) {
-                final var ctrl = mapper.treeToValue(node, ControlMessage.class);
+            if (env.getKind() != null && env.getKind().equals("CTRL")) {
+                final var ctrl = mapper.readValue(payload, ControlMessage.class);
                 if (ctrl.getType() == ControlMessage.Type.PING) {
                     final var pong = new ControlMessage();
                     pong.setType(ControlMessage.Type.PONG);
@@ -65,12 +65,12 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
                 }
                 return;
             }
-            if (node.has("kind") && "WS".equals(node.get("kind").asText())) {
-                final var wsMsg = mapper.treeToValue(node, WsTunnelMessage.class);
+            if (env.getKind() != null && env.getKind().equals("WS")) {
+                final var wsMsg = mapper.readValue(payload, WsTunnelMessage.class);
                 handleWsFromClient(tunnelId, wsMsg);
                 return;
             }
-            final var httpMsg = mapper.treeToValue(node, HttpTunnelMessage.class);
+            final var httpMsg = mapper.readValue(payload, HttpTunnelMessage.class);
             if (httpMsg.getType() == HttpTunnelMessage.Type.RESPONSE) {
                 registry.onResponse(tunnelId, httpMsg);
             } else {
