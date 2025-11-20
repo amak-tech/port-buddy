@@ -107,12 +107,12 @@ public class ApiTokenService {
             return Optional.empty();
         }
         final var hash = sha256(rawToken);
-        final var rec = tokensByHash.get(hash);
-        if (rec == null || rec.isRevoked()) {
+        final var token = tokensByHash.get(hash);
+        if (token == null || token.isRevoked()) {
             return Optional.empty();
         }
-        rec.setLastUsedAt(Instant.now());
-        return Optional.of(rec.getUserId());
+        token.setLastUsedAt(Instant.now());
+        return Optional.of(token.getUserId());
     }
 
     private String generateRawToken() {
