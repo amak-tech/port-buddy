@@ -1,8 +1,6 @@
 server:
   port: 8080
 
-domain: localhost:8080
-
 eureka:
   client:
     service-url:
@@ -11,6 +9,13 @@ eureka:
 spring:
   application:
     name: api-gateway
+
+#  security:
+#    oauth2:
+#      resourceserver:
+#        jwt:
+#          # Gateway validates incoming JWTs using the Server's public JWKS
+#          jwk-set-uri: ${app.jwt.jwk-set-uri}
 
   cloud:
     gateway:
@@ -44,13 +49,22 @@ spring:
               order: 2
               uri: lb://port-buddy-server
               predicates:
-                - Path=/api/**, /oauth2/**, /login/oauth2/**
+                - Path=/api/**, /oauth2/**, /login/oauth2/**, /.well-known/jwks.json
 
             - id: spa_frontend_route
               uri: forward:/index.html
               order: 3
               predicates:
                 - Path=/install, /app/**, /login/**, /auth/callback
+
+app:
+  domain: localhost:8080
+  scheme: http
+  url: ${app.scheme}://${app.domain}
+  jwt:
+    jwk-set-uri: ${app.url}/.well-known/jwks.json
+    # Must match the issuer used by the Server when minting JWTs
+    issuer: port-buddy
 
 logging:
   level:
