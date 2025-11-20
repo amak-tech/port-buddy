@@ -215,27 +215,20 @@ public class HttpTunnelClient {
                     handleWsFromServer(wsMsg);
                     return;
                 }
-                final var msg = MAPPER.readValue(text, HttpTunnelMessage.class);
-                if (msg.getType() == HttpTunnelMessage.Type.REQUEST) {
+                final var message = MAPPER.readValue(text, HttpTunnelMessage.class);
+                if (message.getType() == HttpTunnelMessage.Type.REQUEST) {
                     // Offload request processing to a worker thread to avoid blocking the WS listener
                     requestExecutor.submit(() -> {
                         try {
-                            final var resp = handleRequest(msg);
+                            final var resp = handleRequest(message);
                             final var json = MAPPER.writeValueAsString(resp);
                             HttpTunnelClient.this.webSocket.send(json);
                             log.debug("Responded to WS request: {}", resp.getId());
                         } catch (final Exception ex) {
-                            log.warn("Failed to handle tunneled request {}: {}", msg.getId(), ex.toString());
+                            log.warn("Failed to handle tunneled request {}: {}", message.getId(), ex.toString());
                             try {
-                                final var err = new HttpTunnelMessage();
-                                err.setId(msg.getId());
-                                err.setType(HttpTunnelMessage.Type.RESPONSE);
-                                err.setStatus(502);
-                                final var headers = new java.util.HashMap<String, String>();
-                                headers.put("Content-Type", "text/plain; charset=utf-8");
-                                err.setRespHeaders(headers);
-                                err.setRespBodyB64(Base64.getEncoder().encodeToString("Proxy error".getBytes(StandardCharsets.UTF_8)));
-                                HttpTunnelClient.this.webSocket.send(MAPPER.writeValueAsString(err));
+                                final var error = buildErrorMessage(message.getId(), 502, "Proxy error");
+                                HttpTunnelClient.this.webSocket.send(MAPPER.writeValueAsString(error));
                             } catch (final Exception e) {
                                 log.error("Failed to send error response: {}", e.getMessage(), e);
                             }
@@ -435,14 +428,7 @@ public class HttpTunnelClient {
             }
             return successMessage;
         } catch (final Exception e) {
-            final var errorMessage = new HttpTunnelMessage();
-            errorMessage.setId(requestMessage.getId());
-            errorMessage.setType(HttpTunnelMessage.Type.RESPONSE);
-            errorMessage.setStatus(502);
-            final var headers = new HashMap<String, String>();
-            headers.put("Content-Type", "text/plain; charset=utf-8");
-            errorMessage.setRespHeaders(headers);
-            errorMessage.setRespBodyB64(Base64.getEncoder().encodeToString(("Bad Gateway: " + e.getMessage()).getBytes(StandardCharsets.UTF_8)));
+            final var errorMessage = buildErrorMessage(requestMessage.getId(), 502, "Bad Gateway: " + e.getMessage());
             try {
                 if (httpLogSink != null) {
                     var displayUrl = publicBaseUrl;
@@ -459,6 +445,18 @@ public class HttpTunnelClient {
             }
             return errorMessage;
         }
+    }
+
+    private static HttpTunnelMessage buildErrorMessage(final String id, final int status, final String message) {
+        final var error = new HttpTunnelMessage();
+        error.setId(id);
+        error.setType(HttpTunnelMessage.Type.RESPONSE);
+        error.setStatus(status);
+        final var headers = Map.of("Content-Type", "text/plain; charset=utf-8");
+        error.setRespHeaders(headers);
+        error.setRespBodyB64(Base64.getEncoder().encodeToString((message).getBytes(StandardCharsets.UTF_8)));
+
+        return error;
     }
 
     private RequestBody buildBody(final String method, final String bodyB64) {
