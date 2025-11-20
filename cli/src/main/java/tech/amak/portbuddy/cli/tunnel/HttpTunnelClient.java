@@ -180,7 +180,7 @@ public class HttpTunnelClient {
     private class Listener extends WebSocketListener {
         @Override
         public void onOpen(final WebSocket webSocket, final Response response) {
-            log.info("Tunnel connected to server");
+            log.debug("Tunnel connected to server");
             // Start application-level heartbeat PINGs
             try {
                 if (heartbeatTask != null && !heartbeatTask.isCancelled()) {
@@ -382,7 +382,7 @@ public class HttpTunnelClient {
 
         final var targetRequest = new Request.Builder()
             .url(url)
-            .method(method, buildBody(method, requestMessage.getBodyB64()));
+            .method(method, buildBody(method, requestMessage.getBodyB64(), requestMessage.getBodyContentType()));
 
         if (requestMessage.getHeaders() != null) {
             for (var header : requestMessage.getHeaders().entrySet()) {
@@ -393,6 +393,10 @@ public class HttpTunnelClient {
                 }
                 if (name.equalsIgnoreCase("Host")) {
                     continue; // Host will be set by client
+                }
+                if (name.equalsIgnoreCase("Content-Type")) {
+                    // Content-Type is derived from RequestBody media type
+                    continue;
                 }
                 targetRequest.addHeader(name, value);
             }
@@ -459,13 +463,14 @@ public class HttpTunnelClient {
         return error;
     }
 
-    private RequestBody buildBody(final String method, final String bodyB64) {
+    private RequestBody buildBody(final String method, final String bodyB64, final String contentType) {
         // Methods that usually don't have body
         if (bodyB64 == null) {
-            return methodSupportsBody(method) ? RequestBody.create(new byte[0], null) : null;
+            return methodSupportsBody(method) ? RequestBody.create(new byte[0], contentType != null ? MediaType.parse(contentType) : null) : null;
         }
         final var bytes = Base64.getDecoder().decode(bodyB64);
-        return RequestBody.create(bytes, MediaType.parse("application/octet-stream"));
+        final var mediaType = contentType != null && !contentType.isBlank() ? MediaType.parse(contentType) : MediaType.parse("application/octet-stream");
+        return RequestBody.create(bytes, mediaType);
     }
 
     private boolean methodSupportsBody(final String method) {

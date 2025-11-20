@@ -85,8 +85,7 @@ public class ConsoleUi implements HttpLogSink, TcpTrafficSink {
             throw new IllegalStateException("Failed to start console UI", e);
         }
 
-        terminal.puts(InfoCmp.Capability.clear_screen);
-        terminal.flush();
+        clear();
 
         out.printf("Port Buddy - Mode: %s%n", mode.name().toLowerCase());
         out.println();
@@ -94,14 +93,18 @@ public class ConsoleUi implements HttpLogSink, TcpTrafficSink {
         out.printf("Public: %s%n", publicDetails);
         out.println();
         out.println("Press Ctrl+C to exit");
-        out.println("----------------------------------------------");
-        out.println();
-        out.println("HTTP requests log:");
+        out.flush();
 
+        if (config.isLogEnabled()) {
+            out.println("----------------------------------------------");
+            out.println();
+            out.println("HTTP requests log:");
+            out.flush();
 
-        renderThread = new Thread(this::renderLoop, "port-buddy-ui");
-        renderThread.setDaemon(true);
-        renderThread.start();
+            renderThread = new Thread(this::renderLoop, "port-buddy-ui");
+            renderThread.setDaemon(true);
+            renderThread.start();
+        }
     }
 
     /**
@@ -166,7 +169,7 @@ public class ConsoleUi implements HttpLogSink, TcpTrafficSink {
     }
 
     private void renderLoop() {
-        final var frameDelay = Duration.ofMillis(200);
+        final var frameDelay = Duration.ofMillis(config.getConsoleFrameDelayMs());
         while (running.get()) {
             try {
                 terminal.puts(InfoCmp.Capability.cursor_address, 9, 0);
@@ -178,6 +181,11 @@ public class ConsoleUi implements HttpLogSink, TcpTrafficSink {
                 log.debug("Render loop error: {}", e.toString());
             }
         }
+
+        clear();
+    }
+
+    private void clear() {
         try {
             terminal.puts(InfoCmp.Capability.clear_screen);
             terminal.flush();

@@ -75,6 +75,7 @@ public class IngressController {
         msg.setQuery(query);
         msg.setHeaders(headers);
         msg.setBodyB64(bodyB64);
+        msg.setBodyContentType(request.getContentType());
 
         try {
             final var resp = registry.forwardRequest(subdomain, msg, Duration.ofSeconds(30)).join();
