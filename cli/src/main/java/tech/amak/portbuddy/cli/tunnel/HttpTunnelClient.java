@@ -58,7 +58,9 @@ public class HttpTunnelClient {
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(60, TimeUnit.SECONDS)
         .writeTimeout(60, TimeUnit.SECONDS)
-        .followRedirects(true)
+        // Do not follow redirects automatically; they must be proxied back to the client
+        .followRedirects(false)
+        .followSslRedirects(false)
         .retryOnConnectionFailure(true)
         .build();
 
