@@ -2,9 +2,11 @@ package tech.amak.portbuddy.server.web;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.http.HttpHeaders;
@@ -53,18 +55,27 @@ public class IngressController {
         final var method = request.getMethod();
         final var query = request.getQueryString();
 
-        final Map<String, String> headers = new HashMap<>();
+        final Map<String, List<String>> headers = new HashMap<>();
         for (Enumeration<String> en = request.getHeaderNames(); en.hasMoreElements(); ) {
             final var name = en.nextElement();
             // Skip hop-by-hop headers
             if (name.equalsIgnoreCase(HttpHeaders.HOST) || name.equalsIgnoreCase(HttpHeaders.CONNECTION)) {
                 continue;
             }
-            headers.put(name, request.getHeader(name));
+            final List<String> values = new ArrayList<>();
+            for (Enumeration<String> headerValues = request.getHeaders(name); headerValues.hasMoreElements(); ) {
+                final var value = headerValues.nextElement();
+                if (value != null) {
+                    values.add(value);
+                }
+            }
+            if (!values.isEmpty()) {
+                headers.put(name, values);
+            }
         }
 
-        headers.put("X-Forwarded-Host", request.getServerName());
-        headers.put("X-Forwarded-Proto", request.isSecure() ? "https" : "http");
+        headers.put("X-Forwarded-Host", List.of(request.getServerName()));
+        headers.put("X-Forwarded-Proto", List.of(request.isSecure() ? "https" : "http"));
 
         final var bodyBytes = request.getInputStream().readAllBytes();
         final var bodyB64 = bodyBytes.length == 0 ? null : Base64.getEncoder().encodeToString(bodyBytes);
@@ -83,9 +94,15 @@ public class IngressController {
             response.setStatus(status);
             if (resp.getRespHeaders() != null) {
                 for (var header : resp.getRespHeaders().entrySet()) {
-                    // avoid sending null header values
-                    if (header.getValue() != null) {
-                        response.setHeader(header.getKey(), header.getValue());
+                    final var name = header.getKey();
+                    final var values = header.getValue();
+                    if (name == null || values == null) {
+                        continue;
+                    }
+                    for (var v : values) {
+                        if (v != null) {
+                            response.addHeader(name, v);
+                        }
                     }
                 }
             }

@@ -4,8 +4,10 @@ import static tech.amak.portbuddy.cli.utils.JsonUtils.MAPPER;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
@@ -387,8 +389,8 @@ public class HttpTunnelClient {
         if (requestMessage.getHeaders() != null) {
             for (var header : requestMessage.getHeaders().entrySet()) {
                 final var name = header.getKey();
-                final var value = header.getValue();
-                if (name == null || value == null) {
+                final var values = header.getValue();
+                if (name == null || values == null) {
                     continue;
                 }
                 if (name.equalsIgnoreCase("Host")) {
@@ -398,7 +400,11 @@ public class HttpTunnelClient {
                     // Content-Type is derived from RequestBody media type
                     continue;
                 }
-                targetRequest.addHeader(name, value);
+                for (var value : values) {
+                    if (value != null) {
+                        targetRequest.addHeader(name, value);
+                    }
+                }
             }
         }
 
@@ -456,7 +462,7 @@ public class HttpTunnelClient {
         error.setId(id);
         error.setType(HttpTunnelMessage.Type.RESPONSE);
         error.setStatus(status);
-        final var headers = Map.of("Content-Type", "text/plain; charset=utf-8");
+        final var headers = Map.<String, List<String>>of("Content-Type", List.of("text/plain; charset=utf-8"));
         error.setRespHeaders(headers);
         error.setRespBodyB64(Base64.getEncoder().encodeToString((message).getBytes(StandardCharsets.UTF_8)));
 
@@ -483,10 +489,13 @@ public class HttpTunnelClient {
         };
     }
 
-    private Map<String, String> extractHeaders(final Response response) {
-        final var map = new HashMap<String, String>();
+    private Map<String, List<String>> extractHeaders(final Response response) {
+        final var map = new HashMap<String, List<String>>();
         for (final var name : response.headers().names()) {
-            map.put(name, response.header(name));
+            final var values = response.headers(name);
+            if (values != null && !values.isEmpty()) {
+                map.put(name, new ArrayList<>(values));
+            }
         }
         return map;
     }

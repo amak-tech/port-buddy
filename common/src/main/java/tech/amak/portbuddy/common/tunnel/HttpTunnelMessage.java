@@ -1,5 +1,6 @@
 package tech.amak.portbuddy.common.tunnel;
 
+import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -38,7 +39,7 @@ public class HttpTunnelMessage {
     private String query;
 
     @JsonProperty("headers")
-    private Map<String, String> headers;
+    private Map<String, List<String>> headers;
 
     /**
      * Request body encoded as Base64.
@@ -59,7 +60,7 @@ public class HttpTunnelMessage {
     private Integer status;
 
     @JsonProperty("respHeaders")
-    private Map<String, String> respHeaders;
+    private Map<String, List<String>> respHeaders;
 
     /**
      * Response body encoded as Base64.
