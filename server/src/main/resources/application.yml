@@ -16,7 +16,7 @@ app:
 
   jwt:
     issuer: port-buddy
-    ttl: 1h
+    ttl: 168h # 1 week
     rsa:
       currentKeyId: dev-key
       keys:
