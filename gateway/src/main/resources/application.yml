@@ -16,10 +16,16 @@ spring:
         webflux:
           httpclient:
             websocket:
+              # Allow large WS frames (100 MiB)
               max-frame-payload-length: 104857600
+          x-forwarded:
+            enabled: true
           discovery:
             locator:
               lower-case-service-id: true
+          filter:
+            preserve-host-header:
+              enabled: true
 
           routes:
             - id: tcp_tunnel_route
@@ -28,7 +34,22 @@ spring:
               predicates:
                 - Path=/api/tcp-tunnel/**
 
+            # WebSocket route for subdomain ingress. Must be evaluated before HTTP route.
+            - id: subdomain_ingress_ws_route
+              order: 0
+              uri: lb:ws://port-buddy-server
+              predicates:
+                - Host={subdomain}.localhost:8080
+                - Header=Upgrade, websocket
+              filters:
+                - name: PortBuddyRewritePath
+                  args:
+                    regexp: /(?<remaining>.*)
+                    replacement: /_/$\{subdomain}/$\{remaining}
+
+            # HTTP route for subdomain ingress (non-WS traffic)
             - id: subdomain_ingress_route
+              order: 1
               uri: lb://port-buddy-server
               predicates:
                 - Host={subdomain}.localhost:8080
@@ -49,6 +70,7 @@ spring:
               order: 3
               predicates:
                 - Path=/install, /app/**, /login/**, /auth/callback
+
 
 app:
   domain: localhost:8080
