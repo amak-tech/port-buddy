@@ -103,17 +103,50 @@ public class PublicWebSocketProxyHandler extends AbstractWebSocketHandler {
     }
 
     private String extractSubdomain(final WebSocketSession session) {
-        final var host = session.getHandshakeHeaders().getFirst(HttpHeaders.HOST);
-        if (host == null) {
-            return null;
+        // Prefer X-Forwarded-Host because requests are routed via Spring Cloud Gateway,
+        // which by default does not preserve the original Host header to the upstream.
+        var host = firstNonBlank(
+            session.getHandshakeHeaders().getFirst("X-Forwarded-Host"),
+            session.getHandshakeHeaders().getFirst(HttpHeaders.HOST)
+        );
+
+        if (host != null) {
+            // X-Forwarded-Host may contain a comma-separated list — take the first
+            final var commaIdx = host.indexOf(',');
+            if (commaIdx > 0) {
+                host = host.substring(0, commaIdx).trim();
+            }
+            if (host.endsWith(properties.gateway().subdomainHost())) {
+                final var idx = host.indexOf('.');
+                if (idx > 0) {
+                    return host.substring(0, idx);
+                }
+            }
         }
-        if (!host.endsWith(properties.gateway().subdomainHost())) {
-            return null;
+
+        // Fallback: the gateway rewrites path to /_/{subdomain}/... for subdomain ingress.
+        // Try to extract subdomain from the request path if headers are unavailable/unexpected.
+        final var uri = session.getUri();
+        if (uri != null) {
+            final var path = uri.getPath();
+            if (path != null && path.startsWith("/_/")) {
+                final var rest = path.substring(3); // after /_/
+                final var slash = rest.indexOf('/');
+                if (slash > 0) {
+                    return rest.substring(0, slash);
+                }
+                if (!rest.isBlank()) {
+                    return rest; // path was exactly /_/{subdomain}
+                }
+            }
         }
-        final var idx = host.indexOf('.');
-        if (idx <= 0) {
-            return null;
+        return null;
+    }
+
+    private static String firstNonBlank(final String a, final String b) {
+        if (a != null && !a.isBlank()) {
+            return a;
         }
-        return host.substring(0, idx);
+        return (b != null && !b.isBlank()) ? b : null;
     }
 }
