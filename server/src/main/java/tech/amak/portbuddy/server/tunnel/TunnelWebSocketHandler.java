@@ -45,7 +45,7 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
     @Override
     protected void handleTextMessage(final WebSocketSession session, final TextMessage message) throws Exception {
         try {
-            log.debug("Received message from client: {}", message.getPayload());
+            log.trace("Received message from client: {}", message.getPayload());
             final var uri = session.getUri();
             final var tunnelId = extractTunnelId(uri);
             final var tunnel = registry.getByTunnelId(tunnelId);

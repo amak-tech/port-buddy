@@ -124,19 +124,28 @@ public class PublicWebSocketProxyHandler extends AbstractWebSocketHandler {
             }
         }
 
-        // Fallback: the gateway rewrites path to /_/{subdomain}/... for subdomain ingress.
+        // Fallback: the gateway rewrites path to /_/{subdomain}/... for HTTP
+        // and to /_ws/{subdomain}/... for WebSocket handshakes.
         // Try to extract subdomain from the request path if headers are unavailable/unexpected.
         final var uri = session.getUri();
         if (uri != null) {
             final var path = uri.getPath();
-            if (path != null && path.startsWith("/_/")) {
-                final var rest = path.substring(3); // after /_/
-                final var slash = rest.indexOf('/');
-                if (slash > 0) {
-                    return rest.substring(0, slash);
+            if (path != null) {
+                String prefix = null;
+                if (path.startsWith("/_ws/")) {
+                    prefix = "/_ws/";
+                } else if (path.startsWith("/_/")) {
+                    prefix = "/_/";
                 }
-                if (!rest.isBlank()) {
-                    return rest; // path was exactly /_/{subdomain}
+                if (prefix != null) {
+                    final var rest = path.substring(prefix.length());
+                    final var slash = rest.indexOf('/');
+                    if (slash > 0) {
+                        return rest.substring(0, slash);
+                    }
+                    if (!rest.isBlank()) {
+                        return rest; // path was exactly /_ws/{subdomain} or /_/{subdomain}
+                    }
                 }
             }
         }

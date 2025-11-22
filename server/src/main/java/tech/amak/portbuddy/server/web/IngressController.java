@@ -8,6 +8,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.util.AntPathMatcher;
@@ -32,6 +33,20 @@ import tech.amak.portbuddy.server.tunnel.TunnelRegistry;
 public class IngressController {
 
     private final TunnelRegistry registry;
+
+    private static final Set<String> HOP_BY_HOP_RESPONSE_HEADERS = Set.of(
+        // RFC 7230 hop-by-hop headers + common variants we do not want to relay
+        HttpHeaders.CONNECTION.toLowerCase(),
+        "keep-alive",
+        "proxy-authenticate",
+        "proxy-authorization",
+        "te",
+        "trailer",
+        HttpHeaders.TRANSFER_ENCODING.toLowerCase(),
+        HttpHeaders.UPGRADE.toLowerCase(),
+        // Avoid conflicting length management across hops; let container decide
+        HttpHeaders.CONTENT_LENGTH.toLowerCase()
+    );
 
     // Path-based fallback ingress for local/dev: http://server/_/{subdomain}/...
     @RequestMapping("/_/{subdomain}/**")
@@ -97,6 +112,11 @@ public class IngressController {
                     final var name = header.getKey();
                     final var values = header.getValue();
                     if (name == null || values == null) {
+                        continue;
+                    }
+                    final var nameLc = name.toLowerCase();
+                    if (HOP_BY_HOP_RESPONSE_HEADERS.contains(nameLc)) {
+                        // Skip hop-by-hop or conflicting headers
                         continue;
                     }
                     for (var v : values) {

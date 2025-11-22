@@ -63,7 +63,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                     "/", "/index.html", "/assets/**", "/favicon.*",
-                    "/actuator/health**", "/ingress/**", "/ws/**", "/oauth2/**", "/login**",
+                    "/actuator/health**", "/ingress/**", "/ws/**", "/_ws/**", "/oauth2/**", "/login**",
                     "/.well-known/jwks.json"
                 ).permitAll()
                 .anyRequest().permitAll()

@@ -23,8 +23,8 @@ public class WebSocketConfig implements WebSocketConfigurer {
     public void registerWebSocketHandlers(final WebSocketHandlerRegistry registry) {
         registry.addHandler(tunnelWebSocketHandler, "/api/http-tunnel/{tunnelId}")
             .setAllowedOrigins("*");
-        // Public WS endpoint for tunneled hosts (matches any path)
-        registry.addHandler(publicWebSocketProxyHandler, "/**")
+        // Public WS endpoint for tunneled hosts (dedicated base path to avoid MVC collisions)
+        registry.addHandler(publicWebSocketProxyHandler, "/_ws/**")
             .setAllowedOrigins("*");
     }
 
@@ -45,4 +45,5 @@ public class WebSocketConfig implements WebSocketConfigurer {
         }
         return container;
     }
+
 }
