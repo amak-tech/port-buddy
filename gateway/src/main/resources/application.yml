@@ -26,9 +26,9 @@ spring:
           discovery:
             locator:
               lower-case-service-id: true
-          filter:
-            preserve-host-header:
-              enabled: true
+#          filter:
+#            preserve-host-header:
+#              enabled: true
 
           routes:
             - id: tcp_tunnel_route
