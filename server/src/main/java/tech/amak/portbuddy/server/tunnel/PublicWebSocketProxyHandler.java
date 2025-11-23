@@ -1,7 +1,10 @@
 package tech.amak.portbuddy.server.tunnel;
 
 import java.util.Base64;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.http.HttpHeaders;
@@ -54,10 +57,11 @@ public class PublicWebSocketProxyHandler extends AbstractWebSocketHandler {
             message.setPath(normalized);
             message.setQuery(uri.getQuery());
         }
-        // Forward Sec-WebSocket-Protocol if requested
-        final var protocol = browserSession.getHandshakeHeaders().getFirst("Sec-WebSocket-Protocol");
-        if (protocol != null) {
-            message.setHeaders(Map.of("Sec-WebSocket-Protocol", protocol));
+
+        // Forward essential handshake headers (cookies, origin, vaadin-specific, etc.)
+        final var forwarded = collectForwardedHandshakeHeaders(browserSession);
+        if (!forwarded.isEmpty()) {
+            message.setHeaders(forwarded);
         }
 
         registry.sendWsToClient(tunnel.tunnelId(), message);
@@ -187,5 +191,96 @@ public class PublicWebSocketProxyHandler extends AbstractWebSocketHandler {
             path = "/" + path;
         }
         return path;
+    }
+
+    /**
+     * Build a safe subset of headers from the browser's WS handshake that should be forwarded
+     * to the local application when establishing the tunneled WS connection. This helps
+     * frameworks like Vaadin associate the WS with the existing HTTP session (via cookies)
+     * and preserve security context.
+     */
+    private Map<String, String> collectForwardedHandshakeHeaders(final WebSocketSession browserSession) {
+        final var result = new HashMap<String, String>();
+
+        final var headers = browserSession.getHandshakeHeaders();
+
+        // Explicit allow-list (case-insensitive)
+        final var allowedExact = Set.of(
+            "cookie",
+            "origin",
+            "authorization",
+            "referer",
+            "x-requested-with",
+            "x-csrf-token",
+            // Keep subprotocol if requested by the browser (e.g., Vaadin)
+            "sec-websocket-protocol"
+        );
+
+        // Explicit deny-list of hop-by-hop and WS negotiation headers we must not forward
+        final var forbidden = Set.of(
+            HttpHeaders.HOST.toLowerCase(),
+            HttpHeaders.CONNECTION.toLowerCase(),
+            HttpHeaders.UPGRADE.toLowerCase(),
+            "sec-websocket-key",
+            "sec-websocket-version",
+            "sec-websocket-extensions",
+            "sec-websocket-accept"
+        );
+
+        for (final var name : headers.keySet()) {
+            if (name == null) {
+                continue;
+            }
+            final var nlc = name.toLowerCase();
+            if (forbidden.contains(nlc)) {
+                continue;
+            }
+            final var isAllowedExact = allowedExact.contains(nlc);
+            final var isVaadinSpecific = nlc.startsWith("x-vaadin-") || nlc.startsWith("vaadin-");
+            if (isAllowedExact || isVaadinSpecific) {
+                final var value = headers.getFirst(name);
+                if (value != null && !value.isBlank()) {
+                    result.put(name, value);
+                }
+            }
+        }
+
+        // Add/normalize forwarding context headers
+        // X-Forwarded-Host: take it from handshake if present, otherwise use Host
+        var xfHost = firstNonBlank(headers.getFirst("X-Forwarded-Host"), headers.getFirst(HttpHeaders.HOST));
+        if (xfHost != null && !xfHost.isBlank()) {
+            final var commaIdx = xfHost.indexOf(',');
+            if (commaIdx > 0) {
+                xfHost = xfHost.substring(0, commaIdx).trim();
+            }
+            result.put("X-Forwarded-Host", xfHost);
+        }
+
+        // X-Forwarded-Proto: trust existing if present, otherwise derive from ws/wss scheme
+        var xfProto = headers.getFirst("X-Forwarded-Proto");
+        if (xfProto == null || xfProto.isBlank()) {
+            final var uri = browserSession.getUri();
+            if (uri != null && uri.getScheme() != null) {
+                final var sch = uri.getScheme();
+                if ("wss".equalsIgnoreCase(sch)) {
+                    xfProto = "https";
+                } else if ("ws".equalsIgnoreCase(sch)) {
+                    xfProto = "http";
+                }
+            }
+        }
+        if (xfProto != null && !xfProto.isBlank()) {
+            result.put("X-Forwarded-Proto", xfProto);
+        }
+
+        if (!result.isEmpty()) {
+            try {
+                log.debug("WS: forwarding handshake headers: {}", List.copyOf(result.keySet()));
+            } catch (final Exception ignored) {
+                // ignore logging issues
+            }
+        }
+
+        return result;
     }
 }
