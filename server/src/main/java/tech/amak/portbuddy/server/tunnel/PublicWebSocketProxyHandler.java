@@ -50,7 +50,8 @@ public class PublicWebSocketProxyHandler extends AbstractWebSocketHandler {
         message.setConnectionId(connId);
         message.setWsType(WsTunnelMessage.Type.OPEN);
         if (uri != null) {
-            message.setPath(uri.getPath());
+            final var normalized = normalizePublicPath(subdomain, uri.getPath());
+            message.setPath(normalized);
             message.setQuery(uri.getQuery());
         }
         // Forward Sec-WebSocket-Protocol if requested
@@ -157,5 +158,34 @@ public class PublicWebSocketProxyHandler extends AbstractWebSocketHandler {
             return a;
         }
         return (b != null && !b.isBlank()) ? b : null;
+    }
+
+    /**
+     * Normalize the path coming from the gateway so the client connects to the local
+     * application using its original path. The gateway rewrites incoming public requests
+     * to "/_ws/{subdomain}/..." for WebSocket (and "/_/{subdomain}/..." for HTTP).
+     * We must strip that internal prefix before forwarding the OPEN to the CLI,
+     * otherwise the CLI will try to open a WS to a non-existent path like
+     * "/_ws/{subdomain}/..." on the user's local app causing HTTP 200 instead of 101.
+     */
+    private static String normalizePublicPath(final String subdomain, final String rawPath) {
+        if (rawPath == null || rawPath.isBlank()) {
+            return "/";
+        }
+        var path = rawPath;
+        final var wsPrefix = "/_ws/" + subdomain;
+        final var httpPrefix = "/_/" + subdomain;
+        if (path.startsWith(wsPrefix)) {
+            path = path.substring(wsPrefix.length());
+        } else if (path.startsWith(httpPrefix)) { // fallback safety
+            path = path.substring(httpPrefix.length());
+        }
+        if (path.isBlank()) {
+            return "/";
+        }
+        if (!path.startsWith("/")) {
+            path = "/" + path;
+        }
+        return path;
     }
 }

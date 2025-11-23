@@ -64,6 +64,9 @@ Do not shorten variable names. Always use meaningful names.
 Use 4 spaces for indentation.
 Must follow checkstyle rules: https://raw.githubusercontent.com/triel-dev/checkstyle/main/checkstyle.xml
 
+### API Gateway
+It uses webflux implementation. All gateway config properties must be under base property path 'spring.cloud.gateway.server.webflux' (yaml format) instead of 'spring.cloud.gateway' (yaml format)
+
 ### Server application
 Is written using Spring Boot 3.5.7 framework. 
 Any other necessary libraries could be used.

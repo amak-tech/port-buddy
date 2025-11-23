@@ -22,10 +22,14 @@ public class WebSocketConfig implements WebSocketConfigurer {
     @Override
     public void registerWebSocketHandlers(final WebSocketHandlerRegistry registry) {
         registry.addHandler(tunnelWebSocketHandler, "/api/http-tunnel/{tunnelId}")
-            .setAllowedOrigins("*");
+            .setAllowedOrigins("*")
+            // Echo back any requested subprotocol (some clients require it, e.g., Vaadin)
+            .setHandshakeHandler(new PermissiveSubprotocolHandshakeHandler());
         // Public WS endpoint for tunneled hosts (dedicated base path to avoid MVC collisions)
         registry.addHandler(publicWebSocketProxyHandler, "/_ws/**")
-            .setAllowedOrigins("*");
+            .setAllowedOrigins("*")
+            // Echo back any requested subprotocol
+            .setHandshakeHandler(new PermissiveSubprotocolHandshakeHandler());
     }
 
     /**
