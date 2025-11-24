@@ -1,0 +1,169 @@
+/*
+ * Copyright (c) 2025 AMAK Inc. All rights reserved.
+ */
+
+package tech.amak.portbuddy.server.user;
+
+import java.util.Optional;
+import java.util.UUID;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import lombok.RequiredArgsConstructor;
+import tech.amak.portbuddy.server.db.entity.AccountEntity;
+import tech.amak.portbuddy.server.db.entity.UserEntity;
+import tech.amak.portbuddy.server.db.repo.AccountRepository;
+import tech.amak.portbuddy.server.db.repo.UserRepository;
+
+@Service
+@RequiredArgsConstructor
+public class UserProvisioningService {
+
+    private final UserRepository userRepository;
+    private final AccountRepository accountRepository;
+
+    public record ProvisionedUser(UUID userId, UUID accountId) {}
+
+    /**
+     * Ensures a user and an owning account exist for the given identity. If the user does not exist,
+     * a new account (default plan BASIC) and user are created. If the user exists, profile fields are updated.
+     *
+     * @param provider the OAuth2 provider registration id (e.g. google, github)
+     * @param externalId the unique external identifier from the provider (subject/id)
+     * @param email the email address, can be null
+     * @param firstName optional first name
+     * @param lastName optional last name
+     * @param avatarUrl optional avatar URL
+     * @return identifiers of provisioned user and owning account
+     */
+    @Transactional
+    public ProvisionedUser provision(final String provider,
+                                     final String externalId,
+                                     final String email,
+                                     final String firstName,
+                                     final String lastName,
+                                     final String avatarUrl) {
+        final var normalizedEmail = normalizeEmail(email);
+
+        // If user already exists by provider/externalId, allow sign-in even when current OAuth response
+        // does not include email (keep stored email). Update profile fields and return.
+        final var existing = userRepository.findByAuthProviderAndExternalId(provider, externalId);
+        if (existing.isPresent()) {
+            final var user = existing.get();
+            boolean changed = false;
+            if (normalizedEmail != null && !equalsNullable(user.getEmail(), normalizedEmail)) {
+                user.setEmail(normalizedEmail);
+                changed = true;
+            }
+            if (!equalsNullable(user.getFirstName(), firstName)) {
+                user.setFirstName(firstName);
+                changed = true;
+            }
+            if (!equalsNullable(user.getLastName(), lastName)) {
+                user.setLastName(lastName);
+                changed = true;
+            }
+            if (!equalsNullable(user.getAvatarUrl(), avatarUrl)) {
+                user.setAvatarUrl(avatarUrl);
+                changed = true;
+            }
+            if (changed) {
+                userRepository.save(user);
+            }
+            return new ProvisionedUser(user.getId(), user.getAccount().getId());
+        }
+
+        // For new identities we must have a non-null email to create/merge a user
+        if (normalizedEmail == null) {
+            throw new MissingEmailException("Email is required to provision a user");
+        }
+
+        // No user for this provider/external identity. Try to locate an existing user by email
+        if (normalizedEmail != null) {
+            final var userByEmail = userRepository.findByEmailIgnoreCase(normalizedEmail);
+            if (userByEmail.isPresent()) {
+                final var user = userByEmail.get();
+                boolean changed = false;
+                // Ensure email normalized
+                if (!equalsNullable(user.getEmail(), normalizedEmail)) {
+                    user.setEmail(normalizedEmail);
+                    changed = true;
+                }
+                if (!equalsNullable(user.getFirstName(), firstName)) {
+                    user.setFirstName(firstName);
+                    changed = true;
+                }
+                if (!equalsNullable(user.getLastName(), lastName)) {
+                    user.setLastName(lastName);
+                    changed = true;
+                }
+                if (!equalsNullable(user.getAvatarUrl(), avatarUrl)) {
+                    user.setAvatarUrl(avatarUrl);
+                    changed = true;
+                }
+                // Re-link identity to this provider/external to allow future lookups by provider
+                if (!equalsNullable(user.getAuthProvider(), provider)) {
+                    user.setAuthProvider(provider);
+                    changed = true;
+                }
+                if (!equalsNullable(user.getExternalId(), externalId)) {
+                    user.setExternalId(externalId);
+                    changed = true;
+                }
+                if (changed) {
+                    userRepository.save(user);
+                }
+                return new ProvisionedUser(user.getId(), user.getAccount().getId());
+            }
+        }
+
+        // Create new account and user
+        final var account = new AccountEntity();
+        account.setId(UUID.randomUUID());
+        account.setName(defaultAccountName(firstName, lastName, email));
+        account.setPlan("BASIC");
+        accountRepository.save(account);
+
+        final var user = new UserEntity();
+        user.setId(UUID.randomUUID());
+        user.setAccount(account);
+        user.setEmail(normalizedEmail);
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
+        user.setAuthProvider(provider);
+        user.setExternalId(externalId);
+        user.setAvatarUrl(avatarUrl);
+        userRepository.save(user);
+
+        return new ProvisionedUser(user.getId(), account.getId());
+    }
+
+    private static boolean equalsNullable(final String a, final String b) {
+        return a == null ? b == null : a.equals(b);
+    }
+
+    private static String defaultAccountName(final String firstName, final String lastName, final String email) {
+        final var fullName = Optional.ofNullable(firstName).orElse("")
+            + (firstName != null && lastName != null ? " " : "")
+            + Optional.ofNullable(lastName).orElse("");
+        final var trimmed = fullName.trim();
+        if (!trimmed.isEmpty()) {
+            return trimmed + "’s account";
+        }
+        if (email != null && !email.isBlank()) {
+            final var at = email.indexOf('@');
+            final var local = at > 0 ? email.substring(0, at) : email;
+            return local + "’s account";
+        }
+        return "New account";
+    }
+
+    private static String normalizeEmail(final String email) {
+        if (email == null) {
+            return null;
+        }
+        final var trimmed = email.trim();
+        return trimmed.isEmpty() ? null : trimmed.toLowerCase();
+    }
+}

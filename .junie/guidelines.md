@@ -71,6 +71,8 @@ It uses webflux implementation. All gateway config properties must be under base
 Is written using Spring Boot 3.5.7 framework. 
 Any other necessary libraries could be used.
 Uses PostgreSQL DB to store data.
+Use Spring JPA to access DB.
+Use Flyway to manage DB migrations.
 Dockerized.
 
 ### TCP Proxy Application
