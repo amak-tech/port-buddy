@@ -8,10 +8,12 @@ export default function Login() {
   const location = useLocation() as any
 
   useEffect(() => {
-    // If token present in URL, AuthProvider will store it and refresh on mount.
     // After refresh completes and user exists, redirect to intended page or /app.
     if (!loading && user) {
-      const to = location?.state?.from?.pathname || '/app'
+      const params = new URLSearchParams(location?.search || '')
+      const fromQuery = params.get('from')
+      const fromState = location?.state?.from?.pathname
+      const to = (fromQuery && typeof fromQuery === 'string') ? fromQuery : (fromState || '/app')
       navigate(to, { replace: true })
     }
   }, [user, loading, navigate, location])
