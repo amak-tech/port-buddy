@@ -38,7 +38,7 @@ public class Oauth2SuccessHandler implements AuthenticationSuccessHandler {
                                         final HttpServletResponse response,
                                         final Authentication authentication)
         throws IOException {
-        var provider = resolveProvider(authentication);
+        final var provider = resolveProvider(authentication);
         var externalId = "unknown";
         var email = (String) null;
         var name = (String) null;
