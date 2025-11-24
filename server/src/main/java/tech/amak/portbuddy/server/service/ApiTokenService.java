@@ -8,120 +8,111 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.time.Instant;
-import java.util.ArrayList;
+import java.time.OffsetDateTime;
 import java.util.Base64;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import tech.amak.portbuddy.server.db.entity.ApiKeyEntity;
+import tech.amak.portbuddy.server.db.repo.ApiKeyRepository;
 
 /**
- * Simple in-memory API token service. Stores only token hashes in memory.
- * For production, back this with persistent storage.
+ * API token service backed by the database. Stores only token hashes.
  */
 @Service
 @Slf4j
 public class ApiTokenService {
 
     private final SecureRandom secureRandom = new SecureRandom();
+    private final ApiKeyRepository apiKeyRepository;
 
-    // tokenHash -> record
-    private final Map<String, TokenRecord> tokensByHash = new ConcurrentHashMap<>();
-    // userId -> list of records
-    private final Map<String, List<TokenRecord>> tokensByUser = new ConcurrentHashMap<>();
+    public ApiTokenService(final ApiKeyRepository apiKeyRepository) {
+        this.apiKeyRepository = apiKeyRepository;
+    }
 
     /**
-     * Creates a new API token for the specified user and stores it in memory.
+     * Creates a new API token for the specified user and stores its hash in the DB.
      *
-     * @param userId the unique identifier of the user for whom the token is being created
-     * @param label  a user-defined label for the token; if null or blank, a default value of "cli" will be used
-     * @return a {@code CreatedToken} object containing the generated token and its corresponding ID
+     * @param userId the user ID (UUID string)
+     * @param label  optional label for the token
+     * @return token id and raw token (displayed once)
      */
+    @Transactional
     public CreatedToken createToken(final String userId, final String label) {
         final var rawToken = generateRawToken();
         final var tokenHash = sha256(rawToken);
-        final var rec = new TokenRecord();
-        rec.setId(UUID.randomUUID().toString());
-        rec.setUserId(userId);
-        rec.setLabel(label == null || label.isBlank() ? "cli" : label);
-        rec.setTokenHash(tokenHash);
-        rec.setCreatedAt(Instant.now());
-        rec.setRevoked(false);
-        tokensByHash.put(tokenHash, rec);
-        tokensByUser.computeIfAbsent(userId, k -> new ArrayList<>()).add(rec);
-        log.info("Created API token id={} for userId={}", rec.getId(), userId);
-        return new CreatedToken(rec.getId(), rawToken);
+
+        final var apiKey = new ApiKeyEntity();
+        apiKey.setId(UUID.randomUUID());
+        apiKey.setUserId(UUID.fromString(userId));
+        apiKey.setLabel(label == null || label.isBlank() ? "cli" : label);
+        apiKey.setTokenHash(tokenHash);
+        apiKey.setRevoked(false);
+
+        final var saved = apiKeyRepository.save(apiKey);
+        log.info("Created API token id={} for userId={}", saved.getId(), userId);
+        return new CreatedToken(saved.getId().toString(), rawToken);
     }
 
     /**
-     * Retrieves a list of tokens associated with the specified user.
-     * Each token is represented as a {@code TokenView} object containing relevant details.
-     *
-     * @param userId the unique identifier of the user whose tokens should be listed
-     * @return a list of {@code TokenView} objects representing the user's tokens;
-     *     if the user has no tokens, an empty list is returned
+     * Lists tokens for the user without exposing secrets.
      */
+    @Transactional(readOnly = true)
     public List<TokenView> listTokens(final String userId) {
-        final var records = tokensByUser.getOrDefault(userId, List.of());
-        final var out = new ArrayList<TokenView>(records.size());
-        for (final var record : records) {
-            out.add(new TokenView(
-                record.getId(),
-                record.getLabel(),
-                record.getCreatedAt(),
-                record.isRevoked(),
-                record.getLastUsedAt()));
-        }
-        return out;
+        final var uid = UUID.fromString(userId);
+        return apiKeyRepository.findAllByUserId(uid).stream()
+            .map(apiKey -> new TokenView(
+                apiKey.getId().toString(),
+                apiKey.getLabel(),
+                toInstant(apiKey.getCreatedAt()),
+                apiKey.isRevoked(),
+                toInstant(apiKey.getLastUsedAt())))
+            .toList();
     }
 
     /**
-     * Revokes a specific API token associated with a user, effectively rendering it invalid.
-     * The token is removed from the internal storage upon successful revocation.
-     *
-     * @param userId  the unique identifier of the user who owns the token
-     * @param tokenId the unique identifier of the token to be revoked
-     * @return {@code true} if the token was successfully revoked, {@code false} if the token
-     *     was not found or could not be revoked
+     * Marks a token as revoked.
      */
+    @Transactional
     public boolean revoke(final String userId, final String tokenId) {
-        final var tokens = tokensByUser.getOrDefault(userId, List.of());
-        for (final var tokenRecord : tokens) {
-            if (tokenRecord.getId().equals(tokenId)) {
-                tokenRecord.setRevoked(true);
-                tokensByHash.remove(tokenRecord.getTokenHash());
+        final var uid = UUID.fromString(userId);
+        final var tid = UUID.fromString(tokenId);
+        return apiKeyRepository.findByIdAndUserId(tid, uid)
+            .map(apiKey -> {
+                apiKey.setRevoked(true);
+                apiKey.setRevokedAt(OffsetDateTime.now());
+                apiKeyRepository.save(apiKey);
+                log.info("Revoked API token id={} for userId={}", tid, uid);
                 return true;
-            }
-        }
-        return false;
+            })
+            .orElseGet(() -> {
+                log.warn("Token {} not found for user {}", tokenId, userId);
+                return false;
+            });
     }
 
     /**
-     * Validates the given raw token and retrieves the associated user ID if the token is valid.
-     * A token is considered valid if it exists in the token storage, has not been revoked,
-     * and is not expired. Additionally, the method updates the last used timestamp of the token.
-     *
-     * @param rawToken the raw API token to validate; can be null or blank
-     * @return an {@code Optional} containing the user ID if the token is valid;
-     *     otherwise, an empty {@code Optional}
+     * Validates raw token and returns user id if valid.
      */
+    @Transactional
     public Optional<String> validateAndGetUserId(final String rawToken) {
         if (rawToken == null || rawToken.isBlank()) {
             return Optional.empty();
         }
         final var hash = sha256(rawToken);
-        final var token = tokensByHash.get(hash);
-        if (token == null || token.isRevoked()) {
+        final var entityOpt = apiKeyRepository.findByTokenHashAndRevokedFalse(hash);
+        if (entityOpt.isEmpty()) {
             return Optional.empty();
         }
-        token.setLastUsedAt(Instant.now());
-        return Optional.of(token.getUserId());
+        final var entity = entityOpt.get();
+        entity.setLastUsedAt(OffsetDateTime.now());
+        apiKeyRepository.save(entity);
+        return Optional.of(entity.getUserId().toString());
     }
 
     private String generateRawToken() {
@@ -140,20 +131,13 @@ public class ApiTokenService {
         }
     }
 
-    @Data
-    public static class TokenRecord {
-        private String id;
-        private String userId;
-        private String label;
-        private String tokenHash;
-        private Instant createdAt;
-        private Instant lastUsedAt;
-        private boolean revoked;
-    }
-
     public record CreatedToken(String id, String token) {
     }
 
     public record TokenView(String id, String label, Instant createdAt, boolean revoked, Instant lastUsedAt) {
+    }
+
+    private static Instant toInstant(final OffsetDateTime odt) {
+        return odt == null ? null : odt.toInstant();
     }
 }

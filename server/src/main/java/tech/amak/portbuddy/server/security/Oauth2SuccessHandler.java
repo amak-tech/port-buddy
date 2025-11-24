@@ -22,8 +22,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import tech.amak.portbuddy.server.config.AppProperties;
-import tech.amak.portbuddy.server.user.UserProvisioningService;
 import tech.amak.portbuddy.server.user.MissingEmailException;
+import tech.amak.portbuddy.server.user.UserProvisioningService;
 
 @Component
 @RequiredArgsConstructor
@@ -75,7 +75,8 @@ public class Oauth2SuccessHandler implements AuthenticationSuccessHandler {
         }
 
         // Ensure user + account exist or updated
-        final var provisioned = provisionOrRedirectOnMissingEmail(response, provider, externalId, email, firstName, lastName, picture);
+        final var provisioned = provisionOrRedirectOnMissingEmail(
+            response, provider, externalId, email, firstName, lastName, picture);
         if (provisioned == null) {
             // Redirect already sent (e.g., missing email). Stop further processing.
             return;
@@ -121,12 +122,12 @@ public class Oauth2SuccessHandler implements AuthenticationSuccessHandler {
         final String picture) throws IOException {
         try {
             return userProvisioningService.provision(provider, externalId, email, firstName, lastName, picture);
-        } catch (MissingEmailException ex) {
+        } catch (final MissingEmailException ex) {
             final var url = properties.gateway().url()
-                + "/auth/callback?error="
-                + URLEncoder.encode("missing_email", UTF_8)
-                + "&message="
-                + URLEncoder.encode("Email is required to sign in", UTF_8);
+                            + "/auth/callback?error="
+                            + URLEncoder.encode("missing_email", UTF_8)
+                            + "&message="
+                            + URLEncoder.encode("Email is required to sign in", UTF_8);
             response.sendRedirect(url);
             return null;
         }

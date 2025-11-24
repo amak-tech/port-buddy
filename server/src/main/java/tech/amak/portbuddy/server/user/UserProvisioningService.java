@@ -4,7 +4,7 @@
 
 package tech.amak.portbuddy.server.user;
 
-import java.util.Optional;
+import java.util.Objects;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -23,18 +23,19 @@ public class UserProvisioningService {
     private final UserRepository userRepository;
     private final AccountRepository accountRepository;
 
-    public record ProvisionedUser(UUID userId, UUID accountId) {}
+    public record ProvisionedUser(UUID userId, UUID accountId) {
+    }
 
     /**
      * Ensures a user and an owning account exist for the given identity. If the user does not exist,
      * a new account (default plan BASIC) and user are created. If the user exists, profile fields are updated.
      *
-     * @param provider the OAuth2 provider registration id (e.g. google, github)
+     * @param provider   the OAuth2 provider registration id (e.g. google, github)
      * @param externalId the unique external identifier from the provider (subject/id)
-     * @param email the email address, can be null
-     * @param firstName optional first name
-     * @param lastName optional last name
-     * @param avatarUrl optional avatar URL
+     * @param email      the email address, can be null
+     * @param firstName  optional first name
+     * @param lastName   optional last name
+     * @param avatarUrl  optional avatar URL
      * @return identifiers of provisioned user and owning account
      */
     @Transactional
@@ -52,19 +53,19 @@ public class UserProvisioningService {
         if (existing.isPresent()) {
             final var user = existing.get();
             boolean changed = false;
-            if (normalizedEmail != null && !equalsNullable(user.getEmail(), normalizedEmail)) {
+            if (normalizedEmail != null && !Objects.equals(user.getEmail(), normalizedEmail)) {
                 user.setEmail(normalizedEmail);
                 changed = true;
             }
-            if (!equalsNullable(user.getFirstName(), firstName)) {
+            if (!Objects.equals(user.getFirstName(), firstName)) {
                 user.setFirstName(firstName);
                 changed = true;
             }
-            if (!equalsNullable(user.getLastName(), lastName)) {
+            if (!Objects.equals(user.getLastName(), lastName)) {
                 user.setLastName(lastName);
                 changed = true;
             }
-            if (!equalsNullable(user.getAvatarUrl(), avatarUrl)) {
+            if (!Objects.equals(user.getAvatarUrl(), avatarUrl)) {
                 user.setAvatarUrl(avatarUrl);
                 changed = true;
             }
@@ -86,28 +87,28 @@ public class UserProvisioningService {
                 final var user = userByEmail.get();
                 boolean changed = false;
                 // Ensure email normalized
-                if (!equalsNullable(user.getEmail(), normalizedEmail)) {
+                if (!Objects.equals(user.getEmail(), normalizedEmail)) {
                     user.setEmail(normalizedEmail);
                     changed = true;
                 }
-                if (!equalsNullable(user.getFirstName(), firstName)) {
+                if (!Objects.equals(user.getFirstName(), firstName)) {
                     user.setFirstName(firstName);
                     changed = true;
                 }
-                if (!equalsNullable(user.getLastName(), lastName)) {
+                if (!Objects.equals(user.getLastName(), lastName)) {
                     user.setLastName(lastName);
                     changed = true;
                 }
-                if (!equalsNullable(user.getAvatarUrl(), avatarUrl)) {
+                if (!Objects.equals(user.getAvatarUrl(), avatarUrl)) {
                     user.setAvatarUrl(avatarUrl);
                     changed = true;
                 }
                 // Re-link identity to this provider/external to allow future lookups by provider
-                if (!equalsNullable(user.getAuthProvider(), provider)) {
+                if (!Objects.equals(user.getAuthProvider(), provider)) {
                     user.setAuthProvider(provider);
                     changed = true;
                 }
-                if (!equalsNullable(user.getExternalId(), externalId)) {
+                if (!Objects.equals(user.getExternalId(), externalId)) {
                     user.setExternalId(externalId);
                     changed = true;
                 }
@@ -139,17 +140,10 @@ public class UserProvisioningService {
         return new ProvisionedUser(user.getId(), account.getId());
     }
 
-    private static boolean equalsNullable(final String a, final String b) {
-        return a == null ? b == null : a.equals(b);
-    }
-
     private static String defaultAccountName(final String firstName, final String lastName, final String email) {
-        final var fullName = Optional.ofNullable(firstName).orElse("")
-            + (firstName != null && lastName != null ? " " : "")
-            + Optional.ofNullable(lastName).orElse("");
-        final var trimmed = fullName.trim();
-        if (!trimmed.isEmpty()) {
-            return trimmed + "’s account";
+        final var fullName = "%s %s".formatted(firstName, lastName).trim();
+        if (!fullName.isEmpty()) {
+            return fullName + "’s account";
         }
         if (email != null && !email.isBlank()) {
             final var at = email.indexOf('@');

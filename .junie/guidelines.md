@@ -60,7 +60,8 @@ All variables which value is not changed must be marked with `final` modifier.
 All method params must be marked with `final` modifier.
 For local variable `var` must be used instead of class name.
 Lombok library is used for getters/setters, log reference, ect.
-Do not shorten variable names. Always use meaningful names.
+Do not shorten variable names. Always use meaningful names. bad example: `final var r : records` or `final var e = new ApiKeyEntity();`, good example: `final var record : records` or `final var apiKey = new ApiKeyEntity();`. Follow the same naming convention for all variables.
+Local variable name pattern: `^[a-z]([a-z0-9][a-zA-Z0-9]*)?$`
 Use 4 spaces for indentation.
 Must follow checkstyle rules: https://raw.githubusercontent.com/amak-tech/checkstyle-java/refs/heads/main/checkstyle.xml
 
