@@ -13,11 +13,38 @@ export default function Dashboard() {
   const [justCreatedToken, setJustCreatedToken] = useState<string|null>(null)
   const hasUser = useMemo(()=>!!user, [user])
 
+  // Recent Activity (tunnels)
+  type TunnelView = {
+    id: string
+    tunnelId: string
+    type: 'HTTP' | 'TCP'
+    status: 'PENDING' | 'CONNECTED' | 'CLOSED'
+    local: string | null
+    publicEndpoint: string | null
+    publicUrl: string | null
+    publicHost: string | null
+    publicPort: number | null
+    subdomain: string | null
+    lastHeartbeatAt: string | null
+    createdAt: string | null
+  }
+  const [tunnels, setTunnels] = useState<TunnelView[]>([])
+  const [page, setPage] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
+  const [loadingTunnels, setLoadingTunnels] = useState(false)
+
   useEffect(()=>{
     if (!hasUser) return
     void loadTokens()
+    void loadTunnels(0)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasUser])
+
+  useEffect(()=>{
+    if (!hasUser) return
+    void loadTunnels(page)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page])
 
   async function loadTokens() {
     setLoading(true)
@@ -28,6 +55,22 @@ export default function Dashboard() {
       // noop
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function loadTunnels(nextPage: number) {
+    setLoadingTunnels(true)
+    try {
+      const res = await apiJson<{content: TunnelView[], number: number, size: number, totalElements: number, totalPages: number}>(`/api/tunnels?page=${nextPage}&size=10`)
+      setTunnels(res.content || [])
+      setPage(res.number || 0)
+      setTotalPages(res.totalPages || 0)
+    } catch (e) {
+      setTunnels([])
+      setPage(0)
+      setTotalPages(0)
+    } finally {
+      setLoadingTunnels(false)
     }
   }
 
@@ -53,11 +96,12 @@ export default function Dashboard() {
       setLoading(false)
     }
   }
-  // Placeholder usage activity; in real app fetch from /api/usage
-  const activity = [
-    { id: 1, type: 'HTTP', local: 'http://localhost:3000', publicUrl: 'https://r2dx.portbuddy.dev', bytes: 512_000, at: 'Today 14:22' },
-    { id: 2, type: 'TCP', local: '127.0.0.1:5432', publicUrl: 'tcp-proxy-3.portbuddy.dev:43452', bytes: 2_048_000, at: 'Yesterday 19:03' },
-  ]
+  function formatDate(iso: string | null | undefined): string {
+    if (!iso) return '-'
+    const d = new Date(iso)
+    if (Number.isNaN(d.getTime())) return '-'
+    return d.toLocaleString()
+  }
   const plan = user?.plan || 'basic'
   const planCapGb = plan === 'professional' ? 20 : plan === 'individual' ? 6 : 3
   const usedGb = 0.8 // placeholder
@@ -96,17 +140,42 @@ export default function Dashboard() {
       <section className="mt-10">
         <h2 className="text-xl font-semibold">Recent Activity</h2>
         <div className="mt-4 grid gap-3">
-          {activity.map((a) => (
-            <div key={a.id} className="bg-black/30 border border-white/10 rounded p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-              <div className="flex items-center gap-3">
-                <span className="badge">{a.type}</span>
-                <span className="text-white/70 text-sm">{a.local}</span>
-                <span className="text-white/40">→</span>
-                <span className="text-white/90 text-sm font-mono">{a.publicUrl}</span>
-              </div>
-              <div className="text-white/60 text-sm">{(a.bytes/1024).toFixed(0)} KB • {a.at}</div>
-            </div>
-          ))}
+          {loadingTunnels ? (
+            <div className="text-white/60 text-sm">Loading recent activity...</div>
+          ) : tunnels.length === 0 ? (
+            <div className="text-white/60 text-sm">No tunnels yet.</div>
+          ) : (
+            tunnels.map((t) => {
+              const canOpen = t.type === 'HTTP' && t.status === 'CONNECTED' && !!t.publicUrl
+              const publicText = t.type === 'HTTP' ? (t.publicUrl || '-') : (t.publicEndpoint || '-')
+              return (
+                <div key={t.id} className="bg-black/30 border border-white/10 rounded p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                  <div className="flex items-center gap-3">
+                    <span className="badge">{t.type}</span>
+                    <span className="text-white/70 text-sm">{t.local || '-'}</span>
+                    <span className="text-white/40">→</span>
+                    {canOpen ? (
+                      <a href={t.publicUrl!} target="_blank" rel="noopener noreferrer" className="text-accent text-sm font-mono hover:underline">
+                        {publicText}
+                      </a>
+                    ) : (
+                      <span className="text-white/90 text-sm font-mono">{publicText}</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <span className="badge">{t.status}</span>
+                    <span className="text-white/60">Last activity: {formatDate(t.lastHeartbeatAt)}</span>
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
+
+        <div className="mt-4 flex items-center gap-2" aria-label="Pagination for Recent Activity">
+          <button className="btn btn-secondary" disabled={page <= 0 || loadingTunnels} onClick={()=> setPage(p => Math.max(0, p - 1))}>Previous</button>
+          <div className="text-white/60 text-sm">Page {totalPages === 0 ? 0 : (page + 1)} of {totalPages}</div>
+          <button className="btn btn-secondary" disabled={page >= totalPages - 1 || loadingTunnels || totalPages === 0} onClick={()=> setPage(p => Math.min(totalPages - 1, p + 1))}>Next</button>
         </div>
       </section>
 
