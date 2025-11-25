@@ -17,7 +17,6 @@ import tech.amak.portbuddy.server.service.TunnelService;
 
 /**
  * Endpoints to update tunnel connection status from external components (CLI/tcp-proxy).
- * <p>
  * In HTTP mode the status is tracked automatically via the control WebSocket connected to the server.
  * In TCP mode the control channel is handled by the TCP proxy service, so the CLI reports status here.
  */
