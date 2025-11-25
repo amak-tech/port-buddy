@@ -7,7 +7,15 @@
 }
 
 html, body, #root { height: 100%; }
-body { margin: 0; font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace; background: #0b1020; color: #e2e8f0; }
+body {
+    margin: 0;
+    font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-optical-sizing: auto;
+    font-weight: 200;
+    font-style: normal;
+    background: #0b1020;
+    color: #e2e8f0;
+}
 
 a { color: #22d3ee; text-decoration: none; }
 a:hover { text-decoration: underline; }

@@ -139,44 +139,78 @@ export default function Dashboard() {
 
       <section className="mt-10">
         <h2 className="text-xl font-semibold">Recent Activity</h2>
-        <div className="mt-4 grid gap-3">
+        <div className="mt-4">
           {loadingTunnels ? (
             <div className="text-white/60 text-sm">Loading recent activity...</div>
           ) : tunnels.length === 0 ? (
             <div className="text-white/60 text-sm">No tunnels yet.</div>
           ) : (
-            tunnels.map((t) => {
-              const canOpen = t.type === 'HTTP' && t.status === 'CONNECTED' && !!t.publicUrl
-              const publicText = t.type === 'HTTP' ? (t.publicUrl || '-') : (t.publicEndpoint || '-')
-              return (
-                <div key={t.id} className="bg-black/30 border border-white/10 rounded p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-                  <div className="flex items-center gap-3">
-                    <span className="badge">{t.type}</span>
-                    <span className="text-white/70 text-sm">{t.local || '-'}</span>
-                    <span className="text-white/40">→</span>
-                    {canOpen ? (
-                      <a href={t.publicUrl!} target="_blank" rel="noopener noreferrer" className="text-accent text-sm font-mono hover:underline">
-                        {publicText}
-                      </a>
-                    ) : (
-                      <span className="text-white/90 text-sm font-mono">{publicText}</span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-3 text-sm">
-                    <span className="badge">{t.status}</span>
-                    <span className="text-white/60">Last activity: {formatDate(t.lastHeartbeatAt)}</span>
-                  </div>
-                </div>
-              )
-            })
+            <div className="overflow-x-auto rounded-lg border border-white/10">
+              <table className="min-w-full text-sm">
+                <thead className="bg-black/40 text-white/70">
+                  <tr>
+                    <th className="text-left font-medium px-4 py-2">Type</th>
+                    <th className="text-left font-medium px-4 py-2">Local</th>
+                    <th className="text-left font-medium px-4 py-2">Public</th>
+                    <th className="text-left font-medium px-4 py-2">Status</th>
+                    <th className="text-left font-medium px-4 py-2">Created</th>
+                    <th className="text-left font-medium px-4 py-2">Last Activity</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tunnels.map((t) => {
+                    const canOpen = t.type === 'HTTP' && t.status === 'CONNECTED' && !!t.publicUrl
+                    const publicText = t.type === 'HTTP' ? (t.publicUrl || '-') : (t.publicEndpoint || '-')
+                    return (
+                      <tr key={t.id} className="odd:bg-black/20 even:bg-black/10">
+                        <td className="px-4 py-2 align-top"><span className="badge">{t.type}</span></td>
+                        <td className="px-4 py-2 align-top text-white/80">{t.local || '-'}</td>
+                        <td className="px-4 py-2 align-top">
+                          {canOpen ? (
+                            <a href={t.publicUrl!} target="_blank" rel="noopener noreferrer" className="text-accent font-mono hover:underline break-all">
+                              {publicText}
+                            </a>
+                          ) : (
+                            <span className="text-white/90 font-mono break-all">{publicText}</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2 align-top"><span className="badge">{t.status}</span></td>
+                        <td className="px-4 py-2 align-top text-white/70">{formatDate(t.createdAt)}</td>
+                        <td className="px-4 py-2 align-top text-white/70">{formatDate(t.lastHeartbeatAt)}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
 
-        <div className="mt-4 flex items-center gap-2" aria-label="Pagination for Recent Activity">
-          <button className="btn btn-secondary" disabled={page <= 0 || loadingTunnels} onClick={()=> setPage(p => Math.max(0, p - 1))}>Previous</button>
-          <div className="text-white/60 text-sm">Page {totalPages === 0 ? 0 : (page + 1)} of {totalPages}</div>
-          <button className="btn btn-secondary" disabled={page >= totalPages - 1 || loadingTunnels || totalPages === 0} onClick={()=> setPage(p => Math.min(totalPages - 1, p + 1))}>Next</button>
-        </div>
+        {(() => {
+          const hasPrev = page > 0
+          const hasNext = page < totalPages - 1
+          const isDisabledPrev = !hasPrev || loadingTunnels
+          const isDisabledNext = !hasNext || loadingTunnels || totalPages === 0
+          return (
+            <div className="mt-4 flex items-center gap-2" aria-label="Pagination for Recent Activity">
+              <button
+                className={`btn btn-secondary px-2 py-1 text-xs ${isDisabledPrev ? 'opacity-50' : ''}`}
+                disabled={isDisabledPrev}
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+              >
+                Previous
+              </button>
+              <div className="text-white/60 text-sm">Page {totalPages === 0 ? 0 : page + 1} of {totalPages}</div>
+              <button
+                className={`btn btn-secondary px-2 py-1 text-xs ${isDisabledNext ? 'opacity-50' : ''}`}
+                disabled={isDisabledNext}
+                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+              >
+                Next
+              </button>
+            </div>
+          )
+        })()}
       </section>
 
       <section className="mt-10">
