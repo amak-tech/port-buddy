@@ -14,11 +14,18 @@ import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
@@ -44,10 +51,18 @@ public class TcpTunnelClient {
     private final TcpTrafficSink trafficSink;
 
     private final OkHttpClient http = new OkHttpClient();
+    private final OkHttpClient rest = new OkHttpClient();
     private WebSocket webSocket;
 
     private final Map<String, LocalTcp> locals = new ConcurrentHashMap<>();
     private final CountDownLatch closed = new CountDownLatch(1);
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
+        final var thread = new Thread(runnable, "port-buddy-tcp-heartbeat");
+        thread.setDaemon(true);
+        return thread;
+    });
+    private volatile ScheduledFuture<?> heartbeatTask;
+    private final AtomicBoolean closedReported = new AtomicBoolean(false);
 
     /**
      * Establishes and maintains a WebSocket connection for TCP tunneling.
@@ -90,9 +105,14 @@ public class TcpTunnelClient {
      */
     public void close() {
         try {
+            final var task = heartbeatTask;
+            if (task != null) {
+                task.cancel(true);
+            }
             if (webSocket != null) {
                 webSocket.close(1000, "Client exit");
             }
+            reportClosedSafe();
         } catch (final Exception ignore) {
             log.debug("TCP tunnel close error: {}", ignore.toString());
         }
@@ -114,6 +134,27 @@ public class TcpTunnelClient {
     private class Listener extends WebSocketListener {
         @Override
         public void onOpen(final WebSocket webSocket, final Response response) {
+            // Report CONNECTED and start heartbeats
+            try {
+                postStatus("/api/tunnels/" + tunnelId + "/connected");
+            } catch (final Exception e) {
+                log.debug("Failed to report TCP connected: {}", e.toString());
+            }
+            try {
+                final var existing = heartbeatTask;
+                if (existing != null && !existing.isCancelled()) {
+                    existing.cancel(true);
+                }
+                heartbeatTask = scheduler.scheduleAtFixedRate(() -> {
+                    try {
+                        postStatus("/api/tunnels/" + tunnelId + "/heartbeat");
+                    } catch (final Exception e) {
+                        log.debug("TCP heartbeat failed: {}", e.toString());
+                    }
+                }, 0, 20, TimeUnit.SECONDS);
+            } catch (final Exception e) {
+                log.debug("Failed to start TCP heartbeat: {}", e.toString());
+            }
         }
 
         @Override
@@ -153,13 +194,33 @@ public class TcpTunnelClient {
         @Override
         public void onClosed(final WebSocket webSocket, final int code, final String reason) {
             log.info("Tunnel closed: {} {}", code, reason);
+            final var task = heartbeatTask;
+            if (task != null) {
+                task.cancel(true);
+            }
+            reportClosedSafe();
             closed.countDown();
         }
 
         @Override
         public void onFailure(final WebSocket webSocket, final Throwable throwable, final Response response) {
             log.warn("Tunnel failure: {}", throwable.toString());
+            final var task = heartbeatTask;
+            if (task != null) {
+                task.cancel(true);
+            }
+            reportClosedSafe();
             closed.countDown();
+        }
+    }
+
+    private void reportClosedSafe() {
+        if (closedReported.compareAndSet(false, true)) {
+            try {
+                postStatus("/api/tunnels/" + tunnelId + "/closed");
+            } catch (final Exception e) {
+                log.debug("Failed to report TCP closed: {}", e.toString());
+            }
         }
     }
 
@@ -256,6 +317,21 @@ public class TcpTunnelClient {
             this.sock = sock;
             this.in = sock.getInputStream();
             this.out = sock.getOutputStream();
+        }
+    }
+
+    private void postStatus(final String path) throws Exception {
+        final var base = (secure ? "https://" : "http://") + proxyHost + ":" + proxyHttpPort;
+        final var url = base + path;
+        final var body = RequestBody.create("{}", MediaType.parse("application/json"));
+        final var builder = new Request.Builder().url(url).post(body);
+        if (authToken != null && !authToken.isBlank()) {
+            builder.header("Authorization", "Bearer " + authToken);
+        }
+        try (final var response = rest.newCall(builder.build()).execute()) {
+            if (!response.isSuccessful()) {
+                log.debug("Status POST failed {} {} for {}", response.code(), response.message(), path);
+            }
         }
     }
 }
