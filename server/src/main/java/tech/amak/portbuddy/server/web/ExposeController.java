@@ -8,6 +8,8 @@ import java.security.SecureRandom;
 import java.util.UUID;
 
 import org.springframework.http.MediaType;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,6 +21,7 @@ import tech.amak.portbuddy.common.dto.ExposeResponse;
 import tech.amak.portbuddy.common.dto.HttpExposeRequest;
 import tech.amak.portbuddy.server.client.TcpProxyClient;
 import tech.amak.portbuddy.server.config.AppProperties;
+import tech.amak.portbuddy.server.service.TunnelService;
 import tech.amak.portbuddy.server.tunnel.TunnelRegistry;
 
 @RestController
@@ -31,6 +34,7 @@ public class ExposeController {
     private final TunnelRegistry registry;
     private final AppProperties properties;
     private final TcpProxyClient tcpProxyClient;
+    private final TunnelService tunnelService;
 
     /**
      * Creates a public HTTP endpoint to expose a local HTTP service by generating a unique
@@ -43,13 +47,18 @@ public class ExposeController {
      *     the generated public URL, tunnel ID, and subdomain information for the exposed service
      */
     @PostMapping("/http")
-    public ExposeResponse exposeHttp(final @RequestBody HttpExposeRequest request) {
+    public ExposeResponse exposeHttp(final @AuthenticationPrincipal Object principal,
+                                     final @RequestBody HttpExposeRequest request) {
         final var subdomain = randomSubdomain();
         final var tunnelId = UUID.randomUUID().toString();
         registry.createPending(subdomain, tunnelId);
         final var gateway = properties.gateway();
         final var publicUrl = "%s://%s.%s".formatted(gateway.schema(), subdomain, gateway.domain());
         final var source = "%s://%s:%s".formatted(request.scheme(), request.host(), request.port());
+
+        final var userId = extractUserId(principal);
+        final var apiKeyId = extractApiKeyId(principal);
+        tunnelService.createHttpTunnel(userId, apiKeyId, tunnelId, request, publicUrl, subdomain);
         return new ExposeResponse(source, publicUrl, null, null, tunnelId, subdomain);
     }
 
@@ -65,13 +74,18 @@ public class ExposeController {
      * @throws RuntimeException if the allocation of the public TCP port fails
      */
     @PostMapping("/tcp")
-    public ExposeResponse exposeTcp(final @RequestBody HttpExposeRequest request) {
+    public ExposeResponse exposeTcp(final @AuthenticationPrincipal Object principal,
+                                    final @RequestBody HttpExposeRequest request) {
         final var tunnelId = UUID.randomUUID().toString();
 
         // Ask the selected tcp-proxy to allocate a public TCP port for this tunnelId
         try {
             final var exposeResponse = tcpProxyClient.exposePort(tunnelId);
             log.info("Expose TCP port response: {}", exposeResponse);
+            final var userId = extractUserId(principal);
+            final var apiKeyId = extractApiKeyId(principal);
+            tunnelService.createTcpTunnel(userId, apiKeyId, tunnelId, request,
+                exposeResponse.publicHost(), exposeResponse.publicPort());
             return exposeResponse;
         } catch (final Exception e) {
             log.error("Failed to allocate public TCP port for tunnelId={}: {}", tunnelId, e.getMessage(), e);
@@ -85,5 +99,23 @@ public class ExposeController {
         final var name = animals[random.nextInt(animals.length)];
         final var num = 1000 + random.nextInt(9000);
         return name + "-" + num;
+    }
+
+    private String extractUserId(final Object principal) {
+        if (principal instanceof Jwt jwt) {
+            return jwt.getSubject();
+        }
+        if (principal instanceof String s) {
+            return s;
+        }
+        throw new IllegalStateException("Unauthenticated: user id not found");
+    }
+
+    private String extractApiKeyId(final Object principal) {
+        if (principal instanceof Jwt jwt) {
+            final var claim = jwt.getClaimAsString("akid");
+            return claim == null || claim.isBlank() ? null : claim;
+        }
+        return null; // Not available for non-JWT principal
     }
 }

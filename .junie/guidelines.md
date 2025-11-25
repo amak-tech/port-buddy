@@ -93,6 +93,7 @@ Has modern and stylish design. Font-family: "JetBrains Mono" or monospace.
 Take the following web-sites as an example how it should look like:
 * https://www.jetbrains.com/
 * https://localxpose.io/
+* https://localtonet.com/#pricing
 
 #### Index page.
 Is a landing page that present project to a user in the best positive way.

@@ -21,6 +21,7 @@ import tech.amak.portbuddy.common.tunnel.ControlMessage;
 import tech.amak.portbuddy.common.tunnel.HttpTunnelMessage;
 import tech.amak.portbuddy.common.tunnel.MessageEnvelope;
 import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
+import tech.amak.portbuddy.server.service.TunnelService;
 
 @Slf4j
 @Component
@@ -29,6 +30,7 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
 
     private final TunnelRegistry registry;
     private final ObjectMapper mapper;
+    private final TunnelService tunnelService;
 
     @Override
     public void afterConnectionEstablished(final WebSocketSession session) throws Exception {
@@ -43,6 +45,7 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
         if (tunnel != null) {
             tunnel.setLastHeartbeatMillis(System.currentTimeMillis());
         }
+        tunnelService.markConnected(tunnelId);
         log.info("Tunnel session established: {}", tunnelId);
     }
 
@@ -56,6 +59,7 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
             if (tunnel != null) {
                 tunnel.setLastHeartbeatMillis(System.currentTimeMillis());
             }
+            tunnelService.heartbeat(tunnelId);
             final String payload = message.getPayload();
             final var env = mapper.readValue(payload, MessageEnvelope.class);
             // Control health checks
@@ -121,6 +125,7 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
                 status != null ? status.getCode() : null,
                 status != null ? status.getReason() : null);
         }
+        tunnelService.markClosed(tunnelId);
     }
 
     private String extractTunnelId(final URI uri) {

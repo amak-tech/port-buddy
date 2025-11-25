@@ -32,13 +32,15 @@ public class AuthController {
     @PostMapping("/token-exchange")
     public TokenExchangeResponse tokenExchange(final @RequestBody TokenExchangeRequest payload) {
         final var apiToken = payload == null ? "" : String.valueOf(payload.getApiToken()).trim();
-        final var userIdOpt = apiTokenService.validateAndGetUserId(apiToken);
-        if (userIdOpt.isEmpty()) {
+        final var validatedOpt = apiTokenService.validateAndGetApiKey(apiToken);
+        if (validatedOpt.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid API token");
         }
-        final var userId = userIdOpt.get();
+        final var validated = validatedOpt.get();
+        final var userId = validated.userId();
         final var claims = new java.util.HashMap<String, Object>();
         claims.put("typ", "cli");
+        claims.put("akid", validated.apiKeyId());
         final var jwt = jwtService.createToken(claims, userId);
         return new TokenExchangeResponse(jwt, "Bearer");
     }

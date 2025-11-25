@@ -115,6 +115,25 @@ public class ApiTokenService {
         return Optional.of(entity.getUserId().toString());
     }
 
+    /**
+     * Validates raw token and returns both user id and api key id if valid.
+     */
+    @Transactional
+    public Optional<ValidatedApiKey> validateAndGetApiKey(final String rawToken) {
+        if (rawToken == null || rawToken.isBlank()) {
+            return Optional.empty();
+        }
+        final var hash = sha256(rawToken);
+        final var entityOpt = apiKeyRepository.findByTokenHashAndRevokedFalse(hash);
+        if (entityOpt.isEmpty()) {
+            return Optional.empty();
+        }
+        final var entity = entityOpt.get();
+        entity.setLastUsedAt(OffsetDateTime.now());
+        apiKeyRepository.save(entity);
+        return Optional.of(new ValidatedApiKey(entity.getUserId().toString(), entity.getId().toString()));
+    }
+
     private String generateRawToken() {
         final var bytes = new byte[32];
         secureRandom.nextBytes(bytes);
@@ -135,6 +154,9 @@ public class ApiTokenService {
     }
 
     public record TokenView(String id, String label, Instant createdAt, boolean revoked, Instant lastUsedAt) {
+    }
+
+    public record ValidatedApiKey(String userId, String apiKeyId) {
     }
 
     private static Instant toInstant(final OffsetDateTime odt) {
