@@ -9,10 +9,11 @@ import {
   GlobeAltIcon,
   LockClosedIcon,
   WalletIcon,
+  PowerIcon,
 } from '@heroicons/react/24/outline'
 
 export default function AppLayout() {
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
 
   return (
     <div className="min-h-screen flex bg-primary">
@@ -44,18 +45,29 @@ export default function AppLayout() {
                 <span>Documentation</span>
               </a>
               </div>
-            <div className="mt-3 flex items-center gap-3">
-              {user?.avatarUrl ? (
-                <img src={user.avatarUrl} alt="avatar" className="w-8 h-8 rounded-full border border-white/10" />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-white/10 grid place-items-center text-white/60 text-sm">
-                  {user?.name?.[0] || user?.email?.[0] || '?'}
+            <div className="mt-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                {user?.avatarUrl ? (
+                  <img src={user.avatarUrl} alt="avatar" className="w-8 h-8 rounded-full border border-white/10" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-white/10 grid place-items-center text-white/60 text-sm">
+                    {user?.name?.[0] || user?.email?.[0] || '?'}
+                  </div>
+                )}
+                <div className="truncate">
+                  <div className="text-sm font-medium truncate">{user?.name || user?.email || 'Unknown user'}</div>
+                  <div className="text-white/50 text-xs truncate">{user?.email}</div>
                 </div>
-              )}
-              <div className="truncate">
-                <div className="text-sm font-medium truncate">{user?.name || user?.email || 'Unknown user'}</div>
-                <div className="text-white/50 text-xs truncate">{user?.email}</div>
               </div>
+              <button
+                type="button"
+                aria-label="Logout"
+                title="Logout"
+                onClick={() => void logout()}
+                className="p-2 rounded-md text-white/70 hover:text-white hover:bg-white/10 transition"
+              >
+                <PowerIcon className="h-5 w-5" aria-hidden="true" />
+              </button>
             </div>
           </div>
         </div>
