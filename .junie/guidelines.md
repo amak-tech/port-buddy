@@ -64,6 +64,7 @@ Do not shorten variable names. Always use meaningful names. bad example: `final 
 Local variable name pattern: `^[a-z]([a-z0-9][a-zA-Z0-9]*)?$`
 Use 4 spaces for indentation.
 Must follow checkstyle rules: https://raw.githubusercontent.com/amak-tech/checkstyle-java/refs/heads/main/checkstyle.xml
+Each public method must have javadoc.
 
 ### API Gateway
 It uses webflux implementation. All gateway config properties must be under base property path 'spring.cloud.gateway.server.webflux' (yaml format) instead of 'spring.cloud.gateway' (yaml format)

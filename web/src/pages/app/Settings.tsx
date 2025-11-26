@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../../auth/AuthContext'
 import { usePageTitle } from '../../components/PageHeader'
+import { apiJson } from '../../lib/api'
 
 export default function Settings() {
   const { user, refresh } = useAuth()
@@ -10,30 +11,80 @@ export default function Settings() {
   const [lastName, setLastName] = useState('')
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  const [orig, setOrig] = useState<{ accountName: string, firstName: string, lastName: string } | null>(null)
 
   useEffect(() => {
-    // Pre-fill from best-effort name split
-    const name = user?.name || ''
-    if (name && !firstName && !lastName) {
-      const parts = name.trim().split(/\s+/)
-      if (parts.length > 0) setFirstName(parts[0])
-      if (parts.length > 1) setLastName(parts.slice(1).join(' '))
+    let cancelled = false
+    async function load() {
+      setLoading(true)
+      setMessage(null)
+      try {
+        const details = await apiJson<{ user: { firstName?: string, lastName?: string }, account: { name: string } }>(
+          '/api/me/details'
+        )
+        if (cancelled) return
+        const first = details.user?.firstName || ''
+        const last = details.user?.lastName || ''
+        const acc = details.account?.name || ''
+        setFirstName(first)
+        setLastName(last)
+        setAccountName(acc || defaultAccountName(user?.name, user?.email))
+        setOrig({ accountName: acc, firstName: first, lastName: last })
+      } catch {
+        // Fallback to best-effort defaults if backend not available
+        const defAcc = defaultAccountName(user?.name, user?.email)
+        if (!firstName && !lastName && (user?.name || '')) {
+          const parts = (user?.name || '').trim().split(/\s+/)
+          if (parts.length > 0) setFirstName(parts[0])
+          if (parts.length > 1) setLastName(parts.slice(1).join(' '))
+        }
+        if (!accountName) setAccountName(defAcc)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
     }
-    if (!accountName && name) {
-      setAccountName(`${name}'s account`)
-    }
+    void load()
+    return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user])
+  }, [user?.id])
+
+  function defaultAccountName(name?: string, email?: string): string {
+    const base = (name && name.trim()) || (email ? email.split('@')[0] : '')
+    return base ? `${base}'s account` : 'My account'
+  }
+
+  const isChanged = useMemo(() => {
+    if (!orig) return true
+    return (
+      accountName.trim() !== (orig.accountName || '').trim() ||
+      (firstName || '').trim() !== (orig.firstName || '').trim() ||
+      (lastName || '').trim() !== (orig.lastName || '').trim()
+    )
+  }, [orig, accountName, firstName, lastName])
 
   async function onSave() {
     setSaving(true)
     setMessage(null)
     try {
-      // TODO: Implement backend endpoints to persist account and user profile updates.
-      // For now, we just simulate success and refresh user profile.
-      await new Promise((r) => setTimeout(r, 500))
+      // Update account name if changed
+      if (!orig || accountName.trim() !== (orig.accountName || '').trim()) {
+        await apiJson('/api/me/account', {
+          method: 'PATCH',
+          body: JSON.stringify({ name: accountName.trim() })
+        })
+      }
+      // Update profile if changed
+      if (!orig || (firstName || '').trim() !== (orig.firstName || '').trim() || (lastName || '').trim() !== (orig.lastName || '').trim()) {
+        await apiJson('/api/me/profile', {
+          method: 'PATCH',
+          body: JSON.stringify({ firstName: firstName.trim(), lastName: lastName.trim() })
+        })
+      }
       await refresh()
-      setMessage('Settings saved (placeholder). Coming soon: real profile and account updates.')
+      setOrig({ accountName, firstName, lastName })
+      setMessage('Settings saved.')
     } catch {
       setMessage('Failed to save settings. Please try again later.')
     } finally {
@@ -68,6 +119,7 @@ export default function Settings() {
               onChange={(e) => setAccountName(e.target.value)}
               className="mt-1 w-full bg-black/30 border border-white/10 rounded px-3 py-2"
               placeholder="e.g. Acme Inc"
+              disabled={loading}
             />
           </div>
           <div className="grid md:grid-cols-2 gap-4">
@@ -78,6 +130,7 @@ export default function Settings() {
                 onChange={(e) => setFirstName(e.target.value)}
                 className="mt-1 w-full bg-black/30 border border-white/10 rounded px-3 py-2"
                 placeholder="John"
+                disabled={loading}
               />
             </div>
             <div>
@@ -87,6 +140,7 @@ export default function Settings() {
                 onChange={(e) => setLastName(e.target.value)}
                 className="mt-1 w-full bg-black/30 border border-white/10 rounded px-3 py-2"
                 placeholder="Doe"
+                disabled={loading}
               />
             </div>
           </div>
@@ -97,8 +151,8 @@ export default function Settings() {
         )}
 
         <div className="mt-6">
-          <button className="btn" onClick={() => { void onSave() }} disabled={saving}>
-            {saving ? 'Saving…' : 'Save changes'}
+          <button className="btn" onClick={() => { void onSave() }} disabled={saving || loading || !isChanged}>
+            {saving ? 'Saving…' : isChanged ? 'Save changes' : 'Saved'}
           </button>
         </div>
       </div>
