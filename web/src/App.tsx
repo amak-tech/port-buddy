@@ -42,7 +42,7 @@ export default function App() {
   return (
     <div className="min-h-full flex flex-col">
       {!isApp && (
-      <header className="border-b border-white/10 bg-primary/60 backdrop-blur sticky top-0 z-10">
+      <header className="border-b border-white/10 bg-primary/60 backdrop-blur sticky top-0 z-10 bg-topography">
         <div className="container flex items-center justify-between py-3 relative">
           <Link to="/" className="flex items-center gap-2 text-xl font-bold">
             <span className="w-2.5 h-2.5 rounded-full bg-accent inline-block"></span>
@@ -108,7 +108,7 @@ export default function App() {
       </main>
 
       {!isApp && (
-      <footer className="border-t border-white/10 py-8 mt-16">
+      <footer className="border-t border-white/10 py-8 mt-16 bg-topography">
         <div className="container text-sm text-white/60 flex items-center justify-between">
           <span>© {new Date().getFullYear()} Port Buddy</span>
           <div className="flex gap-4">

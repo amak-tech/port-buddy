@@ -17,7 +17,7 @@ export default function AppLayout() {
   return (
     <div className="min-h-screen flex bg-primary">
       {/* Sidebar */}
-      <aside className="w-64 shrink-0 border-r border-white/10 bg-black/20 backdrop-blur">
+      <aside className="w-64 shrink-0 border-r border-white/10 bg-black/20 backdrop-blur bg-topography">
         <div className="h-full flex flex-col">
           {/* Top app title (fixed at top) */}
           <div className="sticky top-0 z-10 border-b border-white/10 bg-black/30 px-4 py-4">
