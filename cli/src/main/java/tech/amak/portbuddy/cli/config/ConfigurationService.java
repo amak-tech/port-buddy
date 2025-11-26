@@ -7,6 +7,8 @@ package tech.amak.portbuddy.cli.config;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -89,10 +91,10 @@ public class ConfigurationService {
         Files.writeString(file, token.strip());
         // Try to restrict permissions on POSIX systems
         try {
-            final var perms = new java.util.HashSet<java.nio.file.attribute.PosixFilePermission>();
-            perms.add(java.nio.file.attribute.PosixFilePermission.OWNER_READ);
-            perms.add(java.nio.file.attribute.PosixFilePermission.OWNER_WRITE);
-            java.nio.file.Files.setPosixFilePermissions(file, perms);
+            final var perms = new HashSet<PosixFilePermission>();
+            perms.add(PosixFilePermission.OWNER_READ);
+            perms.add(PosixFilePermission.OWNER_WRITE);
+            Files.setPosixFilePermissions(file, perms);
         } catch (final UnsupportedOperationException ignore) {
             // Non-POSIX filesystem (e.g., Windows) - best effort only
         }
