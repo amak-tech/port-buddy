@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { apiJson } from '../../lib/api'
 import { useAuth } from '../../auth/AuthContext'
 import { usePageTitle } from '../../components/PageHeader'
@@ -26,26 +26,66 @@ export default function Tunnels() {
   const [page, setPage] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
   const [loading, setLoading] = useState(false)
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     if (!hasUser) return
-    void loadTunnels(0)
+    void loadTunnels(0, false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasUser])
 
+  // Infinite scroll using IntersectionObserver
   useEffect(() => {
     if (!hasUser) return
-    void loadTunnels(page)
+    const el = sentinelRef.current
+    if (!el) return
+    const rootEl = document.querySelector('[data-scroll-root]') as Element | null
+    const observer = new IntersectionObserver((entries) => {
+      const entry = entries[0]
+      const hasNext = page < totalPages - 1
+      if (entry.isIntersecting && hasNext && !loading) {
+        void loadTunnels(page + 1, true)
+      }
+    }, { root: rootEl ?? null, rootMargin: '0px', threshold: 0.1 })
+    observer.observe(el)
+    return () => observer.disconnect()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page])
+  }, [hasUser, page, totalPages, loading])
 
-  async function loadTunnels(nextPage: number) {
+  // Ensure we fill the viewport: if after loading the sentinel is visible and there are more pages, fetch next automatically
+  useEffect(() => {
+    if (!hasUser || loading) return
+    const hasNext = page < totalPages - 1
+    if (!hasNext) return
+    const el = sentinelRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const rootEl = document.querySelector('[data-scroll-root]') as Element | null
+    if (rootEl) {
+      const rootRect = rootEl.getBoundingClientRect()
+      if (rect.top <= rootRect.bottom) {
+        void loadTunnels(page + 1, true)
+      }
+    } else {
+      if (rect.top <= window.innerHeight) {
+        void loadTunnels(page + 1, true)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasUser, loading, page, totalPages])
+
+  async function loadTunnels(nextPage: number, append: boolean) {
     setLoading(true)
     try {
-      const res = await apiJson<{ content: TunnelView[], number: number, totalPages: number }>(`/api/tunnels?page=${nextPage}&size=10`)
-      setTunnels(res.content || [])
-      setPage(res.number || 0)
-      setTotalPages(res.totalPages || 0)
+      const res = await apiJson<{ content: TunnelView[], number: number, totalPages: number }>(`/api/tunnels?page=${nextPage}&size=30`)
+      const nextContent = res.content || []
+      if (append) {
+        setTunnels((prev) => [...prev, ...nextContent])
+      } else {
+        setTunnels(nextContent)
+      }
+      setPage(res.number ?? nextPage)
+      setTotalPages(res.totalPages ?? 0)
     } catch {
       setTunnels([])
       setPage(0)
@@ -63,7 +103,7 @@ export default function Tunnels() {
   }
 
   return (
-    <div>
+    <div className="flex flex-col">
       <p className="text-white/70">Recent activity across your HTTP and TCP tunnels.</p>
 
       <div className="mt-6">
@@ -80,7 +120,6 @@ export default function Tunnels() {
                   <th className="text-left font-medium px-4 py-2">Local</th>
                   <th className="text-left font-medium px-4 py-2">Public</th>
                   <th className="text-left font-medium px-4 py-2">Status</th>
-                  <th className="text-left font-medium px-4 py-2">Created</th>
                   <th className="text-left font-medium px-4 py-2">Last Activity</th>
                 </tr>
               </thead>
@@ -102,7 +141,6 @@ export default function Tunnels() {
                         )}
                       </td>
                       <td className="px-4 py-2 align-top"><span className="badge">{t.status}</span></td>
-                      <td className="px-4 py-2 align-top text-white/70">{formatDate(t.createdAt)}</td>
                       <td className="px-4 py-2 align-top text-white/70">{formatDate(t.lastHeartbeatAt)}</td>
                     </tr>
                   )
@@ -113,31 +151,13 @@ export default function Tunnels() {
         )}
       </div>
 
-      {(() => {
-        const hasPrev = page > 0
-        const hasNext = page < totalPages - 1
-        const isDisabledPrev = !hasPrev || loading
-        const isDisabledNext = !hasNext || loading || totalPages === 0
-        return (
-          <div className="mt-4 flex items-center gap-2" aria-label="Pagination for Tunnels">
-            <button
-              className={`btn btn-secondary px-2 py-1 text-xs ${isDisabledPrev ? 'opacity-50' : ''}`}
-              disabled={isDisabledPrev}
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-            >
-              Prev
-            </button>
-            <div className="text-white/60 text-sm">Page {totalPages === 0 ? 0 : page + 1} of {totalPages}</div>
-            <button
-              className={`btn btn-secondary px-2 py-1 text-xs ${isDisabledNext ? 'opacity-50' : ''}`}
-              disabled={isDisabledNext}
-              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-            >
-              Next
-            </button>
-          </div>
-        )
-      })()}
+      {/* Infinite scroll sentinel */}
+      <div ref={sentinelRef} className="mt-4 h-8 w-full" />
+
+      {/* Loading indicator for next page */}
+      {loading && tunnels.length > 0 ? (
+        <div className="text-white/60 text-sm">Loading more...</div>
+      ) : null}
     </div>
   )
 }

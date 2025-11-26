@@ -18,7 +18,7 @@ export default function AppLayout() {
   return (
     <div className="min-h-screen flex bg-primary">
       {/* Sidebar */}
-      <aside className="w-64 shrink-0 border-r border-white/10 bg-black/20 backdrop-blur bg-topography">
+      <aside className="fixed top-0 left-0 h-screen w-64 border-r border-white/10 bg-black/20 backdrop-blur bg-topography">
         <div className="h-full flex flex-col">
           {/* Top app title (fixed at top) */}
           <div className="sticky top-0 z-10 border-b border-white/10 bg-black/30 px-4 py-4">
@@ -74,14 +74,14 @@ export default function AppLayout() {
       </aside>
 
       {/* Main content */}
-      <section className="flex-1 min-w-0">
+      <section className="flex-1 min-w-0 flex flex-col min-h-0 ml-64">
         <PageHeaderProvider>
           {/* Page Header (sticky at top) — same height as sidebar header (py-4) */}
           <div className="sticky top-0 z-10 border-b border-white/10 bg-black/30 px-6 py-4">
             <HeaderTitle />
           </div>
           {/* Page body */}
-          <div className="px-6 py-8">
+          <div className="px-6 py-8 flex-1 overflow-y-auto" data-scroll-root>
             <Outlet />
           </div>
         </PageHeaderProvider>
