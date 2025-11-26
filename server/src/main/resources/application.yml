@@ -79,4 +79,4 @@ logging:
   level:
     root: info
     tech.amak.portbuddy: debug
-    org.springframework.web: debug
+    org.springframework.web: info
