@@ -37,6 +37,7 @@ public class UsersController {
      * @return user details
      */
     @GetMapping("/details")
+    @Transactional
     public UserDetailsResponse details(@AuthenticationPrincipal final Jwt jwt) {
 
         final var user = resolveUser(jwt);
