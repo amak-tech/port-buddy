@@ -19,13 +19,13 @@ spring:
     gateway:
       server:
         webflux:
-#          httpserver:
-#            wiretap: true
+          httpserver:
+            wiretap: off
           httpclient:
             websocket:
               # Allow large WS frames (100 MiB)
               max-frame-payload-length: 104857600
-#            wiretap: true
+            wiretap: off
           x-forwarded:
             enabled: true
           discovery:
@@ -98,5 +98,5 @@ app:
 logging:
   level:
     root: info
-    reactor.netty.http.client: debug
-    org.springframework.cloud.gateway: debug
+    reactor.netty.http.client: warn
+    org.springframework.cloud.gateway: warn
