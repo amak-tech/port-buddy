@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
+import { PageHeaderProvider, usePageHeader } from './PageHeader'
 
 export default function AppLayout() {
   const { user } = useAuth()
@@ -50,9 +51,16 @@ export default function AppLayout() {
 
       {/* Main content */}
       <section className="flex-1 min-w-0">
-        <div className="px-6 py-8">
-          <Outlet />
-        </div>
+        <PageHeaderProvider>
+          {/* Page Header (sticky at top) — same height as sidebar header (py-4) */}
+          <div className="sticky top-0 z-10 border-b border-white/10 bg-black/30 px-6 py-4">
+            <HeaderTitle />
+          </div>
+          {/* Page body */}
+          <div className="px-6 py-8">
+            <Outlet />
+          </div>
+        </PageHeaderProvider>
       </section>
     </div>
   )
@@ -67,5 +75,12 @@ function SideLink({ to, label, end = false }: { to: string, label: string, end?:
     >
       <span>{label}</span>
     </NavLink>
+  )
+}
+
+function HeaderTitle() {
+  const { title } = usePageHeader()
+  return (
+    <div className="text-lg font-semibold truncate">{title}</div>
   )
 }

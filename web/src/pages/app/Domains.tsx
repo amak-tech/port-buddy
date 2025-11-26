@@ -1,13 +1,14 @@
 import { useAuth } from '../../auth/AuthContext'
+import { usePageTitle } from '../../components/PageHeader'
 
 export default function Domains() {
   const { user } = useAuth()
+  usePageTitle('Domains')
   const plan = user?.plan || 'basic'
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">Domains</h1>
-      <p className="text-white/70 mt-1">Manage your static subdomains under the app domain.</p>
+      <p className="text-white/70">Manage your static subdomains under the app domain.</p>
 
       <div className="mt-4 p-4 rounded-lg border border-white/10 bg-black/20">
         <div className="text-white/80">This feature is coming soon.</div>

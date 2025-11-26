@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../auth/AuthContext'
+import { usePageTitle } from '../../components/PageHeader'
 
 export default function Settings() {
   const { user, refresh } = useAuth()
+  usePageTitle('Settings')
   const [accountName, setAccountName] = useState('')
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -41,8 +43,7 @@ export default function Settings() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">Settings</h1>
-      <p className="text-white/70 mt-1">Manage your account and personal details.</p>
+      <p className="text-white/70">Manage your account and personal details.</p>
 
       <div className="mt-6 max-w-2xl bg-black/20 border border-white/10 rounded-lg p-5">
         <div className="flex items-center gap-4">

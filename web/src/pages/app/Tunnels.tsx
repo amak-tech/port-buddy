@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { apiJson } from '../../lib/api'
 import { useAuth } from '../../auth/AuthContext'
+import { usePageTitle } from '../../components/PageHeader'
 
 type TunnelView = {
   id: string
@@ -19,6 +20,7 @@ type TunnelView = {
 
 export default function Tunnels() {
   const { user } = useAuth()
+  usePageTitle('Tunnels')
   const hasUser = useMemo(() => !!user, [user])
   const [tunnels, setTunnels] = useState<TunnelView[]>([])
   const [page, setPage] = useState(0)
@@ -62,8 +64,7 @@ export default function Tunnels() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">Tunnels</h1>
-      <p className="text-white/70 mt-1">Recent activity across your HTTP and TCP tunnels.</p>
+      <p className="text-white/70">Recent activity across your HTTP and TCP tunnels.</p>
 
       <div className="mt-6">
         {loading ? (

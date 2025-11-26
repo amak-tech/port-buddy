@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { apiJson, apiRaw } from '../../lib/api'
 import { useAuth } from '../../auth/AuthContext'
+import { usePageTitle } from '../../components/PageHeader'
 
 type TokenItem = { id: string, label: string, createdAt: string, revoked: boolean, lastUsedAt?: string }
 
 export default function Tokens() {
   const { user } = useAuth()
+  usePageTitle('Access Tokens')
   const hasUser = useMemo(() => !!user, [user])
   const [tokens, setTokens] = useState<TokenItem[]>([])
   const [loading, setLoading] = useState(false)
@@ -55,8 +57,7 @@ export default function Tokens() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">Access Tokens</h1>
-      <p className="text-white/70 mt-1">Generate API tokens to authenticate the CLI using <span className="font-mono">port-buddy init {'{API_TOKEN}'}</span>.</p>
+      <p className="text-white/70">Generate API tokens to authenticate the CLI using <span className="font-mono">port-buddy init {'{API_TOKEN}'}</span>.</p>
 
       <div className="mt-6 flex flex-col md:flex-row gap-3 md:items-end">
         <div className="flex-1">

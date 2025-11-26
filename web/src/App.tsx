@@ -4,6 +4,7 @@ import Landing from './pages/Landing'
 import Installation from './pages/Installation'
 import Login from './pages/Login'
 import Subscription from './pages/Subscription'
+import Billing from './pages/app/Billing'
 import ProtectedRoute from './components/ProtectedRoute'
 import { useAuth } from './auth/AuthContext'
 import AppLayout from './components/AppLayout'
@@ -95,7 +96,7 @@ export default function App() {
             <Route index element={<Tunnels/>} />
             <Route path="tokens" element={<Tokens/>} />
             <Route path="domains" element={<Domains/>} />
-            <Route path="billing" element={<Subscription/>} />
+            <Route path="billing" element={<Billing/>} />
             <Route path="settings" element={<Settings/>} />
           </Route>
           {/* Backward-compat for old links */}
