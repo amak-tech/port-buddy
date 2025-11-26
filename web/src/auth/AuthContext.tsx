@@ -46,8 +46,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const refresh = useCallback(async () => {
         setLoading(true)
         try {
-            const me = await apiJson('/api/auth/me')
-            setUser(me as User)
+            const details = await apiJson<{
+                user: { id: string, email: string, firstName?: string, lastName?: string, avatarUrl?: string }
+                account?: { plan?: string }
+            }>('/api/users/me/details')
+
+            const firstName = details?.user?.firstName?.trim() || ''
+            const lastName = details?.user?.lastName?.trim() || ''
+            const name = [firstName, lastName].filter(Boolean).join(' ') || undefined
+
+            // Map server response to SPA User shape
+            const mapped: User = {
+                id: details.user.id,
+                email: details.user.email,
+                name,
+                avatarUrl: details.user.avatarUrl || undefined,
+                // Keep plan optional; server plans may not match current union type
+            }
+            setUser(mapped)
         } catch (e) {
             setUser(null)
         } finally {

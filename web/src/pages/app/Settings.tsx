@@ -22,7 +22,7 @@ export default function Settings() {
       setMessage(null)
       try {
         const details = await apiJson<{ user: { firstName?: string, lastName?: string }, account: { name: string } }>(
-          '/api/me/details'
+          '/api/users/me/details'
         )
         if (cancelled) return
         const first = details.user?.firstName || ''
@@ -70,14 +70,14 @@ export default function Settings() {
     try {
       // Update account name if changed
       if (!orig || accountName.trim() !== (orig.accountName || '').trim()) {
-        await apiJson('/api/me/account', {
+        await apiJson('/api/users/me/account', {
           method: 'PATCH',
           body: JSON.stringify({ name: accountName.trim() })
         })
       }
       // Update profile if changed
       if (!orig || (firstName || '').trim() !== (orig.firstName || '').trim() || (lastName || '').trim() !== (orig.lastName || '').trim()) {
-        await apiJson('/api/me/profile', {
+        await apiJson('/api/users/me/profile', {
           method: 'PATCH',
           body: JSON.stringify({ firstName: firstName.trim(), lastName: lastName.trim() })
         })

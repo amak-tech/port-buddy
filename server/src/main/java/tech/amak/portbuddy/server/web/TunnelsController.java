@@ -37,7 +37,7 @@ public class TunnelsController {
      * @return a paginated list of {@link TunnelView} objects representing the user's tunnels
      */
     @GetMapping
-    public Page<TunnelView> page(final @AuthenticationPrincipal Object principal,
+    public Page<TunnelView> page(final @AuthenticationPrincipal Jwt principal,
                                  final Pageable pageable) {
         final var userId = extractUserId(principal);
         final Page<TunnelEntity> page = tunnelRepository.pageByUserOrderByLastHeartbeatDescNullsLast(userId, pageable);
@@ -76,14 +76,8 @@ public class TunnelsController {
         );
     }
 
-    private UUID extractUserId(final Object principal) {
-        if (principal instanceof Jwt jwt) {
-            return UUID.fromString(jwt.getSubject());
-        }
-        if (principal instanceof String s) {
-            return UUID.fromString(s);
-        }
-        throw new IllegalStateException("Unauthenticated: user id not found");
+    private UUID extractUserId(final Jwt jwt) {
+        return UUID.fromString(jwt.getSubject());
     }
 
     public record TunnelView(

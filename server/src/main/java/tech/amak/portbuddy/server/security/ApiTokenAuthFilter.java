@@ -8,6 +8,7 @@ import static java.util.List.of;
 
 import java.io.IOException;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -48,7 +49,7 @@ public class ApiTokenAuthFilter extends OncePerRequestFilter {
                                     final FilterChain filterChain)
         throws ServletException, IOException {
         try {
-            final var header = request.getHeader("Authorization");
+            final var header = request.getHeader(HttpHeaders.AUTHORIZATION);
             String token = null;
             if (StringUtils.hasText(header) && header.startsWith("Bearer ")) {
                 token = header.substring(7);

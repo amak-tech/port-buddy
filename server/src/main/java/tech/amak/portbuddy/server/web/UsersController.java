@@ -4,7 +4,7 @@
 
 package tech.amak.portbuddy.server.web;
 
-import java.util.UUID;
+import static tech.amak.portbuddy.server.security.JwtService.resolveUserId;
 
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,13 +19,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import tech.amak.portbuddy.server.db.entity.UserEntity;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
 
 @RestController
-@RequestMapping(path = "/api/me", produces = MediaType.APPLICATION_JSON_VALUE)
+@RequestMapping(path = "/api/users/me", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
-public class MeController {
+public class UsersController {
 
     private final UserRepository userRepository;
     private final AccountRepository accountRepository;
@@ -36,14 +37,12 @@ public class MeController {
      * @return user details
      */
     @GetMapping("/details")
-    public DetailsResponse details(@AuthenticationPrincipal final Jwt jwt) {
-        final var ids = resolveIds(jwt);
-        final var user = userRepository.findById(ids.userId())
-            .orElseThrow(() -> new RuntimeException("User not found"));
-        final var account = accountRepository.findById(ids.accountId())
-            .orElseThrow(() -> new RuntimeException("Account not found"));
+    public UserDetailsResponse details(@AuthenticationPrincipal final Jwt jwt) {
 
-        final var details = new DetailsResponse();
+        final var user = resolveUser(jwt);
+        final var account = user.getAccount();
+
+        final var details = new UserDetailsResponse();
         final var userDto = new UserDto();
         userDto.setId(user.getId().toString());
         userDto.setEmail(user.getEmail());
@@ -72,9 +71,8 @@ public class MeController {
     @Transactional
     public UserDto updateProfile(@AuthenticationPrincipal final Jwt jwt,
                                  @RequestBody final UpdateProfileRequest request) {
-        final var ids = resolveIds(jwt);
-        final var user = userRepository.findById(ids.userId())
-            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        final var user = resolveUser(jwt);
 
         final var firstName = normalizeNullable(request == null ? null : request.getFirstName());
         final var lastName = normalizeNullable(request == null ? null : request.getLastName());
@@ -103,9 +101,8 @@ public class MeController {
     @Transactional
     public AccountDto updateAccount(@AuthenticationPrincipal final Jwt jwt,
                                     @RequestBody final UpdateAccountRequest request) {
-        final var ids = resolveIds(jwt);
-        final var account = accountRepository.findById(ids.accountId())
-            .orElseThrow(() -> new RuntimeException("Account not found"));
+        final var user = resolveUser(jwt);
+        final var account = user.getAccount();
 
         final var name = normalizeNullable(request == null ? null : request.getName());
         if (!StringUtils.hasText(name)) {
@@ -121,14 +118,10 @@ public class MeController {
         return dto;
     }
 
-    private static Ids resolveIds(final Jwt jwt) {
-        final var userId = UUID.fromString(jwt.getSubject());
-        final var accountIdClaim = jwt.getClaimAsString("aid");
-        final var accountId = accountIdClaim != null ? UUID.fromString(accountIdClaim) : null;
-        if (accountId == null) {
-            throw new RuntimeException("Missing account id in token");
-        }
-        return new Ids(userId, accountId);
+    private UserEntity resolveUser(final Jwt jwt) {
+        final var userId = resolveUserId(jwt);
+        return userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found. Id: " + userId));
     }
 
     private static String normalizeNullable(final String value) {
@@ -139,11 +132,8 @@ public class MeController {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
-    private record Ids(UUID userId, UUID accountId) {
-    }
-
     @Data
-    public static class DetailsResponse {
+    public static class UserDetailsResponse {
         private UserDto user;
         private AccountDto account;
     }

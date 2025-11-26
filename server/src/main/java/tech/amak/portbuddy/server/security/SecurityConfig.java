@@ -38,7 +38,6 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.POST, "/api/auth/token-exchange").permitAll()
-                .requestMatchers("/api/auth/me").authenticated()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(apiTokenAuthFilter, BearerTokenAuthenticationFilter.class)

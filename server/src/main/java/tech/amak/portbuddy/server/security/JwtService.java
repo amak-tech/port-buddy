@@ -6,9 +6,11 @@ package tech.amak.portbuddy.server.security;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.UUID;
 
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
@@ -20,6 +22,8 @@ import tech.amak.portbuddy.server.config.AppProperties;
 @Service
 @RequiredArgsConstructor
 public class JwtService {
+
+    public static final String TOKEN_TYPE = "JWT";
 
     private final JwtEncoder jwtEncoder;
     private final AppProperties properties;
@@ -36,8 +40,7 @@ public class JwtService {
      */
     public String createToken(final Map<String, Object> claims, final String subject) {
         final var now = Instant.now();
-        final var ttl = properties.jwt().ttl();
-        final var expiresAt = ttl == null ? now.plusSeconds(3600) : now.plus(ttl);
+        final var expiresAt = now.plus(properties.jwt().ttl());
 
         final var builder = JwtClaimsSet.builder()
             .issuer(properties.jwt().issuer())
@@ -45,15 +48,17 @@ public class JwtService {
             .expiresAt(expiresAt)
             .subject(subject);
         if (claims != null) {
-            for (final var entry : claims.entrySet()) {
-                builder.claim(entry.getKey(), entry.getValue());
-            }
+            claims.forEach(builder::claim);
         }
         final var header = JwsHeader.with(SignatureAlgorithm.RS256)
-            .type("JWT")
+            .type(TOKEN_TYPE)
             .keyId(rsaKeyProvider.getCurrentKid())
             .build();
         final var jwt = jwtEncoder.encode(JwtEncoderParameters.from(header, builder.build()));
         return jwt.getTokenValue();
+    }
+
+    public static UUID resolveUserId(final Jwt jwt) {
+        return UUID.fromString(jwt.getSubject());
     }
 }

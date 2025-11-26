@@ -43,13 +43,13 @@ public class ApiTokenService {
      * @return token id and raw token (displayed once)
      */
     @Transactional
-    public CreatedToken createToken(final String userId, final String label) {
+    public CreatedToken createToken(final UUID userId, final String label) {
         final var rawToken = generateRawToken();
         final var tokenHash = sha256(rawToken);
 
         final var apiKey = new ApiKeyEntity();
         apiKey.setId(UUID.randomUUID());
-        apiKey.setUserId(UUID.fromString(userId));
+        apiKey.setUserId(userId);
         apiKey.setLabel(label == null || label.isBlank() ? "cli" : label);
         apiKey.setTokenHash(tokenHash);
         apiKey.setRevoked(false);
@@ -63,9 +63,8 @@ public class ApiTokenService {
      * Lists tokens for the user without exposing secrets.
      */
     @Transactional(readOnly = true)
-    public List<TokenView> listTokens(final String userId) {
-        final var uid = UUID.fromString(userId);
-        return apiKeyRepository.findAllByUserId(uid).stream()
+    public List<TokenView> listTokens(final UUID userId) {
+        return apiKeyRepository.findAllByUserId(userId).stream()
             .map(apiKey -> new TokenView(
                 apiKey.getId().toString(),
                 apiKey.getLabel(),
@@ -79,15 +78,14 @@ public class ApiTokenService {
      * Marks a token as revoked.
      */
     @Transactional
-    public boolean revoke(final String userId, final String tokenId) {
-        final var uid = UUID.fromString(userId);
+    public boolean revoke(final UUID userId, final String tokenId) {
         final var tid = UUID.fromString(tokenId);
-        return apiKeyRepository.findByIdAndUserId(tid, uid)
+        return apiKeyRepository.findByIdAndUserId(tid, userId)
             .map(apiKey -> {
                 apiKey.setRevoked(true);
                 apiKey.setRevokedAt(OffsetDateTime.now());
                 apiKeyRepository.save(apiKey);
-                log.info("Revoked API token id={} for userId={}", tid, uid);
+                log.info("Revoked API token id={} for userId={}", tid, userId);
                 return true;
             })
             .orElseGet(() -> {

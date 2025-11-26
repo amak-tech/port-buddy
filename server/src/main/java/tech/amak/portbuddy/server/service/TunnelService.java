@@ -37,7 +37,7 @@ public class TunnelService {
      * @param subdomain The subdomain used for the public HTTP endpoint.
      */
     @Transactional
-    public void createHttpTunnel(final String userId,
+    public void createHttpTunnel(final UUID userId,
                                  final String apiKeyId,
                                  final String tunnelId,
                                  final HttpExposeRequest request,
@@ -48,7 +48,7 @@ public class TunnelService {
         entity.setTunnelId(tunnelId);
         entity.setType(TunnelType.HTTP);
         entity.setStatus(TunnelStatus.PENDING);
-        entity.setUserId(UUID.fromString(userId));
+        entity.setUserId(userId);
         if (apiKeyId != null && !apiKeyId.isBlank()) {
             entity.setApiKeyId(UUID.fromString(apiKeyId));
         }
@@ -76,7 +76,7 @@ public class TunnelService {
      * @param publicPort The public port on which the service will be accessible.
      */
     @Transactional
-    public void createTcpTunnel(final String userId,
+    public void createTcpTunnel(final UUID userId,
                                 final String apiKeyId,
                                 final String tunnelId,
                                 final HttpExposeRequest request,
@@ -87,7 +87,7 @@ public class TunnelService {
         entity.setTunnelId(tunnelId);
         entity.setType(TunnelType.TCP);
         entity.setStatus(TunnelStatus.PENDING);
-        entity.setUserId(UUID.fromString(userId));
+        entity.setUserId(userId);
         if (apiKeyId != null && !apiKeyId.isBlank()) {
             entity.setApiKeyId(UUID.fromString(apiKeyId));
         }

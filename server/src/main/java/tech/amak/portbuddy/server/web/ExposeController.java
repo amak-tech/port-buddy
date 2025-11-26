@@ -4,6 +4,8 @@
 
 package tech.amak.portbuddy.server.web;
 
+import static tech.amak.portbuddy.server.security.JwtService.resolveUserId;
+
 import java.security.SecureRandom;
 import java.util.UUID;
 
@@ -47,7 +49,7 @@ public class ExposeController {
      *     the generated public URL, tunnel ID, and subdomain information for the exposed service
      */
     @PostMapping("/http")
-    public ExposeResponse exposeHttp(final @AuthenticationPrincipal Object principal,
+    public ExposeResponse exposeHttp(final @AuthenticationPrincipal Jwt jwt,
                                      final @RequestBody HttpExposeRequest request) {
         final var subdomain = randomSubdomain();
         final var tunnelId = UUID.randomUUID().toString();
@@ -56,8 +58,8 @@ public class ExposeController {
         final var publicUrl = "%s://%s.%s".formatted(gateway.schema(), subdomain, gateway.domain());
         final var source = "%s://%s:%s".formatted(request.scheme(), request.host(), request.port());
 
-        final var userId = extractUserId(principal);
-        final var apiKeyId = extractApiKeyId(principal);
+        final var userId = resolveUserId(jwt);
+        final var apiKeyId = extractApiKeyId(jwt);
         tunnelService.createHttpTunnel(userId, apiKeyId, tunnelId, request, publicUrl, subdomain);
         return new ExposeResponse(source, publicUrl, null, null, tunnelId, subdomain);
     }
@@ -74,7 +76,7 @@ public class ExposeController {
      * @throws RuntimeException if the allocation of the public TCP port fails
      */
     @PostMapping("/tcp")
-    public ExposeResponse exposeTcp(final @AuthenticationPrincipal Object principal,
+    public ExposeResponse exposeTcp(final @AuthenticationPrincipal Jwt jwt,
                                     final @RequestBody HttpExposeRequest request) {
         final var tunnelId = UUID.randomUUID().toString();
 
@@ -82,8 +84,8 @@ public class ExposeController {
         try {
             final var exposeResponse = tcpProxyClient.exposePort(tunnelId);
             log.info("Expose TCP port response: {}", exposeResponse);
-            final var userId = extractUserId(principal);
-            final var apiKeyId = extractApiKeyId(principal);
+            final var userId = resolveUserId(jwt);
+            final var apiKeyId = extractApiKeyId(jwt);
             tunnelService.createTcpTunnel(userId, apiKeyId, tunnelId, request,
                 exposeResponse.publicHost(), exposeResponse.publicPort());
             return exposeResponse;
@@ -101,21 +103,8 @@ public class ExposeController {
         return name + "-" + num;
     }
 
-    private String extractUserId(final Object principal) {
-        if (principal instanceof Jwt jwt) {
-            return jwt.getSubject();
-        }
-        if (principal instanceof String s) {
-            return s;
-        }
-        throw new IllegalStateException("Unauthenticated: user id not found");
-    }
-
-    private String extractApiKeyId(final Object principal) {
-        if (principal instanceof Jwt jwt) {
-            final var claim = jwt.getClaimAsString("akid");
-            return claim == null || claim.isBlank() ? null : claim;
-        }
-        return null; // Not available for non-JWT principal
+    private String extractApiKeyId(final Jwt jwt) {
+        final var claim = jwt.getClaimAsString("akid");
+        return claim == null || claim.isBlank() ? null : claim;
     }
 }
