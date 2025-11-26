@@ -1,6 +1,15 @@
 import { NavLink, Outlet } from 'react-router-dom'
+import type { ComponentType, SVGProps } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { PageHeaderProvider, usePageHeader } from './PageHeader'
+import {
+  AcademicCapIcon,
+  ArrowsRightLeftIcon,
+  Cog8ToothIcon,
+  GlobeAltIcon,
+  LockClosedIcon,
+  WalletIcon,
+} from '@heroicons/react/24/outline'
 
 export default function AppLayout() {
   const { user } = useAuth()
@@ -20,18 +29,21 @@ export default function AppLayout() {
 
           {/* Nav list (scrollable middle) */}
           <nav className="flex-1 overflow-y-auto px-2 py-3 text-sm">
-            <SideLink to="/app" end label="Tunnels" />
-            <SideLink to="/app/tokens" label="Access Tokens" />
-            <SideLink to="/app/domains" label="Domains" />
-            <SideLink to="/app/billing" label="Billing" />
-            <SideLink to="/app/settings" label="Settings" />
+            <SideLink to="/app" end label="Tunnels" Icon={ArrowsRightLeftIcon} />
+            <SideLink to="/app/tokens" label="Access Tokens" Icon={LockClosedIcon} />
+            <SideLink to="/app/domains" label="Domains" Icon={GlobeAltIcon} />
+            <SideLink to="/app/billing" label="Billing" Icon={WalletIcon} />
+            <SideLink to="/app/settings" label="Settings" Icon={Cog8ToothIcon} />
           </nav>
 
           {/* Bottom block (fixed at bottom) */}
           <div className="sticky bottom-0 z-10 border-t border-white/10 bg-black/30 px-4 py-4">
             <div className="flex items-center justify-between gap-3">
-              <a href="/#docs" className="text-white/80 hover:text-white text-sm">Documentation</a>
-            </div>
+              <a href="/#docs" className="text-white/80 hover:text-white text-sm inline-flex items-center gap-2">
+                <AcademicCapIcon className="h-5 w-5" aria-hidden="true" />
+                <span>Documentation</span>
+              </a>
+              </div>
             <div className="mt-3 flex items-center gap-3">
               {user?.avatarUrl ? (
                 <img src={user.avatarUrl} alt="avatar" className="w-8 h-8 rounded-full border border-white/10" />
@@ -66,13 +78,16 @@ export default function AppLayout() {
   )
 }
 
-function SideLink({ to, label, end = false }: { to: string, label: string, end?: boolean }) {
+type IconType = ComponentType<SVGProps<SVGSVGElement>>
+
+function SideLink({ to, label, end = false, Icon }: { to: string, label: string, end?: boolean, Icon?: IconType }) {
   return (
     <NavLink
       to={to}
       end={end}
       className={({ isActive }) => `flex items-center gap-2 px-3 py-2 rounded-md hover:bg-white/5 ${isActive ? 'bg-white/10 text-white' : 'text-white/80'}`}
     >
+      {Icon ? <Icon className="h-5 w-5" aria-hidden="true" /> : null}
       <span>{label}</span>
     </NavLink>
   )
