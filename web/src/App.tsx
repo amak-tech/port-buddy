@@ -38,43 +38,54 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false)
   const location = useLocation()
   const isApp = location.pathname.startsWith('/app')
+  const showHeader = !isApp && location.pathname !== '/login'
+
   return (
-    <div className="min-h-full flex flex-col">
-      {!isApp && (
-      <header className="border-b border-white/10 bg-primary/60 backdrop-blur sticky top-0 z-10 bg-topography">
-        <div className="container flex items-center justify-between py-3 relative">
-          <Link to="/" className="flex items-center gap-2 text-xl font-bold">
-            <span className="w-2.5 h-2.5 rounded-full bg-accent inline-block"></span>
+    <div className="min-h-full flex flex-col bg-slate-950 text-slate-200">
+      {showHeader && (
+      <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur fixed w-full top-0 z-50">
+        <div className="container flex items-center justify-between py-4 relative">
+          <Link to="/" className="flex items-center gap-3 text-lg font-bold text-white hover:opacity-90 transition-opacity">
+            <span className="relative flex h-3 w-3">
+               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+               <span className="relative inline-flex rounded-full h-3 w-3 bg-indigo-500"></span>
+            </span>
             Port Buddy
           </Link>
-          <nav className="flex items-center gap-6 text-sm">
-            <Link to="/install" className="hover:text-white" aria-label="Installation instructions">Installation</Link>
-            <Link to="/#pricing" className="hover:text-white" aria-label="View pricing">Pricing</Link>
+          <nav className="flex items-center gap-8 text-sm font-medium">
+            <Link to="/install" className="text-slate-400 hover:text-white transition-colors" aria-label="Installation instructions">Installation</Link>
+            <Link to="/#pricing" className="text-slate-400 hover:text-white transition-colors" aria-label="View pricing">Pricing</Link>
             {!user ? (
               // Only Login button when not authenticated
-              <Link to="/login" className="btn">Login</Link>
+              <Link 
+                to="/login" 
+                className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-lg transition-all shadow-lg shadow-indigo-500/20"
+              >
+                Login
+              </Link>
             ) : (
               // Authenticated: show hamburger menu
               <div className="relative">
                 <button
-                  className="w-10 h-10 inline-flex items-center justify-center rounded-md border border-white/10 hover:bg-white/5"
+                  className="w-10 h-10 inline-flex items-center justify-center rounded-lg border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
                   aria-label="Open menu"
                   aria-expanded={menuOpen}
                   onClick={() => setMenuOpen((v) => !v)}
                 >
                   <span className="sr-only">Menu</span>
                   <span aria-hidden="true" className="flex flex-col items-center justify-center gap-1.5">
-                    <span className="block w-6 h-0.5 bg-white"></span>
-                    <span className="block w-6 h-0.5 bg-white"></span>
-                    <span className="block w-6 h-0.5 bg-white"></span>
+                    <span className="block w-5 h-0.5 bg-current"></span>
+                    <span className="block w-5 h-0.5 bg-current"></span>
+                    <span className="block w-5 h-0.5 bg-current"></span>
                   </span>
                 </button>
                 {menuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 rounded-md border border-white/10 bg-primary/90 backdrop-blur shadow-lg p-2 z-20">
-                    <Link to="/app" className="block px-3 py-2 rounded hover:bg-white/5" onClick={() => setMenuOpen(false)}>Open App</Link>
-                    <Link to="/app/settings" className="block px-3 py-2 rounded hover:bg-white/5" onClick={() => setMenuOpen(false)}>Settings</Link>
-                    <Link to="/app/billing" className="block px-3 py-2 rounded hover:bg-white/5" onClick={() => setMenuOpen(false)}>Billing</Link>
-                    <button className="block w-full text-left px-3 py-2 rounded hover:bg-white/5" onClick={() => { setMenuOpen(false); void logout() }}>Logout</button>
+                  <div className="absolute right-0 mt-3 w-56 rounded-xl border border-slate-800 bg-slate-900 shadow-2xl p-2 z-50">
+                    <Link to="/app" className="block px-4 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors" onClick={() => setMenuOpen(false)}>Dashboard</Link>
+                    <Link to="/app/settings" className="block px-4 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors" onClick={() => setMenuOpen(false)}>Settings</Link>
+                    <Link to="/app/billing" className="block px-4 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors" onClick={() => setMenuOpen(false)}>Billing</Link>
+                    <div className="h-px bg-slate-800 my-2 mx-2"></div>
+                    <button className="block w-full text-left px-4 py-2.5 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors" onClick={() => { setMenuOpen(false); void logout() }}>Logout</button>
                   </div>
                 )}
               </div>
@@ -106,14 +117,16 @@ export default function App() {
         <Outlet />
       </main>
 
-      {!isApp && (
-      <footer className="border-t border-white/10 py-8 mt-16 bg-topography">
-        <div className="container text-sm text-white/60 flex items-center justify-between">
-          <span>© {new Date().getFullYear()} Port Buddy</span>
-          <div className="flex gap-4">
-            <a href="/#pricing">Pricing</a>
-            <a href="/#use-cases">Use Cases</a>
-            <a href="/#docs">Docs</a>
+      {showHeader && (
+      <footer className="border-t border-slate-800 py-12 bg-slate-900 mt-auto">
+        <div className="container flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-2 text-slate-400 text-sm">
+             <span>© {new Date().getFullYear()} Port Buddy. All rights reserved.</span>
+          </div>
+          <div className="flex gap-8 text-sm font-medium">
+            <a href="/#pricing" className="text-slate-400 hover:text-indigo-400 transition-colors">Pricing</a>
+            <a href="/#use-cases" className="text-slate-400 hover:text-indigo-400 transition-colors">Use Cases</a>
+            <a href="/#docs" className="text-slate-400 hover:text-indigo-400 transition-colors">Documentation</a>
           </div>
         </div>
       </footer>
