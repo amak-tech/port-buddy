@@ -16,20 +16,23 @@ export default function AppLayout() {
   const { user, logout } = useAuth()
 
   return (
-    <div className="min-h-screen flex bg-primary">
+    <div className="min-h-screen flex bg-slate-950">
       {/* Sidebar */}
-      <aside className="fixed top-0 left-0 h-screen w-64 border-r border-white/10 bg-black/20 backdrop-blur bg-topography">
+      <aside className="fixed top-0 left-0 h-screen w-64 border-r border-slate-800 bg-slate-900">
         <div className="h-full flex flex-col">
           {/* Top app title (fixed at top) */}
-          <div className="sticky top-0 z-10 border-b border-white/10 bg-black/30 px-4 py-4">
-            <div className="flex items-center gap-2 text-lg font-bold">
-              <span className="w-2.5 h-2.5 rounded-full bg-accent inline-block"></span>
+          <div className="sticky top-0 z-10 border-b border-slate-800 bg-slate-900 px-6 py-5">
+            <div className="flex items-center gap-3 text-lg font-bold text-white">
+              <span className="relative flex h-3 w-3">
+                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                 <span className="relative inline-flex rounded-full h-3 w-3 bg-indigo-500"></span>
+              </span>
               Port Buddy
             </div>
           </div>
 
           {/* Nav list (scrollable middle) */}
-          <nav className="flex-1 overflow-y-auto px-2 py-3 text-sm">
+          <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-1">
             <SideLink to="/app" end label="Tunnels" Icon={ArrowsRightLeftIcon} />
             <SideLink to="/app/tokens" label="Access Tokens" Icon={LockClosedIcon} />
             <SideLink to="/app/domains" label="Domains" Icon={GlobeAltIcon} />
@@ -38,25 +41,25 @@ export default function AppLayout() {
           </nav>
 
           {/* Bottom block (fixed at bottom) */}
-          <div className="sticky bottom-0 z-10 border-t border-white/10 bg-black/30 px-4 py-4">
-            <div className="flex items-center justify-between gap-3">
-              <a href="/#docs" className="text-white/80 hover:text-white text-sm inline-flex items-center gap-2">
+          <div className="sticky bottom-0 z-10 border-t border-slate-800 bg-slate-900 px-6 py-5">
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <a href="/#docs" className="text-slate-400 hover:text-white text-sm inline-flex items-center gap-2 transition-colors">
                 <AcademicCapIcon className="h-5 w-5" aria-hidden="true" />
                 <span>Documentation</span>
               </a>
-              </div>
-            <div className="mt-3 flex items-center justify-between gap-3">
+            </div>
+            <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
                 {user?.avatarUrl ? (
-                  <img src={user.avatarUrl} alt="avatar" className="w-8 h-8 rounded-full border border-white/10" />
+                  <img src={user.avatarUrl} alt="avatar" className="w-9 h-9 rounded-full border border-slate-700" />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-white/10 grid place-items-center text-white/60 text-sm">
+                  <div className="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center text-white text-sm font-bold shadow-lg shadow-indigo-500/20">
                     {user?.name?.[0] || user?.email?.[0] || '?'}
                   </div>
                 )}
                 <div className="truncate">
-                  <div className="text-sm font-medium truncate">{user?.name || user?.email || 'Unknown user'}</div>
-                  <div className="text-white/50 text-xs truncate">{user?.email}</div>
+                  <div className="text-sm font-medium text-white truncate">{user?.name || user?.email || 'Unknown user'}</div>
+                  <div className="text-slate-500 text-xs truncate">{user?.email}</div>
                 </div>
               </div>
               <button
@@ -64,7 +67,7 @@ export default function AppLayout() {
                 aria-label="Logout"
                 title="Logout"
                 onClick={() => void logout()}
-                className="p-2 rounded-md text-white/70 hover:text-white hover:bg-white/10 transition"
+                className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-all"
               >
                 <PowerIcon className="h-5 w-5" aria-hidden="true" />
               </button>
@@ -74,14 +77,14 @@ export default function AppLayout() {
       </aside>
 
       {/* Main content */}
-      <section className="flex-1 min-w-0 flex flex-col min-h-0 ml-64">
+      <section className="flex-1 min-w-0 flex flex-col min-h-0 ml-64 bg-slate-950">
         <PageHeaderProvider>
-          {/* Page Header (sticky at top) — same height as sidebar header (py-4) */}
-          <div className="sticky top-0 z-10 border-b border-white/10 bg-black/30 px-6 py-4">
+          {/* Page Header (sticky at top) */}
+          <div className="sticky top-0 z-10 border-b border-slate-800 bg-slate-950/80 backdrop-blur px-8 py-5">
             <HeaderTitle />
           </div>
           {/* Page body */}
-          <div className="px-6 py-8 flex-1 overflow-y-auto" data-scroll-root>
+          <div className="px-8 py-8 flex-1 overflow-y-auto" data-scroll-root>
             <Outlet />
           </div>
         </PageHeaderProvider>
@@ -97,9 +100,15 @@ function SideLink({ to, label, end = false, Icon }: { to: string, label: string,
     <NavLink
       to={to}
       end={end}
-      className={({ isActive }) => `flex items-center gap-2 px-3 py-2 rounded-md hover:bg-white/5 ${isActive ? 'bg-white/10 text-white' : 'text-white/80'}`}
+      className={({ isActive }) => 
+        `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
+          isActive 
+            ? 'bg-indigo-500/10 text-indigo-400 font-medium shadow-[inset_3px_0_0_0_rgb(99,102,241)]' 
+            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+        }`
+      }
     >
-      {Icon ? <Icon className="h-5 w-5" aria-hidden="true" /> : null}
+      {Icon ? <Icon className={`h-5 w-5 ${end ? '' : ''}`} aria-hidden="true" /> : null}
       <span>{label}</span>
     </NavLink>
   )
@@ -108,6 +117,6 @@ function SideLink({ to, label, end = false, Icon }: { to: string, label: string,
 function HeaderTitle() {
   const { title } = usePageHeader()
   return (
-    <div className="text-lg font-semibold truncate">{title}</div>
+    <div className="text-xl font-bold text-white truncate tracking-tight">{title}</div>
   )
 }

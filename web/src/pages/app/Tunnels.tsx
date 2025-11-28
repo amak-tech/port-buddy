@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { apiJson } from '../../lib/api'
 import { useAuth } from '../../auth/AuthContext'
 import { usePageTitle } from '../../components/PageHeader'
+import { ArrowTopRightOnSquareIcon, GlobeAltIcon, ServerIcon } from '@heroicons/react/24/outline'
 
 type TunnelView = {
   id: string
@@ -52,7 +53,7 @@ export default function Tunnels() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasUser, page, totalPages, loading])
 
-  // Ensure we fill the viewport: if after loading the sentinel is visible and there are more pages, fetch next automatically
+  // Ensure we fill the viewport
   useEffect(() => {
     if (!hasUser || loading) return
     const hasNext = page < totalPages - 1
@@ -103,50 +104,85 @@ export default function Tunnels() {
   }
 
   return (
-    <div className="flex flex-col">
-      <p className="text-white/70">Recent activity across your HTTP and TCP tunnels.</p>
+    <div className="flex flex-col max-w-6xl">
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold text-white">Active Tunnels</h2>
+        <p className="text-slate-400 mt-1">Monitor and manage your HTTP and TCP tunnels.</p>
+      </div>
 
-      <div className="mt-6">
-        {loading ? (
-          <div className="text-white/60 text-sm">Loading tunnels...</div>
+      <div className="mt-2">
+        {loading && tunnels.length === 0 ? (
+          <div className="text-slate-400 text-sm">Loading tunnels...</div>
         ) : tunnels.length === 0 ? (
-          <div className="text-white/60 text-sm">No tunnels yet.</div>
+          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-12 text-center">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-800 text-slate-400 mb-4">
+              <GlobeAltIcon className="w-6 h-6" />
+            </div>
+            <h3 className="text-lg font-medium text-white mb-2">No tunnels found</h3>
+            <p className="text-slate-400 mb-6">Start your first tunnel using the CLI.</p>
+            <code className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-indigo-400 font-mono">
+              port-buddy 8080
+            </code>
+          </div>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-white/10">
-            <table className="min-w-full text-sm">
-              <thead className="bg-black/40 text-white/70">
-                <tr>
-                  <th className="text-left font-medium px-4 py-2">Type</th>
-                  <th className="text-left font-medium px-4 py-2">Local</th>
-                  <th className="text-left font-medium px-4 py-2">Public</th>
-                  <th className="text-left font-medium px-4 py-2">Status</th>
-                  <th className="text-left font-medium px-4 py-2">Last Activity</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tunnels.map((t) => {
-                  const canOpen = t.type === 'HTTP' && t.status === 'CONNECTED' && !!t.publicUrl
-                  const publicText = t.type === 'HTTP' ? (t.publicUrl || '-') : (t.publicEndpoint || '-')
-                  return (
-                    <tr key={t.id} className="odd:bg-black/20 even:bg-black/10">
-                      <td className="px-4 py-2 align-top"><span className="badge">{t.type}</span></td>
-                      <td className="px-4 py-2 align-top text-white/80">{t.local || '-'}</td>
-                      <td className="px-4 py-2 align-top">
-                        {canOpen ? (
-                          <a href={t.publicUrl!} target="_blank" rel="noopener noreferrer" className="text-accent font-mono hover:underline break-all">
-                            {publicText}
-                          </a>
-                        ) : (
-                          <span className="text-white/90 font-mono break-all">{publicText}</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-2 align-top"><span className="badge">{t.status}</span></td>
-                      <td className="px-4 py-2 align-top text-white/70">{formatDate(t.lastHeartbeatAt)}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+          <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/50 shadow-xl">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-left text-sm">
+                <thead className="bg-slate-900 text-slate-400 uppercase font-medium tracking-wider">
+                  <tr>
+                    <th className="px-6 py-4">Type</th>
+                    <th className="px-6 py-4">Local Address</th>
+                    <th className="px-6 py-4">Public URL</th>
+                    <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4">Last Activity</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800">
+                  {tunnels.map((t) => {
+                    const canOpen = t.type === 'HTTP' && t.status === 'CONNECTED' && !!t.publicUrl
+                    const publicText = t.type === 'HTTP' ? (t.publicUrl || '-') : (t.publicEndpoint || '-')
+                    return (
+                      <tr key={t.id} className="hover:bg-slate-800/30 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${
+                            t.type === 'HTTP' 
+                              ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' 
+                              : 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
+                          }`}>
+                            {t.type === 'HTTP' ? <GlobeAltIcon className="w-3 h-3" /> : <ServerIcon className="w-3 h-3" />}
+                            {t.type}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-slate-300 font-mono text-xs">{t.local || '-'}</td>
+                        <td className="px-6 py-4">
+                          {canOpen ? (
+                            <a href={t.publicUrl!} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-indigo-400 hover:text-indigo-300 hover:underline font-mono text-xs break-all group">
+                              {publicText}
+                              <ArrowTopRightOnSquareIcon className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </a>
+                          ) : (
+                            <span className="text-slate-400 font-mono text-xs break-all">{publicText}</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                           <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${
+                             t.status === 'CONNECTED' 
+                               ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                               : t.status === 'CLOSED'
+                               ? 'bg-slate-700/10 text-slate-400 border-slate-700/20'
+                               : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
+                           }`}>
+                             <span className={`w-1.5 h-1.5 rounded-full ${t.status === 'CONNECTED' ? 'bg-emerald-400 animate-pulse' : t.status === 'CLOSED' ? 'bg-slate-400' : 'bg-yellow-400'}`}></span>
+                             {t.status}
+                           </div>
+                        </td>
+                        <td className="px-6 py-4 text-slate-500 text-xs">{formatDate(t.lastHeartbeatAt)}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
@@ -156,7 +192,7 @@ export default function Tunnels() {
 
       {/* Loading indicator for next page */}
       {loading && tunnels.length > 0 ? (
-        <div className="text-white/60 text-sm">Loading more...</div>
+        <div className="text-center py-4 text-slate-500 text-sm">Loading more tunnels...</div>
       ) : null}
     </div>
   )
