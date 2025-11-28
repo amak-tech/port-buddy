@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { Link, NavLink, Outlet } from 'react-router-dom'
 import type { ComponentType, SVGProps } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { PageHeaderProvider, usePageHeader } from './PageHeader'
@@ -22,13 +22,13 @@ export default function AppLayout() {
         <div className="h-full flex flex-col">
           {/* Top app title (fixed at top) */}
           <div className="sticky top-0 z-10 border-b border-slate-800 bg-slate-900 px-6 py-5">
-            <div className="flex items-center gap-3 text-lg font-bold text-white">
+            <Link to="/" className="flex items-center gap-3 text-lg font-bold text-white hover:opacity-90 transition-opacity">
               <span className="relative flex h-3 w-3">
                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
                  <span className="relative inline-flex rounded-full h-3 w-3 bg-indigo-500"></span>
               </span>
               Port Buddy
-            </div>
+            </Link>
           </div>
 
           {/* Nav list (scrollable middle) */}
