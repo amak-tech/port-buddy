@@ -14,10 +14,16 @@ import {
   CheckIcon
 } from '@heroicons/react/24/outline'
 import React from 'react'
+import Seo from '../components/Seo'
 
 export default function Landing() {
   return (
     <div className="flex flex-col gap-24 pb-24">
+      <Seo 
+        title="Port Buddy - Expose Localhost to the Internet | Ngrok Alternative"
+        description="Securely expose your local web server, database, or TCP service to the internet. The best free ngrok alternative for developers. Supports HTTP & TCP tunneling."
+        keywords="ngrok alternative, localhost tunneling, expose port, port forwarding, reverse proxy, tcp proxy, local development, port buddy"
+      />
       {/* Hero Section */}
       <section className="relative pt-20 md:pt-32 px-4">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/20 via-slate-900/0 to-slate-900/0 pointer-events-none" />
