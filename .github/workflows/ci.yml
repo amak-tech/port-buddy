@@ -10,6 +10,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Set environment variables based on branch
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
+            echo "ENV=prod" >> $GITHUB_ENV
+            echo "VITE_API_BASE=https://portbuddy.dev" >> $GITHUB_ENV
+            echo "VITE_CANONICAL=https://portbuddy.dev" >> $GITHUB_ENV
+            echo "VITE_OG_URL=https://portbuddy.dev" >> $GITHUB_ENV
+          else
+            echo "ENV=dev" >> $GITHUB_ENV
+            echo "VITE_API_BASE=http://localhost:8080" >> $GITHUB_ENV
+            echo "VITE_CANONICAL=http://localhost:8080" >> $GITHUB_ENV
+            echo "VITE_OG_URL=http://localhost:8080" >> $GITHUB_ENV
+          fi
+
       - name: Checkout code
         uses: actions/checkout@v4
 #
