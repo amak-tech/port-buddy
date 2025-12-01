@@ -62,7 +62,7 @@ public class AuthController {
     @PostMapping("/register")
     public RegisterResponse register(final @RequestBody RegisterRequest payload) {
         if (payload == null || payload.getEmail() == null || payload.getPassword() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email and password are required");
+            return new RegisterResponse(null, false, "Email and password are required", 400);
         }
 
         try {
@@ -72,9 +72,11 @@ public class AuthController {
                 payload.getPassword()
             );
             final var createdToken = apiTokenService.createToken(provisioned.userId(), "cli-init");
-            return new RegisterResponse(createdToken.token());
+            return new RegisterResponse(createdToken.token(), true, "User registered successfully", 200);
         } catch (final IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+            return new RegisterResponse(null, false, e.getMessage(), 400);
+        } catch (final Exception e) {
+            return new RegisterResponse(null, false, "Internal Server Error: " + e.getMessage(), 500);
         }
     }
 

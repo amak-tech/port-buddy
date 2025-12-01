@@ -71,16 +71,20 @@ class AuthControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.apiKey").value(apiKey));
+            .andExpect(jsonPath("$.apiKey").value(apiKey))
+            .andExpect(jsonPath("$.success").value(true));
     }
     
     @Test
-    void register_shouldReturnBadRequest_whenMissingFields() throws Exception {
+    void register_shouldReturnError_whenMissingFields() throws Exception {
         final var request = new RegisterRequest(null, "Test User", "password");
 
         mockMvc.perform(post("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isBadRequest());
+            .andExpect(status().isOk()) // We now return 200 with error details
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.message").value("Email and password are required"))
+            .andExpect(jsonPath("$.statusCode").value(400));
     }
 }

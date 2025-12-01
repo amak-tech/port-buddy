@@ -19,4 +19,13 @@ public class RegisterResponse {
 
     @JsonProperty("apiKey")
     private String apiKey;
+
+    @JsonProperty("success")
+    private boolean success;
+
+    @JsonProperty("message")
+    private String message;
+
+    @JsonProperty("statusCode")
+    private int statusCode;
 }

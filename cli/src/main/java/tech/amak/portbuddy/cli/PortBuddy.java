@@ -299,23 +299,10 @@ public class PortBuddy implements Callable<Integer> {
 
         System.out.println("No API key found. Please sign up.");
 
-        final var console = System.console();
-        if (console == null) {
-            System.err.println("No console available to read input."
-                + " Please run in an interactive terminal or initialize with API token.");
-            return false;
-        }
-
-        final var name = console.readLine("Name: ");
-        final var email = console.readLine("Email: ");
-        final var passArray = console.readPassword("Password: ");
-        if (passArray == null) {
-            return false;
-        }
-        final var password = new String(passArray);
-
         try {
-            final var newApiKey = registerUser(config.getServerUrl(), email, name, password);
+            final var request = ConsoleUi.promptForUserRegistration();
+
+            final var newApiKey = registerUser(config.getServerUrl(), request);
             configurationService.saveApiToken(newApiKey);
             config.setApiToken(newApiKey);
             System.out.println("Registration successful! API key saved.");
@@ -327,27 +314,40 @@ public class PortBuddy implements Callable<Integer> {
     }
 
     private String registerUser(final String baseUrl,
-                                final String email,
-                                final String name,
-                                final String password) throws IOException {
+                                final RegisterRequest registerRequest) throws IOException {
         final var url = baseUrl + (baseUrl.endsWith("/") ? "" : "/") + "api/auth/register";
-        final var body = new RegisterRequest(email, name, password);
-        final var json = MAPPER.writeValueAsString(body);
+        final var json = MAPPER.writeValueAsString(registerRequest);
         final var request = new Request.Builder()
             .url(url)
             .post(RequestBody.create(json, MediaType.parse("application/json")))
             .build();
 
         try (final var response = http.newCall(request).execute()) {
-            if (!response.isSuccessful()) {
-                throw new IOException("Server returned " + response.code() + ": " + response.message());
-            }
             final var respBody = response.body();
             if (respBody == null) {
+                if (!response.isSuccessful()) {
+                    throw new IOException("Server returned: " + response.message());
+                }
                 throw new IOException("Empty response from server");
             }
-            final var registerResponse = MAPPER.readValue(respBody.string(), RegisterResponse.class);
-            return registerResponse.getApiKey();
+
+            if (response.code() == 503) {
+                throw new IOException("Server is unavailable. Please try again later.");
+            }
+
+            final var bodyStr = respBody.string();
+            try {
+                final var registerResponse = MAPPER.readValue(bodyStr, RegisterResponse.class);
+                if (!registerResponse.isSuccess()) {
+                    throw new IOException(registerResponse.getMessage());
+                }
+                return registerResponse.getApiKey();
+            } catch (final IOException e) {
+                if (!response.isSuccessful()) {
+                    throw new IOException("Server returned: " + response.message());
+                }
+                throw e;
+            }
         }
     }
 
