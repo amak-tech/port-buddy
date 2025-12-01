@@ -28,7 +28,7 @@ public class GatewaySecurityConfig {
                     "/oauth2/**", "/login/oauth2/**",
                     "/.well-known/jwks.json",
                     // Token exchange must be public to let CLI obtain a JWT
-                    "/api/auth/token-exchange", "/api/auth/login"
+                    "/api/auth/token-exchange", "/api/auth/login", "/api/auth/register"
                     ).permitAll()
                 // Secure API endpoints
                 .pathMatchers("/api/**").authenticated()

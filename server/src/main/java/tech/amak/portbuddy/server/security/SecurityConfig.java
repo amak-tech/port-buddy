@@ -6,6 +6,7 @@ package tech.amak.portbuddy.server.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -29,7 +30,7 @@ import lombok.RequiredArgsConstructor;
 public class SecurityConfig {
 
     private final ApiTokenAuthFilter apiTokenAuthFilter;
-    private final Oauth2SuccessHandler oauth2SuccessHandler;
+    private final @Lazy Oauth2SuccessHandler oauth2SuccessHandler;
 
     @Bean
     @Order(1)
@@ -39,7 +40,8 @@ public class SecurityConfig {
             .cors(AbstractHttpConfigurer::disable)
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(HttpMethod.POST, "/api/auth/token-exchange", "/api/auth/login").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/auth/token-exchange",
+                    "/api/auth/login", "/api/auth/register").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(apiTokenAuthFilter, BearerTokenAuthenticationFilter.class)

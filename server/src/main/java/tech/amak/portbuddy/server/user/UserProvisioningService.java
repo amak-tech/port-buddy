@@ -7,6 +7,7 @@ package tech.amak.portbuddy.server.user;
 import java.util.Objects;
 import java.util.UUID;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,8 +23,55 @@ public class UserProvisioningService {
 
     private final UserRepository userRepository;
     private final AccountRepository accountRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public record ProvisionedUser(UUID userId, UUID accountId) {
+    }
+
+    /**
+     * Creates a new local user with email and password.
+     */
+    @Transactional
+    public ProvisionedUser createLocalUser(final String email, final String name, final String password) {
+        final var normalizedEmail = normalizeEmail(email);
+        if (normalizedEmail == null) {
+            throw new IllegalArgumentException("Email is required");
+        }
+
+        if (userRepository.findByEmailIgnoreCase(normalizedEmail).isPresent()) {
+            throw new IllegalArgumentException("User already exists");
+        }
+
+        // Split name
+        String firstName = name;
+        String lastName = null;
+        if (name != null) {
+            final var parts = name.trim().split("\\s+", 2);
+            firstName = parts[0];
+            if (parts.length > 1) {
+                lastName = parts[1];
+            }
+        }
+
+        // Create new account and user
+        final var account = new AccountEntity();
+        account.setId(UUID.randomUUID());
+        account.setName(defaultAccountName(firstName, lastName, normalizedEmail));
+        account.setPlan("BASIC");
+        accountRepository.save(account);
+
+        final var user = new UserEntity();
+        user.setId(UUID.randomUUID());
+        user.setAccount(account);
+        user.setEmail(normalizedEmail);
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
+        user.setAuthProvider("local");
+        user.setExternalId(normalizedEmail);
+        user.setPassword(passwordEncoder.encode(password));
+        userRepository.save(user);
+
+        return new ProvisionedUser(user.getId(), account.getId());
     }
 
     /**

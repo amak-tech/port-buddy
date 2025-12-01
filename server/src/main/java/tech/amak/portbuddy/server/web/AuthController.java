@@ -16,11 +16,14 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import lombok.RequiredArgsConstructor;
+import tech.amak.portbuddy.common.dto.auth.RegisterRequest;
+import tech.amak.portbuddy.common.dto.auth.RegisterResponse;
 import tech.amak.portbuddy.common.dto.auth.TokenExchangeRequest;
 import tech.amak.portbuddy.common.dto.auth.TokenExchangeResponse;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
 import tech.amak.portbuddy.server.security.JwtService;
 import tech.amak.portbuddy.server.service.ApiTokenService;
+import tech.amak.portbuddy.server.user.UserProvisioningService;
 import tech.amak.portbuddy.server.web.dto.LoginRequest;
 
 @RestController
@@ -32,6 +35,7 @@ public class AuthController {
     private final JwtService jwtService;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserProvisioningService userProvisioningService;
 
     /**
      * Exchanges a valid API token for a short-lived JWT suitable for authenticating API and WebSocket calls.
@@ -53,6 +57,28 @@ public class AuthController {
     }
 
     /**
+     * Registers a new local user and returns an API key.
+     */
+    @PostMapping("/register")
+    public RegisterResponse register(final @RequestBody RegisterRequest payload) {
+        if (payload == null || payload.getEmail() == null || payload.getPassword() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email and password are required");
+        }
+
+        try {
+            final var provisioned = userProvisioningService.createLocalUser(
+                payload.getEmail(),
+                payload.getName(),
+                payload.getPassword()
+            );
+            final var createdToken = apiTokenService.createToken(provisioned.userId(), "cli-init");
+            return new RegisterResponse(createdToken.token());
+        } catch (final IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
+    }
+
+    /**
      * Authenticates a user with email and password.
      */
     @PostMapping("/login")
@@ -61,7 +87,7 @@ public class AuthController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email and password are required");
         }
         final var user = userRepository.findByEmailIgnoreCase(payload.email())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
 
         if (user.getPassword() == null || !passwordEncoder.matches(payload.password(), user.getPassword())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
@@ -69,13 +95,13 @@ public class AuthController {
 
         final var claims = new HashMap<String, Object>();
         claims.put("email", user.getEmail());
-        
+
         String name = user.getFirstName();
         if (user.getLastName() != null) {
             name = name + " " + user.getLastName();
         }
         claims.put("name", name.trim());
-        
+
         if (user.getAvatarUrl() != null) {
             claims.put("picture", user.getAvatarUrl());
         }
