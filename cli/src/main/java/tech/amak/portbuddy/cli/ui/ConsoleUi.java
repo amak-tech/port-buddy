@@ -62,15 +62,41 @@ public class ConsoleUi implements HttpLogSink, TcpTrafficSink {
     public static RegisterRequest promptForUserRegistration() throws IOException {
         try (final var terminal = buildTerminal()) {
             final var reader = LineReaderBuilder.builder().terminal(terminal).build();
-            final var name = reader.readLine("Name: ");
-            final var email = reader.readLine("Email: ");
-            final var password = reader.readLine("Password: ", '*');
+            
+            var name = reader.readLine("Name: ");
+            if (name == null || name.isBlank()) {
+                name = "Unknown Buddy";
+            }
+
+            String email;
+            while (true) {
+                email = reader.readLine("Email: ");
+                if (isValidEmail(email)) {
+                    break;
+                }
+                terminal.writer().println("Invalid email address. Please try again.");
+                terminal.flush();
+            }
+
+            String password;
+            while (true) {
+                password = reader.readLine("Password: ", '*');
+                if (password != null && password.length() >= 8) {
+                    break;
+                }
+                terminal.writer().println("Password must be at least 8 characters long.");
+                terminal.flush();
+            }
             return new RegisterRequest(email, name, password);
         }
     }
 
+    private static boolean isValidEmail(final String email) {
+        return email != null && email.matches("^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$");
+    }
+
     private static Terminal buildTerminal() throws IOException {
-        return TerminalBuilder.builder()
+        final var terminal = TerminalBuilder.builder()
             .streams(System.in, System.out)
             .system(true)
             .jansi(true)
@@ -80,6 +106,7 @@ public class ConsoleUi implements HttpLogSink, TcpTrafficSink {
             .exec(true)
             .dumb(true)
             .build();
+        return terminal;
     }
 
     /**
