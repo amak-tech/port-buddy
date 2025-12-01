@@ -46,8 +46,8 @@ function redirectToLogin(withFrom: boolean = true): void {
     window.location.assign(to)
 }
 
-function withAuth(init?: RequestInit): RequestInit {
-    const token = getToken()
+function withAuth(init?: RequestInit, skipToken: boolean = false): RequestInit {
+    const token = !skipToken ? getToken() : null
     const headers: Record<string, string> = {
         ...(init?.headers as Record<string, string> | undefined),
     }
@@ -62,11 +62,11 @@ function withAuth(init?: RequestInit): RequestInit {
     }
 }
 
-export async function apiJson<T = any>(path: string, init?: RequestInit, options?: { skipRedirectOn401?: boolean }): Promise<T> {
+export async function apiJson<T = any>(path: string, init?: RequestInit, options?: { skipRedirectOn401?: boolean, skipAuth?: boolean }): Promise<T> {
     const res = await fetch(`${API_BASE}${path}`, withAuth({
         headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
         ...init,
-    }))
+    }, options?.skipAuth))
     if (res.status === 401) {
         if (!options?.skipRedirectOn401) {
             redirectToLogin(true)

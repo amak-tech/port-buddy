@@ -13,6 +13,7 @@ type AuthState = {
     user: User | null
     loading: boolean
     loginWithGoogle: () => void
+    loginWithEmail: (email: string, pass: string) => Promise<void>
     logout: () => Promise<void>
     refresh: () => Promise<void>
 }
@@ -98,6 +99,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         window.location.href = url
     }, [])
 
+    const loginWithEmail = useCallback(async (email: string, pass: string) => {
+        const res = await apiJson<{ accessToken: string, tokenType: string }>('/api/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ email, password: pass })
+        }, { skipAuth: true })
+        localStorage.setItem('pb_token', res.accessToken)
+        await refresh()
+    }, [refresh])
+
     const logout = useCallback(async () => {
         // Stateless logout: just drop the JWT from localStorage client-side
         try {
@@ -110,7 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         window.location.assign('/')
     }, [])
 
-    const value = useMemo<AuthState>(() => ({ user, loading, loginWithGoogle, logout, refresh }), [user, loading, loginWithGoogle, logout, refresh])
+    const value = useMemo<AuthState>(() => ({ user, loading, loginWithGoogle, loginWithEmail, logout, refresh }), [user, loading, loginWithGoogle, loginWithEmail, logout, refresh])
 
     return (
         <AuthContext.Provider value={value}>

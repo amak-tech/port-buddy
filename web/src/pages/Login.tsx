@@ -1,13 +1,19 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
-import { ArrowLeftIcon } from '@heroicons/react/24/outline'
+import { ArrowLeftIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
 import Seo from '../components/Seo'
 
 export default function Login() {
-  const { user, loading, loginWithGoogle } = useAuth()
+  const { user, loading, loginWithGoogle, loginWithEmail } = useAuth()
   const navigate = useNavigate()
   const location = useLocation() as any
+  
+  const [showEmail, setShowEmail] = useState(false)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     // After refresh completes and user exists, redirect to intended page or /app.
@@ -19,6 +25,19 @@ export default function Login() {
       navigate(to, { replace: true })
     }
   }, [user, loading, navigate, location])
+
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    setSubmitting(true)
+    try {
+      await loginWithEmail(email, password)
+    } catch (err: any) {
+      setError(err.message || 'Login failed')
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
@@ -74,6 +93,62 @@ export default function Login() {
               </svg>
               Continue with Google
             </button>
+
+            <div className="relative py-2">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-800"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-[#0f172a] text-slate-500">Or continue with</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowEmail(!showEmail)}
+              className="w-full flex items-center justify-center gap-2 text-slate-400 hover:text-white transition-colors text-sm"
+            >
+              {showEmail ? 'Hide email login' : 'Log in with email'}
+              {showEmail ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />}
+            </button>
+
+            {showEmail && (
+              <form onSubmit={handleEmailLogin} className="space-y-4 pt-2 animate-in slide-in-from-top-2 fade-in duration-200">
+                {error && (
+                  <div className="bg-red-500/10 border border-red-500/50 text-red-400 text-sm p-3 rounded-lg text-center">
+                    {error}
+                  </div>
+                )}
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full bg-slate-950/50 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all"
+                    placeholder="name@example.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">Password</label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="w-full bg-slate-950/50 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all"
+                    placeholder="••••••••"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 px-4 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/20"
+                >
+                  {submitting ? 'Signing in...' : 'Sign in'}
+                </button>
+              </form>
+            )}
           </div>
 
           <div className="mt-8 pt-6 border-t border-slate-800 text-center">
