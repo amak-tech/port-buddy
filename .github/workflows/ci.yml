@@ -145,4 +145,4 @@ jobs:
           file: Dockerfile-cli
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: port-buddy/cli:latest
+          tags: portbuddy/cli:latest
