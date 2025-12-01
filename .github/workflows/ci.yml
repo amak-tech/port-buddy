@@ -1,0 +1,89 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [ "**" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build with Maven
+        run: ./mvnw clean package -DskipTests
+
+      - name: Login to Yandex Cloud Container Registry
+        if: github.ref == 'refs/heads/master'
+        id: login-cr
+        uses: yc-actions/yc-cr-login@v3
+        with:
+          yc-sa-json-credentials: ${{ secrets.YC_CR_JSON_CREDS }}
+
+      - name: Set up QEMU
+        if: github.ref == 'refs/heads/master'
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        if: github.ref == 'refs/heads/master'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Server
+        if: github.ref == 'refs/heads/master'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile-server
+          platforms: linux/amd64
+          push: true
+          tags: cr.yandex/${{ vars.CR_REGISTRY }}/port-buddy-server:latest
+
+      - name: Build and push Gateway
+        if: github.ref == 'refs/heads/master'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile-gateway
+          platforms: linux/amd64
+          push: true
+          tags: cr.yandex/${{ vars.CR_REGISTRY }}/port-buddy-gateway:latest
+
+      - name: Build and push Eureka
+        if: github.ref == 'refs/heads/master'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile-eureka
+          platforms: linux/amd64
+          push: true
+          tags: cr.yandex/${{ vars.CR_REGISTRY }}/port-buddy-eureka:latest
+
+      - name: Build and push TCP Proxy
+        if: github.ref == 'refs/heads/master'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile-tcp-proxy
+          platforms: linux/amd64
+          push: true
+          tags: cr.yandex/${{ vars.CR_REGISTRY }}/port-buddy-tcp-proxy:latest
+
+      - name: Build and push CLI
+        if: github.ref == 'refs/heads/master'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile-cli
+          platforms: linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6,windows/amd64
+          push: true
+          tags: cr.yandex/${{ vars.CR_REGISTRY }}/port-buddy-cli:latest
