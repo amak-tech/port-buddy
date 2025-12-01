@@ -23,23 +23,27 @@ jobs:
       - name: Build with Maven
         run: ./mvnw clean package -DskipTests
 
+  deploy:
+    name: Build and Push Docker Images
+    needs: build
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+
+    steps:
+
       - name: Login to Yandex Cloud Container Registry
-        if: github.ref == 'refs/heads/master'
         id: login-cr
         uses: yc-actions/yc-cr-login@v3
         with:
           yc-sa-json-credentials: ${{ secrets.YC_CR_JSON_CREDS }}
 
       - name: Set up QEMU
-        if: github.ref == 'refs/heads/master'
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        if: github.ref == 'refs/heads/master'
         uses: docker/setup-buildx-action@v3
 
       - name: Build and push Server
-        if: github.ref == 'refs/heads/master'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -49,7 +53,6 @@ jobs:
           tags: cr.yandex/${{ vars.CR_REGISTRY }}/port-buddy-server:latest
 
       - name: Build and push Gateway
-        if: github.ref == 'refs/heads/master'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -59,7 +62,6 @@ jobs:
           tags: cr.yandex/${{ vars.CR_REGISTRY }}/port-buddy-gateway:latest
 
       - name: Build and push Eureka
-        if: github.ref == 'refs/heads/master'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -69,7 +71,6 @@ jobs:
           tags: cr.yandex/${{ vars.CR_REGISTRY }}/port-buddy-eureka:latest
 
       - name: Build and push TCP Proxy
-        if: github.ref == 'refs/heads/master'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -79,7 +80,6 @@ jobs:
           tags: cr.yandex/${{ vars.CR_REGISTRY }}/port-buddy-tcp-proxy:latest
 
       - name: Build and push CLI
-        if: github.ref == 'refs/heads/master'
         uses: docker/build-push-action@v6
         with:
           context: .
