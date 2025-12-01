@@ -3,22 +3,61 @@ version: "3.9"
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: port-buddy-postgres
+    container_name: pb-db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: port_buddy
-      POSTGRES_USER: port_buddy
-      POSTGRES_PASSWORD: port_buddy
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
-      - port_buddy_pg_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U port_buddy -d port_buddy"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - ${PWD}/pg_data:/var/lib/postgresql/data
 
-volumes:
-  port_buddy_pg_data:
-    driver: local
+  eureka:
+    image: cr.yandex/crpop0r0f81mcsvg9kei/port-buddy-eureka:latest
+    container_name: pb-eureka
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ${PWD}/eureka/config:/app/config
+      - ${PWD}/eureka/logs:/app/logs
+    logging:
+      options:
+        max-size: 10M
+
+  server:
+    image: cr.yandex/crpop0r0f81mcsvg9kei/port-buddy-server:latest
+    container_name: pb-server
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ${PWD}/server/config:/app/config
+      - ${PWD}/server/logs:/app/logs
+    logging:
+      options:
+        max-size: 10M
+
+  gateway:
+    image: cr.yandex/crpop0r0f81mcsvg9kei/port-buddy-gateway:latest
+    container_name: pb-gateway
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ${PWD}/gateway/config:/app/config
+      - ${PWD}/gateway/logs:/app/logs
+    logging:
+      options:
+        max-size: 10M
+
+  tcp-proxy:
+    image: cr.yandex/crpop0r0f81mcsvg9kei/port-buddy-tcp-proxy:latest
+    container_name: pb-tcp-proxy
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ${PWD}/tcp-proxy/config:/app/config
+      - ${PWD}/tcp-proxy/logs:/app/logs
+    logging:
+      options:
+        max-size: 10M

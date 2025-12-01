@@ -112,6 +112,13 @@ logging:
     root: info
     reactor.netty.http.client: warn
     org.springframework.cloud.gateway: warn
+  file:
+    name: log/app.log
+  logback:
+    rollingpolicy:
+      max-history: 14
+      total-size-cap: 1000MB
+      max-file-size: 100MB
 
 ---
 spring:

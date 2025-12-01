@@ -22,3 +22,14 @@ app:
     max-text-message-size: 100MB
     max-binary-message-size: 1GB
     session-idle-timeout: 10m
+
+logging:
+  level:
+    root: info
+  file:
+    name: log/app.log
+  logback:
+    rollingpolicy:
+      max-history: 14
+      total-size-cap: 1000MB
+      max-file-size: 100MB

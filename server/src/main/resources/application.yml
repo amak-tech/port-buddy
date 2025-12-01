@@ -42,9 +42,9 @@ spring:
   application:
     name: port-buddy-server
   datasource:
-    url: jdbc:postgresql://localhost:5432/port_buddy
-    username: port_buddy
-    password: port_buddy
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:portbuddy}
+    username: ${DB_USER:portbuddy}
+    password: ${DB_PASSWORD:portbuddy}
   jpa:
     hibernate:
       ddl-auto: none
@@ -80,3 +80,10 @@ logging:
     root: info
     tech.amak.portbuddy: debug
     org.springframework.web: info
+  file:
+    name: log/app.log
+  logback:
+    rollingpolicy:
+      max-history: 14
+      total-size-cap: 1000MB
+      max-file-size: 100MB

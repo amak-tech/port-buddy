@@ -9,3 +9,15 @@ eureka:
 spring:
   application:
     name: eureka
+
+
+logging:
+  level:
+    root: warn
+  file:
+    name: log/app.log
+  logback:
+    rollingpolicy:
+      max-history: 14
+      total-size-cap: 100MB
+      max-file-size: 10MB
