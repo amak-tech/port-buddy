@@ -8,6 +8,8 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import jakarta.persistence.Column;
@@ -26,6 +28,8 @@ import lombok.Setter;
 @NoArgsConstructor
 @Entity
 @Table(name = "domains")
+@SQLDelete(sql = "UPDATE domains SET deleted = true WHERE id = ?")
+@SQLRestriction("deleted = false")
 public class DomainEntity {
 
     @Id
@@ -41,6 +45,9 @@ public class DomainEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "account_id", nullable = false)
     private AccountEntity account;
+
+    @Column(name = "deleted", nullable = false)
+    private boolean deleted = false;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false)

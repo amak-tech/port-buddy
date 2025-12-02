@@ -27,6 +27,8 @@ public interface TunnelRepository extends JpaRepository<TunnelEntity, UUID> {
 
     boolean existsByDomainAndStatus(DomainEntity domain, TunnelStatus status);
 
+    boolean existsByDomainAndStatusNot(DomainEntity domain, TunnelStatus status);
+
     Optional<TunnelEntity> findFirstByAccountIdAndLocalHostAndLocalPortAndDomainIsNotNullOrderByCreatedAtDesc(
         UUID accountId, String localHost, Integer localPort);
 

@@ -5,6 +5,7 @@
 package tech.amak.portbuddy.server.service;
 
 import java.security.SecureRandom;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -32,25 +33,21 @@ public class DomainService {
     private final AppProperties properties;
     private final SecureRandom random = new SecureRandom();
 
-    /**
-     * Assigns a randomly generated subdomain to the given account. The subdomain is
-     * generated and verified to ensure its uniqueness within the system. If a unique
-     * subdomain cannot be generated within the maximum allowed retries, an exception
-     * is thrown.
-     *
-     * @param account the account to which the random subdomain will be assigned
-     * @throws RuntimeException if a unique subdomain cannot be generated after the maximum number of retries
-     */
+    @Transactional(readOnly = true)
+    public List<DomainEntity> getDomains(final AccountEntity account) {
+        return domainRepository.findAllByAccount(account);
+    }
+
     @Transactional
-    public void assignRandomDomain(final AccountEntity account) {
+    public DomainEntity createDomain(final AccountEntity account) {
         String subdomain;
         int retries = 0;
         do {
             subdomain = generateRandomSubdomain();
             retries++;
-        } while (domainRepository.existsBySubdomain(subdomain) && retries < MAX_RETRIES);
+        } while (domainRepository.existsBySubdomainGlobal(subdomain) && retries < MAX_RETRIES);
 
-        if (domainRepository.existsBySubdomain(subdomain)) {
+        if (domainRepository.existsBySubdomainGlobal(subdomain)) {
             throw new RuntimeException("Failed to generate unique subdomain after all attempts");
         }
 
@@ -60,8 +57,45 @@ public class DomainService {
         domain.setDomain(properties.gateway().domain());
         domain.setAccount(account);
 
-        domainRepository.save(domain);
         log.info("Assigned subdomain {} to account {}", subdomain, account.getId());
+        return domainRepository.save(domain);
+    }
+
+    @Transactional
+    public void assignRandomDomain(final AccountEntity account) {
+        createDomain(account);
+    }
+
+    @Transactional
+    public DomainEntity updateDomain(final UUID id, final AccountEntity account, final String newSubdomain) {
+        final var domain = domainRepository.findByIdAndAccount(id, account)
+            .orElseThrow(() -> new RuntimeException("Domain not found"));
+
+        if (isTunnelActive(domain)) {
+            throw new RuntimeException("Cannot update domain used by active tunnel");
+        }
+
+        if (!domain.getSubdomain().equals(newSubdomain)) {
+            if (domainRepository.existsBySubdomainGlobal(newSubdomain)) {
+                throw new RuntimeException("Subdomain " + newSubdomain + " is already taken");
+            }
+            domain.setSubdomain(newSubdomain);
+            return domainRepository.save(domain);
+        }
+        return domain;
+    }
+
+    @Transactional
+    public void deleteDomain(final UUID id, final AccountEntity account) {
+        final var domain = domainRepository.findByIdAndAccount(id, account)
+            .orElseThrow(() -> new RuntimeException("Domain not found"));
+
+        if (isTunnelActive(domain)) {
+            throw new RuntimeException("Cannot delete domain used by active tunnel");
+        }
+
+        domainRepository.delete(domain);
+        log.info("Deleted domain {} for account {}", domain.getSubdomain(), account.getId());
     }
 
     /**
@@ -127,6 +161,10 @@ public class DomainService {
 
     private boolean isTunnelConnected(final DomainEntity domain) {
         return tunnelRepository.existsByDomainAndStatus(domain, TunnelStatus.CONNECTED);
+    }
+
+    private boolean isTunnelActive(final DomainEntity domain) {
+        return tunnelRepository.existsByDomainAndStatusNot(domain, TunnelStatus.CLOSED);
     }
 
     private String generateRandomSubdomain() {
