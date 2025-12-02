@@ -77,8 +77,34 @@ export async function apiJson<T = any>(path: string, init?: RequestInit, options
         throw err
     }
     if (!res.ok) {
-        const text = await res.text().catch(() => '')
-        const err: any = new Error(text || `HTTP ${res.status}`)
+        let errorMessage = `HTTP ${res.status}`
+        try {
+            const text = await res.text()
+            if (text) {
+                try {
+                    const data = JSON.parse(text)
+                    if (data && typeof data === 'object') {
+                        if (data.detail) {
+                            errorMessage = data.detail
+                        } else if (data.title) {
+                            errorMessage = data.title
+                        } else if (data.message) {
+                            errorMessage = data.message
+                        } else {
+                             errorMessage = text
+                        }
+                    } else {
+                        errorMessage = text
+                    }
+                } catch {
+                    errorMessage = text
+                }
+            }
+        } catch {
+            // ignore
+        }
+
+        const err: any = new Error(errorMessage)
         err.status = res.status
         throw err
     }

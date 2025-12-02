@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { apiJson, apiRaw } from '../../lib/api'
+import { apiJson } from '../../lib/api'
 import { useAuth } from '../../auth/AuthContext'
 import { usePageTitle } from '../../components/PageHeader'
 import { ConfirmModal } from '../../components/Modal'
@@ -59,7 +59,7 @@ export default function Tokens() {
   async function revokeToken(id: string) {
     setLoading(true)
     try {
-      await apiRaw(`/api/tokens/${id}`, { method: 'DELETE' })
+      await apiJson(`/api/tokens/${id}`, { method: 'DELETE' })
       await loadTokens()
     } finally {
       setLoading(false)
