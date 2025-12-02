@@ -21,7 +21,7 @@ import tech.amak.portbuddy.common.ClientConfig;
 @Slf4j
 public class ConfigurationService {
 
-    private static final String ENV_PORT_BUDDY_ENV = "PORT_BUDDY_ENV";
+    private static final String PORT_BUDDY_ENV = "PORT_BUDDY_ENV";
     private static final String APP_DIR = ".port-buddy";
     private static final String TOKEN_FILE = "token";
 
@@ -42,7 +42,7 @@ public class ConfigurationService {
     }
 
     private void loadConfig() throws IOException {
-        final var envPart = Optional.ofNullable(System.getenv(ENV_PORT_BUDDY_ENV))
+        final var envPart = Optional.ofNullable(System.getenv(PORT_BUDDY_ENV))
             .map(String::toLowerCase)
             .map("-%s"::formatted)
             .orElse("");

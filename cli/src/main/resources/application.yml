@@ -1,1 +1,2 @@
-serverUrl: "http://localhost:8080"
+serverUrl: "https://portbuddy.dev"
+logEnabled: true
