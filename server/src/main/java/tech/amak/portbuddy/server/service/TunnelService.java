@@ -30,6 +30,7 @@ public class TunnelService {
      * record in the database with a 'PENDING' status.
      *
      * @param accountId The unique identifier of the account creating the tunnel.
+     * @param userId    The unique identifier of the user creating the tunnel.
      * @param apiKeyId  The optional API key identifier associated with the tunnel.
      * @param tunnelId  The unique identifier for the tunnel.
      * @param request   The HTTP expose request containing details of the local HTTP service (scheme, host, port).
@@ -38,6 +39,7 @@ public class TunnelService {
      */
     @Transactional
     public void createHttpTunnel(final UUID accountId,
+                                 final UUID userId,
                                  final String apiKeyId,
                                  final String tunnelId,
                                  final HttpExposeRequest request,
@@ -49,6 +51,7 @@ public class TunnelService {
         entity.setType(TunnelType.HTTP);
         entity.setStatus(TunnelStatus.PENDING);
         entity.setAccountId(accountId);
+        entity.setUserId(userId);
         if (apiKeyId != null && !apiKeyId.isBlank()) {
             entity.setApiKeyId(UUID.fromString(apiKeyId));
         }
@@ -60,7 +63,8 @@ public class TunnelService {
         entity.setPublicUrl(publicUrl);
         entity.setSubdomain(subdomain);
         tunnelRepository.save(entity);
-        log.info("Created HTTP tunnel record tunnelId={} accountId={} subdomain={}", tunnelId, accountId, subdomain);
+        log.info("Created HTTP tunnel record tunnelId={} accountId={} userId={} subdomain={}",
+            tunnelId, accountId, userId, subdomain);
     }
 
     /**
@@ -68,6 +72,7 @@ public class TunnelService {
      * record in the database with a 'PENDING' status.
      *
      * @param accountId  The unique identifier of the account creating the tunnel.
+     * @param userId     The unique identifier of the user creating the tunnel.
      * @param apiKeyId   The optional API key identifier associated with the tunnel.
      * @param tunnelId   The unique identifier for the tunnel.
      * @param request    The HTTP expose request containing details of the local service
@@ -77,6 +82,7 @@ public class TunnelService {
      */
     @Transactional
     public void createTcpTunnel(final UUID accountId,
+                                final UUID userId,
                                 final String apiKeyId,
                                 final String tunnelId,
                                 final HttpExposeRequest request,
@@ -88,6 +94,7 @@ public class TunnelService {
         entity.setType(TunnelType.TCP);
         entity.setStatus(TunnelStatus.PENDING);
         entity.setAccountId(accountId);
+        entity.setUserId(userId);
         if (apiKeyId != null && !apiKeyId.isBlank()) {
             entity.setApiKeyId(UUID.fromString(apiKeyId));
         }
@@ -99,8 +106,8 @@ public class TunnelService {
         entity.setPublicHost(publicHost);
         entity.setPublicPort(publicPort);
         tunnelRepository.save(entity);
-        log.info("Created TCP tunnel record tunnelId={} accountId={} publicHost={} publicPort={} ",
-            tunnelId, accountId, publicHost, publicPort);
+        log.info("Created TCP tunnel record tunnelId={} accountId={} userId={} publicHost={} publicPort={} ",
+            tunnelId, accountId, userId, publicHost, publicPort);
     }
 
     /**

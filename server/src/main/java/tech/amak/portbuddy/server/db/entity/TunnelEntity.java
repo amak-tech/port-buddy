@@ -46,6 +46,9 @@ public class TunnelEntity {
     @Column(name = "account_id", nullable = false)
     private UUID accountId;
 
+    @Column(name = "user_id")
+    private UUID userId;
+
     @Column(name = "api_key_id")
     private UUID apiKeyId;
 

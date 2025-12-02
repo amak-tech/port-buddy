@@ -71,7 +71,14 @@ public class ExposeController {
         final var source = "%s://%s:%s".formatted(request.scheme(), request.host(), request.port());
 
         final var apiKeyId = extractApiKeyId(jwt);
-        tunnelService.createHttpTunnel(account.getId(), apiKeyId, tunnelId, request, publicUrl, subdomain);
+        tunnelService.createHttpTunnel(
+            account.getId(),
+            user.getId(),
+            apiKeyId,
+            tunnelId,
+            request,
+            publicUrl,
+            subdomain);
         return new ExposeResponse(source, publicUrl, null, null, tunnelId, subdomain);
     }
 
@@ -101,7 +108,7 @@ public class ExposeController {
             final var account = user.getAccount();
 
             final var apiKeyId = extractApiKeyId(jwt);
-            tunnelService.createTcpTunnel(account.getId(), apiKeyId, tunnelId, request,
+            tunnelService.createTcpTunnel(account.getId(), user.getId(), apiKeyId, tunnelId, request,
                 exposeResponse.publicHost(), exposeResponse.publicPort());
             return exposeResponse;
         } catch (final Exception e) {
