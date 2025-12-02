@@ -60,9 +60,14 @@ export default function Tokens() {
     setLoading(true)
     try {
       await apiJson(`/api/tokens/${id}`, { method: 'DELETE' })
-      await loadTokens()
+      setTokens(current => current.map(t => 
+        t.id === id ? { ...t, revoked: true } : t
+      ))
+    } catch (err) {
+      console.error('Failed to revoke token', err)
     } finally {
       setLoading(false)
+      setRevokeId(null)
     }
   }
 
