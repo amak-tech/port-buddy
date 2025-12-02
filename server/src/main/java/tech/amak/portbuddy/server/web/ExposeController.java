@@ -60,9 +60,9 @@ public class ExposeController {
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
         final var account = user.getAccount();
 
-        final var domainEntity = domainService.resolveDomain(
+        final var domain = domainService.resolveDomain(
             account, request.domain(), request.host(), request.port());
-        final var subdomain = domainEntity.getSubdomain();
+        final var subdomain = domain.getSubdomain();
 
         final var tunnelId = UUID.randomUUID().toString();
         registry.createPending(subdomain, tunnelId);
@@ -78,7 +78,7 @@ public class ExposeController {
             tunnelId,
             request,
             publicUrl,
-            subdomain);
+            domain);
         return new ExposeResponse(source, publicUrl, null, null, tunnelId, subdomain);
     }
 

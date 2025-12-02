@@ -16,6 +16,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import tech.amak.portbuddy.server.db.entity.DomainEntity;
 import tech.amak.portbuddy.server.db.entity.TunnelEntity;
 import tech.amak.portbuddy.server.db.entity.TunnelStatus;
 
@@ -24,15 +25,15 @@ public interface TunnelRepository extends JpaRepository<TunnelEntity, UUID> {
 
     Optional<TunnelEntity> findByTunnelId(String tunnelId);
 
-    boolean existsBySubdomainAndStatus(String subdomain, TunnelStatus status);
+    boolean existsByDomainAndStatus(DomainEntity domain, TunnelStatus status);
 
-    Optional<TunnelEntity> findFirstByAccountIdAndLocalHostAndLocalPortAndSubdomainIsNotNullOrderByCreatedAtDesc(
+    Optional<TunnelEntity> findFirstByAccountIdAndLocalHostAndLocalPortAndDomainIsNotNullOrderByCreatedAtDesc(
         UUID accountId, String localHost, Integer localPort);
 
     default Optional<TunnelEntity> findUsedTunnel(final UUID accountId,
                                                   final String localHost,
                                                   final Integer localPort) {
-        return findFirstByAccountIdAndLocalHostAndLocalPortAndSubdomainIsNotNullOrderByCreatedAtDesc(
+        return findFirstByAccountIdAndLocalHostAndLocalPortAndDomainIsNotNullOrderByCreatedAtDesc(
             accountId, localHost, localPort);
     }
 

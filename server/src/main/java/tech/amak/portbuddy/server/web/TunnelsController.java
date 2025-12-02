@@ -78,7 +78,7 @@ public class TunnelsController {
             tunnel.getPublicUrl(), // keep original http URL if any
             tunnel.getPublicHost(),
             tunnel.getPublicPort(),
-            tunnel.getSubdomain(),
+            tunnel.getDomain() == null ? null : tunnel.getDomain().getSubdomain(),
             tunnel.getLastHeartbeatAt() == null ? null : tunnel.getLastHeartbeatAt().toString(),
             tunnel.getCreatedAt() == null ? null : tunnel.getCreatedAt().toString()
         );

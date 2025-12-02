@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.dto.HttpExposeRequest;
+import tech.amak.portbuddy.server.db.entity.DomainEntity;
 import tech.amak.portbuddy.server.db.entity.TunnelEntity;
 import tech.amak.portbuddy.server.db.entity.TunnelStatus;
 import tech.amak.portbuddy.server.db.entity.TunnelType;
@@ -35,7 +36,7 @@ public class TunnelService {
      * @param tunnelId  The unique identifier for the tunnel.
      * @param request   The HTTP expose request containing details of the local HTTP service (scheme, host, port).
      * @param publicUrl The public URL where the service will be accessible.
-     * @param subdomain The subdomain used for the public HTTP endpoint.
+     * @param domain    The domain entity used for the public HTTP endpoint.
      */
     @Transactional
     public void createHttpTunnel(final UUID accountId,
@@ -44,7 +45,7 @@ public class TunnelService {
                                  final String tunnelId,
                                  final HttpExposeRequest request,
                                  final String publicUrl,
-                                 final String subdomain) {
+                                 final DomainEntity domain) {
         final var entity = new TunnelEntity();
         entity.setId(UUID.randomUUID());
         entity.setTunnelId(tunnelId);
@@ -61,10 +62,10 @@ public class TunnelService {
             entity.setLocalPort(request.port());
         }
         entity.setPublicUrl(publicUrl);
-        entity.setSubdomain(subdomain);
+        entity.setDomain(domain);
         tunnelRepository.save(entity);
         log.info("Created HTTP tunnel record tunnelId={} accountId={} userId={} subdomain={}",
-            tunnelId, accountId, userId, subdomain);
+            tunnelId, accountId, userId, domain.getSubdomain());
     }
 
     /**

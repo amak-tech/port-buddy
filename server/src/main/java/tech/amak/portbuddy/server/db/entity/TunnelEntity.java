@@ -14,7 +14,10 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -72,8 +75,9 @@ public class TunnelEntity {
     @Column(name = "public_port")
     private Integer publicPort;
 
-    @Column(name = "subdomain")
-    private String subdomain;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "domain_id")
+    private DomainEntity domain;
 
     @Column(name = "last_heartbeat_at")
     private OffsetDateTime lastHeartbeatAt;

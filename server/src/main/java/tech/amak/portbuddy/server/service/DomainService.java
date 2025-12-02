@@ -5,6 +5,7 @@
 package tech.amak.portbuddy.server.service;
 
 import java.security.SecureRandom;
+import java.util.Objects;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -93,14 +94,14 @@ public class DomainService {
             final var finalSubdomain = targetSubdomain;
 
             return domainRepository.findByAccountAndSubdomain(account, finalSubdomain)
-                .filter(domain -> !isTunnelConnected(domain.getSubdomain()))
+                .filter(domain -> !isTunnelConnected(domain))
                 .orElseThrow(() -> new RuntimeException("Domain not found or unavailable: " + requestedDomain));
         }
 
         // No specific domain requested
         // Filter out CONNECTED domains
         final var availableDomains = domainRepository.findAllByAccount(account).stream()
-            .filter(domain -> !isTunnelConnected(domain.getSubdomain()))
+            .filter(domain -> !isTunnelConnected(domain))
             .toList();
 
         if (availableDomains.isEmpty()) {
@@ -110,10 +111,10 @@ public class DomainService {
         // Affinity check: Find the last used subdomain for this resource
         final var lastTunnel = tunnelRepository.findUsedTunnel(account.getId(), localHost, localPort);
 
-        if (lastTunnel.isPresent()) {
-            final var lastSubdomain = lastTunnel.get().getSubdomain();
+        if (lastTunnel.isPresent() && lastTunnel.get().getDomain() != null) {
+            final var lastDomain = lastTunnel.get().getDomain();
             final var matched = availableDomains.stream()
-                .filter(domain -> domain.getSubdomain().equals(lastSubdomain))
+                .filter(domain -> Objects.equals(domain.getId(), lastDomain.getId()))
                 .findFirst();
             if (matched.isPresent()) {
                 return matched.get();
@@ -124,8 +125,8 @@ public class DomainService {
         return availableDomains.getFirst();
     }
 
-    private boolean isTunnelConnected(final String subdomain) {
-        return tunnelRepository.existsBySubdomainAndStatus(subdomain, TunnelStatus.CONNECTED);
+    private boolean isTunnelConnected(final DomainEntity domain) {
+        return tunnelRepository.existsByDomainAndStatus(domain, TunnelStatus.CONNECTED);
     }
 
     private String generateRandomSubdomain() {
