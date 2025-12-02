@@ -41,10 +41,6 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
             session.close(CloseStatus.NORMAL);
             return;
         }
-        final var tunnel = registry.getByTunnelId(tunnelId);
-        if (tunnel != null) {
-            tunnel.setLastHeartbeatMillis(System.currentTimeMillis());
-        }
         tunnelService.markConnected(tunnelId);
         log.info("Tunnel session established: {}", tunnelId);
     }
@@ -55,11 +51,9 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
             log.trace("Received message from client: {}", message.getPayload());
             final var uri = session.getUri();
             final var tunnelId = extractTunnelId(uri);
-            final var tunnel = registry.getByTunnelId(tunnelId);
-            if (tunnel != null) {
-                tunnel.setLastHeartbeatMillis(System.currentTimeMillis());
-            }
+
             tunnelService.heartbeat(tunnelId);
+
             final String payload = message.getPayload();
             final var env = mapper.readValue(payload, MessageEnvelope.class);
             // Control health checks
