@@ -52,6 +52,7 @@ public class AuthController {
         final var claims = new HashMap<String, Object>();
         claims.put("typ", "cli");
         claims.put("akid", validated.apiKeyId());
+        claims.put("aid", validated.accountId());
         final var jwt = jwtService.createToken(claims, userId);
         return new TokenExchangeResponse(jwt, "Bearer");
     }
@@ -71,7 +72,8 @@ public class AuthController {
                 payload.getName(),
                 payload.getPassword()
             );
-            final var createdToken = apiTokenService.createToken(provisioned.userId(), "cli-init");
+            final var createdToken = apiTokenService.createToken(
+                provisioned.accountId(), provisioned.userId(), "cli-init");
             return new RegisterResponse(createdToken.token(), true, "User registered successfully", 200);
         } catch (final IllegalArgumentException e) {
             return new RegisterResponse(null, false, e.getMessage(), 400);

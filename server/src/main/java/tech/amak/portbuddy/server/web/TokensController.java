@@ -8,6 +8,7 @@ import static tech.amak.portbuddy.server.security.JwtService.resolveUserId;
 
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -18,9 +19,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import tech.amak.portbuddy.server.db.repo.UserRepository;
 import tech.amak.portbuddy.server.service.ApiTokenService;
 
 @RestController
@@ -29,11 +32,21 @@ import tech.amak.portbuddy.server.service.ApiTokenService;
 public class TokensController {
 
     private final ApiTokenService apiTokenService;
+    private final UserRepository userRepository;
 
+    /**
+     * Retrieves a list of API tokens belonging to the authenticated user.
+     *
+     * @param principal the authenticated user's principal object, used to extract the user ID
+     * @return a list of {@code ApiTokenService.TokenView} objects representing the user's API tokens
+     * @throws ResponseStatusException if the authenticated user cannot be found in the database
+     */
     @GetMapping
     public List<ApiTokenService.TokenView> list(@AuthenticationPrincipal final Jwt principal) {
         final var userId = resolveUserId(principal);
-        return apiTokenService.listTokens(userId);
+        final var user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+        return apiTokenService.listTokens(user.getAccount().getId());
     }
 
     /**
@@ -47,14 +60,28 @@ public class TokensController {
     public CreateTokenResponse create(@AuthenticationPrincipal final Jwt principal,
                                       @RequestBody final CreateTokenRequest req) {
         final var userId = resolveUserId(principal);
-        final var created = apiTokenService.createToken(userId, req == null ? null : req.getLabel());
+        final var user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+        final var created = apiTokenService.createToken(
+            user.getAccount().getId(),
+            userId,
+            req == null ? null : req.getLabel());
         return new CreateTokenResponse(created.id(), created.token());
     }
 
+    /**
+     * Revokes an API token associated with the authenticated user's account.
+     *
+     * @param principal the authenticated user's principal object, used to extract the user ID
+     * @param id        the ID of the API token to be revoked
+     * @throws ResponseStatusException if the authenticated user cannot be found in the database
+     */
     @DeleteMapping("/{id}")
     public void revoke(@AuthenticationPrincipal final Jwt principal, @PathVariable("id") final String id) {
         final var userId = resolveUserId(principal);
-        apiTokenService.revoke(userId, id);
+        final var user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+        apiTokenService.revoke(user.getAccount().getId(), id);
     }
 
     @Data

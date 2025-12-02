@@ -31,6 +31,9 @@ public class ApiKeyEntity {
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
+    @Column(name = "account_id", nullable = false)
+    private UUID accountId;
+
     @Column(name = "label", nullable = false)
     private String label;
 

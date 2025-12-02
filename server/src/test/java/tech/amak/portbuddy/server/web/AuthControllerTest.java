@@ -64,7 +64,7 @@ class AuthControllerTest {
         when(userProvisioningService.createLocalUser(any(), any(), any()))
             .thenReturn(new UserProvisioningService.ProvisionedUser(userId, accountId));
         
-        when(apiTokenService.createToken(userId, "cli-init"))
+        when(apiTokenService.createToken(accountId, userId, "cli-init"))
             .thenReturn(new ApiTokenService.CreatedToken(UUID.randomUUID().toString(), apiKey));
 
         mockMvc.perform(post("/api/auth/register")

@@ -16,7 +16,11 @@ public interface ApiKeyRepository extends JpaRepository<ApiKeyEntity, UUID> {
 
     List<ApiKeyEntity> findAllByUserId(UUID userId);
 
+    List<ApiKeyEntity> findAllByAccountId(UUID accountId);
+
     Optional<ApiKeyEntity> findByIdAndUserId(UUID id, UUID userId);
+
+    Optional<ApiKeyEntity> findByIdAndAccountId(UUID id, UUID accountId);
 
     Optional<ApiKeyEntity> findByTokenHashAndRevokedFalse(String tokenHash);
 }
