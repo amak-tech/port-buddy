@@ -16,6 +16,7 @@ import tech.amak.portbuddy.server.db.entity.AccountEntity;
 import tech.amak.portbuddy.server.db.entity.UserEntity;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
+import tech.amak.portbuddy.server.service.DomainService;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +25,7 @@ public class UserProvisioningService {
     private final UserRepository userRepository;
     private final AccountRepository accountRepository;
     private final PasswordEncoder passwordEncoder;
+    private final DomainService domainService;
 
     public record ProvisionedUser(UUID userId, UUID accountId) {
     }
@@ -59,6 +61,7 @@ public class UserProvisioningService {
         account.setName(defaultAccountName(firstName, lastName, normalizedEmail));
         account.setPlan("BASIC");
         accountRepository.save(account);
+        domainService.assignRandomDomain(account);
 
         final var user = new UserEntity();
         user.setId(UUID.randomUUID());
@@ -173,6 +176,7 @@ public class UserProvisioningService {
         account.setName(defaultAccountName(firstName, lastName, email));
         account.setPlan("BASIC");
         accountRepository.save(account);
+        domainService.assignRandomDomain(account);
 
         final var user = new UserEntity();
         user.setId(UUID.randomUUID());

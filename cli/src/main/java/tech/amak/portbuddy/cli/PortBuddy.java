@@ -50,6 +50,9 @@ public class PortBuddy implements Callable<Integer> {
     @Mixin
     private SharedOptions shared;
 
+    @Option(names = {"-d", "--domain"}, description = "Requested domain (e.g. my-domain or my-domain.portbuddy.dev)")
+    private String domain;
+
     @Parameters(
         arity = "0..2",
         description = "[mode] [host:][port] or [schema://]host[:port]. Examples: '3000', 'localhost', 'example.com:8080', 'https://example.com'"
@@ -109,7 +112,7 @@ public class PortBuddy implements Callable<Integer> {
 
         if (mode == Mode.HTTP) {
             final var expose = callExposeHttp(config.getServerUrl(), jwt,
-                new HttpExposeRequest(hostPort.scheme, hostPort.host, hostPort.port));
+                new HttpExposeRequest(hostPort.scheme, hostPort.host, hostPort.port, domain));
             if (expose == null) {
                 System.err.println("Failed to contact server to create tunnel");
                 return CommandLine.ExitCode.SOFTWARE;
@@ -147,7 +150,7 @@ public class PortBuddy implements Callable<Integer> {
             }
         } else {
             final var expose = callExposeTcp(config.getServerUrl(), jwt,
-                new HttpExposeRequest("tcp", hostPort.host, hostPort.port));
+                new HttpExposeRequest("tcp", hostPort.host, hostPort.port, null));
             if (expose == null || expose.publicHost() == null || expose.publicPort() == null) {
                 System.err.println("Failed to contact server to create TCP tunnel");
                 return CommandLine.ExitCode.SOFTWARE;

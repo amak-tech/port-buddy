@@ -6,9 +6,9 @@ package tech.amak.portbuddy.server.web;
 
 import static tech.amak.portbuddy.server.security.JwtService.resolveUserId;
 
-import java.security.SecureRandom;
 import java.util.UUID;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +24,8 @@ import tech.amak.portbuddy.common.dto.ExposeResponse;
 import tech.amak.portbuddy.common.dto.HttpExposeRequest;
 import tech.amak.portbuddy.server.client.TcpProxyClient;
 import tech.amak.portbuddy.server.config.AppProperties;
+import tech.amak.portbuddy.server.db.repo.UserRepository;
+import tech.amak.portbuddy.server.service.DomainService;
 import tech.amak.portbuddy.server.service.TunnelService;
 import tech.amak.portbuddy.server.tunnel.TunnelRegistry;
 
@@ -32,11 +35,12 @@ import tech.amak.portbuddy.server.tunnel.TunnelRegistry;
 @Slf4j
 public class ExposeController {
 
-    private final SecureRandom random = new SecureRandom();
     private final TunnelRegistry registry;
     private final AppProperties properties;
     private final TcpProxyClient tcpProxyClient;
     private final TunnelService tunnelService;
+    private final UserRepository userRepository;
+    private final DomainService domainService;
 
     /**
      * Creates a public HTTP endpoint to expose a local HTTP service by generating a unique
@@ -51,14 +55,21 @@ public class ExposeController {
     @PostMapping("/http")
     public ExposeResponse exposeHttp(final @AuthenticationPrincipal Jwt jwt,
                                      final @RequestBody HttpExposeRequest request) {
-        final var subdomain = randomSubdomain();
+        final var userId = resolveUserId(jwt);
+        final var user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+        final var account = user.getAccount();
+
+        final var domainEntity = domainService.resolveDomain(
+            account, userId, request.domain(), request.host(), request.port());
+        final var subdomain = domainEntity.getSubdomain();
+
         final var tunnelId = UUID.randomUUID().toString();
         registry.createPending(subdomain, tunnelId);
         final var gateway = properties.gateway();
         final var publicUrl = "%s://%s.%s".formatted(gateway.schema(), subdomain, gateway.domain());
         final var source = "%s://%s:%s".formatted(request.scheme(), request.host(), request.port());
 
-        final var userId = resolveUserId(jwt);
         final var apiKeyId = extractApiKeyId(jwt);
         tunnelService.createHttpTunnel(userId, apiKeyId, tunnelId, request, publicUrl, subdomain);
         return new ExposeResponse(source, publicUrl, null, null, tunnelId, subdomain);
@@ -94,13 +105,6 @@ public class ExposeController {
         }
 
         throw new RuntimeException("Failed to allocate public TCP port for tunnelId=" + tunnelId);
-    }
-
-    private String randomSubdomain() {
-        final var animals = new String[] {"falcon", "lynx", "orca", "otter", "swift", "sparrow", "tiger", "puma"};
-        final var name = animals[random.nextInt(animals.length)];
-        final var num = 1000 + random.nextInt(9000);
-        return name + "-" + num;
     }
 
     private String extractApiKeyId(final Jwt jwt) {
