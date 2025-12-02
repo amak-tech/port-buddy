@@ -122,7 +122,7 @@ public class PortBuddy implements Callable<Integer> {
             final var publicInfo = expose.publicUrl();
             final var ui = new ConsoleUi(Mode.HTTP, localInfo, publicInfo);
             final var tunnelId = expose.tunnelId();
-            if (tunnelId == null || tunnelId.isBlank()) {
+            if (tunnelId == null) {
                 System.err.println("Server did not return tunnelId");
                 return CommandLine.ExitCode.SOFTWARE;
             }
@@ -159,7 +159,7 @@ public class PortBuddy implements Callable<Integer> {
             final var publicInfo = String.format("%s:%d", expose.publicHost(), expose.publicPort());
             final var ui = new ConsoleUi(Mode.TCP, localInfo, publicInfo);
             final var tunnelId = expose.tunnelId();
-            if (tunnelId == null || tunnelId.isBlank()) {
+            if (tunnelId == null) {
                 System.err.println("Server did not return tunnelId");
                 return CommandLine.ExitCode.SOFTWARE;
             }

@@ -74,7 +74,6 @@ public class ExposeController {
             publicUrl,
             domain);
         final var tunnelId = tunnel.getId();
-        registry.createPending(subdomain, tunnelId.toString());
         return new ExposeResponse(source, publicUrl, null, null, tunnelId, subdomain);
     }
 

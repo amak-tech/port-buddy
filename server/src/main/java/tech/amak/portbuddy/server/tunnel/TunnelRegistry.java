@@ -25,6 +25,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.tunnel.HttpTunnelMessage;
 import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
+import tech.amak.portbuddy.server.db.entity.TunnelEntity;
 
 /**
  * Registry of active HTTP tunnels and WS connections.
@@ -35,10 +36,25 @@ import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
 public class TunnelRegistry {
 
     private final Map<String, Tunnel> bySubdomain = new ConcurrentHashMap<>();
-    private final Map<String, Tunnel> byTunnelId = new ConcurrentHashMap<>();
+    private final Map<UUID, Tunnel> byTunnelId = new ConcurrentHashMap<>();
     public static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(30);
 
     private final ObjectMapper mapper;
+
+    /**
+     * Registers a WebSocket session for a given tunnel entity by associating it with a newly created
+     * tunnel instance based on the subdomain and tunnel ID.
+     *
+     * @param tunnelEntity the {@code TunnelEntity} containing information about the domain and tunnel identifiers
+     * @param session      the {@code WebSocketSession} to be associated with the created tunnel instance
+     * @return {@code true} to indicate successful registration
+     */
+    public boolean register(final TunnelEntity tunnelEntity, final WebSocketSession session) {
+        final var tunnel = register(tunnelEntity.getDomain().getSubdomain(), tunnelEntity.getId());
+        tunnel.setSession(session);
+        log.info("Registered tunnel {} with session {}", tunnel.tunnelId(), session.getId());
+        return true;
+    }
 
     /**
      * Creates a new pending Tunnel instance with the specified subdomain and tunnel ID
@@ -48,7 +64,7 @@ public class TunnelRegistry {
      * @param tunnelId  the unique identifier for the tunnel
      * @return the created Tunnel instance
      */
-    public Tunnel createPending(final String subdomain, final String tunnelId) {
+    private Tunnel register(final String subdomain, final UUID tunnelId) {
         final var tunnel = new Tunnel(tunnelId);
         bySubdomain.put(subdomain, tunnel);
         byTunnelId.put(tunnelId, tunnel);
@@ -59,26 +75,8 @@ public class TunnelRegistry {
         return bySubdomain.get(subdomain);
     }
 
-    public Tunnel getByTunnelId(final String tunnelId) {
+    public Tunnel getByTunnelId(final UUID tunnelId) {
         return byTunnelId.get(tunnelId);
-    }
-
-    /**
-     * Associates a WebSocket session with a specific tunnel identified by the given tunnelId.
-     * If no tunnel with the provided tunnelId exists, the session attachment will not be performed.
-     *
-     * @param tunnelId the unique identifier of the tunnel to attach the WebSocket session to
-     * @param session  the WebSocketSession to be attached to the specified tunnel
-     * @return {@code true} if the session was successfully attached to a tunnel,
-     *     or {@code false} if no matching tunnel was found
-     */
-    public boolean attachSession(final String tunnelId, final WebSocketSession session) {
-        final var tunnel = byTunnelId.get(tunnelId);
-        if (tunnel == null) {
-            return false;
-        }
-        tunnel.setSession(session);
-        return true;
     }
 
     /**
@@ -132,7 +130,7 @@ public class TunnelRegistry {
      * @param tunnelId the unique identifier of the tunnel associated with the response
      * @param response the HTTP tunnel message representing the response to be processed
      */
-    public void onResponse(final String tunnelId, final HttpTunnelMessage response) {
+    public void onResponse(final UUID tunnelId, final HttpTunnelMessage response) {
         final var tunnel = byTunnelId.get(tunnelId);
         if (tunnel == null) {
             return;
@@ -152,7 +150,7 @@ public class TunnelRegistry {
      * @param message  the WebSocket message to be sent to the client
      */
     // ============ WebSocket tunneling support ============
-    public void sendWsToClient(final String tunnelId, final WsTunnelMessage message) {
+    public void sendWsToClient(final UUID tunnelId, final WsTunnelMessage message) {
         final var tunnel = byTunnelId.get(tunnelId);
         if (tunnel == null || !tunnel.isOpen()) {
             return;
@@ -174,7 +172,7 @@ public class TunnelRegistry {
      * @param connectionId   the unique identifier of the connection within the tunnel
      * @param browserSession the WebSocket session representing the browser connection
      */
-    public void registerBrowserWs(final String tunnelId,
+    public void registerBrowserWs(final UUID tunnelId,
                                   final String connectionId,
                                   final WebSocketSession browserSession) {
         final var tunnel = byTunnelId.get(tunnelId);
@@ -234,7 +232,7 @@ public class TunnelRegistry {
      * @return the WebSocketSession associated with the specified tunnel ID and connection ID,
      *     or {@code null} if no matching session is found
      */
-    public WebSocketSession getBrowserSession(final String tunnelId, final String connectionId) {
+    public WebSocketSession getBrowserSession(final UUID tunnelId, final String connectionId) {
         final var tunnel = byTunnelId.get(tunnelId);
         if (tunnel == null) {
             return null;
@@ -245,14 +243,14 @@ public class TunnelRegistry {
     @Data
     @AllArgsConstructor
     public static class Ids {
-        private String tunnelId;
+        private UUID tunnelId;
         private String connectionId;
     }
 
     @RequiredArgsConstructor
     public static class Tunnel {
 
-        private final String tunnelId;
+        private final UUID tunnelId;
 
         @Setter
         private volatile WebSocketSession session;
@@ -261,7 +259,7 @@ public class TunnelRegistry {
         private final Map<String, WebSocketSession> browserByConnection = new ConcurrentHashMap<>();
         private final Map<WebSocketSession, Ids> browserReverse = new ConcurrentHashMap<>();
 
-        public String tunnelId() {
+        public UUID tunnelId() {
             return tunnelId;
         }
 

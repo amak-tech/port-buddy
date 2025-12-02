@@ -13,6 +13,7 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -43,7 +44,7 @@ import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
 public class HttpTunnelClient {
 
     private final String serverUrl; // e.g. https://portbuddy.dev
-    private final String tunnelId;
+    private final UUID tunnelId;
     private final String localHost;
     private final int localPort;
     private final String localScheme; // http or https

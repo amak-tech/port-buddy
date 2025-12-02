@@ -4,6 +4,8 @@
 
 package tech.amak.portbuddy.server.web;
 
+import java.util.UUID;
+
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -31,7 +33,7 @@ public class TunnelStatusController {
      * Marks a tunnel as connected and updates heartbeat timestamp.
      */
     @PostMapping(path = "/{tunnelId}/connected")
-    public void connected(final @PathVariable("tunnelId") String tunnelId) {
+    public void connected(final @PathVariable("tunnelId") UUID tunnelId) {
         log.debug("Status connected for tunnelId={}", tunnelId);
         tunnelService.markConnected(tunnelId);
     }
@@ -40,7 +42,7 @@ public class TunnelStatusController {
      * Updates tunnel heartbeat timestamp.
      */
     @PostMapping(path = "/{tunnelId}/heartbeat")
-    public void heartbeat(final @PathVariable("tunnelId") String tunnelId) {
+    public void heartbeat(final @PathVariable("tunnelId") UUID tunnelId) {
         tunnelService.heartbeat(tunnelId);
     }
 
@@ -48,7 +50,7 @@ public class TunnelStatusController {
      * Marks a tunnel as closed.
      */
     @PostMapping(path = "/{tunnelId}/closed")
-    public void closed(final @PathVariable("tunnelId") String tunnelId) {
+    public void closed(final @PathVariable("tunnelId") UUID tunnelId) {
         log.debug("Status closed for tunnelId={}", tunnelId);
         tunnelService.markClosed(tunnelId);
     }

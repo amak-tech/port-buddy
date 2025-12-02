@@ -12,6 +12,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.Base64;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -44,7 +45,7 @@ public class TcpTunnelClient {
      * Whether the WebSocket should use TLS (wss). Must reflect the scheme of the configured server URL.
      */
     private final boolean secure;
-    private final String tunnelId;
+    private final UUID tunnelId;
     private final String localHost;
     private final int localPort;
     private final String authToken; // Bearer token if available

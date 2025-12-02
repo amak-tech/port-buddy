@@ -32,7 +32,7 @@ import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
 @RequiredArgsConstructor
 public class TcpTunnelRegistry {
 
-    private final Map<String, Tunnel> byTunnelId = new ConcurrentHashMap<>();
+    private final Map<UUID, Tunnel> byTunnelId = new ConcurrentHashMap<>();
     private final ExecutorService ioPool = Executors.newCachedThreadPool();
 
     private final ObjectMapper mapper;
@@ -49,7 +49,7 @@ public class TcpTunnelRegistry {
      * @return the {@link ExposedPort} object containing the TCP port exposed by the tunnel.
      * @throws IOException if an I/O error occurs during the initialization of the server socket.
      */
-    public ExposedPort expose(final String tunnelId) throws IOException {
+    public ExposedPort expose(final UUID tunnelId) throws IOException {
         final var tunnel = byTunnelId.computeIfAbsent(tunnelId, Tunnel::new);
         if (tunnel.serverSocket != null && !tunnel.serverSocket.isClosed()) {
             return new ExposedPort(tunnel.serverSocket.getLocalPort());
@@ -60,7 +60,7 @@ public class TcpTunnelRegistry {
         return new ExposedPort(serverSocket.getLocalPort());
     }
 
-    public void attachSession(final String tunnelId, final WebSocketSession session) {
+    public void attachSession(final UUID tunnelId, final WebSocketSession session) {
         final var tunnel = byTunnelId.computeIfAbsent(tunnelId, Tunnel::new);
         tunnel.session = session;
     }
@@ -126,7 +126,7 @@ public class TcpTunnelRegistry {
      * Called when client acknowledges an OPEN with OPEN_OK. Starts pumping data
      * from the public socket to the client over WebSocket for the given connection.
      */
-    public void onClientOpenOk(final String tunnelId, final String connectionId) {
+    public void onClientOpenOk(final UUID tunnelId, final String connectionId) {
         final var tunnel = byTunnelId.get(tunnelId);
         if (tunnel == null) {
             return;
@@ -142,7 +142,7 @@ public class TcpTunnelRegistry {
      * Backward compatibility handler for older clients that still send TEXT frames
      * with base64-encoded payload inside {@link WsTunnelMessage} of type BINARY.
      */
-    public void onClientBinary(final String tunnelId, final String connectionId, final String dataB64) {
+    public void onClientBinary(final UUID tunnelId, final String connectionId, final String dataB64) {
         final var tunnel = byTunnelId.get(tunnelId);
         if (tunnel == null) {
             return;
@@ -163,7 +163,7 @@ public class TcpTunnelRegistry {
      * Handles incoming binary WebSocket frames from the client. Data is routed directly
      * to the corresponding public TCP socket without base64 encoding.
      */
-    public void onClientBinaryBytes(final String tunnelId, final String connectionId, final byte[] data) {
+    public void onClientBinaryBytes(final UUID tunnelId, final String connectionId, final byte[] data) {
         final var tunnel = byTunnelId.get(tunnelId);
         if (tunnel == null) {
             return;
@@ -187,7 +187,7 @@ public class TcpTunnelRegistry {
      *
      * @param tunnelId the identifier of the
      */
-    public void onClientClose(final String tunnelId, final String connectionId) {
+    public void onClientClose(final UUID tunnelId, final String connectionId) {
         final var tunnel = byTunnelId.get(tunnelId);
         if (tunnel == null) {
             return;
@@ -241,12 +241,12 @@ public class TcpTunnelRegistry {
 
     @Data
     private static class Tunnel {
-        private final String tunnelId;
+        private final UUID tunnelId;
         private volatile WebSocketSession session;
         private volatile ServerSocket serverSocket;
         private final Map<String, Connection> connections = new ConcurrentHashMap<>();
 
-        Tunnel(final String tunnelId) {
+        Tunnel(final UUID tunnelId) {
             this.tunnelId = tunnelId;
         }
     }

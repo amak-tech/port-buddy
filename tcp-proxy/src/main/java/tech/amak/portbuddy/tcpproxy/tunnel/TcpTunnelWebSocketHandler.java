@@ -4,6 +4,8 @@
 
 package tech.amak.portbuddy.tcpproxy.tunnel;
 
+import java.util.UUID;
+
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.BinaryMessage;
 import org.springframework.web.socket.CloseStatus;
@@ -17,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.tunnel.BinaryWsFrame;
 import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
+import tech.amak.portbuddy.common.utils.IdUtils;
 
 @Slf4j
 @Component
@@ -55,7 +58,7 @@ public class TcpTunnelWebSocketHandler extends AbstractWebSocketHandler {
     }
 
     @Override
-    protected void handleBinaryMessage(final WebSocketSession session, final BinaryMessage message) throws Exception {
+    protected void handleBinaryMessage(final WebSocketSession session, final BinaryMessage message) {
         final var tunnelId = extractTunnelId(session);
         final var decoded = BinaryWsFrame.decode(message.getPayload());
         if (decoded == null) {
@@ -65,17 +68,12 @@ public class TcpTunnelWebSocketHandler extends AbstractWebSocketHandler {
     }
 
     @Override
-    public void afterConnectionClosed(final WebSocketSession session, final CloseStatus status) throws Exception {
+    public void afterConnectionClosed(final WebSocketSession session, final CloseStatus status) {
         // Detach session
         registry.detachSession(session);
     }
 
-    private String extractTunnelId(final WebSocketSession session) {
-        final var uri = session.getUri();
-        if (uri == null) {
-            return null;
-        }
-        final var parts = uri.getPath().split("/");
-        return parts.length > 0 ? parts[parts.length - 1] : null;
+    private UUID extractTunnelId(final WebSocketSession session) {
+        return IdUtils.extractTunnelId(session.getUri());
     }
 }

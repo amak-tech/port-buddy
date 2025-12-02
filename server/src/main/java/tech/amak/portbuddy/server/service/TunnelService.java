@@ -5,6 +5,7 @@
 package tech.amak.portbuddy.server.service;
 
 import java.time.OffsetDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -70,7 +71,7 @@ public class TunnelService {
 
     /**
      * Creates a pending TCP tunnel and returns its tunnel id (entity id).
-     * Public host/port can be set later via {@link #updateTcpTunnelPublic(String, String, Integer)}.
+     * Public host/port can be set later via {@link #updateTcpTunnelPublic(UUID, String, Integer)}.
      *
      * @param accountId The unique identifier of the account creating the tunnel.
      * @param userId    The unique identifier of the user creating the tunnel.
@@ -115,14 +116,23 @@ public class TunnelService {
     public void updateTcpTunnelPublic(final UUID tunnelId,
                                       final String publicHost,
                                       final Integer publicPort) {
-        if (tunnelId == null) {
-            return;
-        }
-        tunnelRepository.findById(tunnelId).ifPresent(entity -> {
+        findByTunnelId(tunnelId).ifPresent(entity -> {
             entity.setPublicHost(publicHost);
             entity.setPublicPort(publicPort);
             tunnelRepository.save(entity);
         });
+    }
+
+    /**
+     * Retrieves a tunnel entity based on the provided tunnel ID.
+     *
+     * @param tunnelId The unique identifier of the tunnel to retrieve.
+     * @return An {@code Optional} containing the {@code TunnelEntity} if found,
+     *     or an empty {@code Optional} if not found.
+     */
+    public Optional<TunnelEntity> findByTunnelId(final UUID tunnelId) {
+        return Optional.ofNullable(tunnelId)
+            .flatMap(tunnelRepository::findById);
     }
 
     /**
@@ -135,15 +145,8 @@ public class TunnelService {
      *                 the tunnel is not found, no action is taken.
      */
     @Transactional
-    public void markConnected(final String tunnelId) {
-        if (tunnelId == null) {
-            return;
-        }
-        final var id = parseUuid(tunnelId);
-        if (id == null) {
-            return;
-        }
-        tunnelRepository.findById(id).ifPresent(entity -> {
+    public void markConnected(final UUID tunnelId) {
+        findByTunnelId(tunnelId).ifPresent(entity -> {
             entity.setStatus(TunnelStatus.CONNECTED);
             entity.setLastHeartbeatAt(OffsetDateTime.now());
             tunnelRepository.save(entity);
@@ -159,15 +162,8 @@ public class TunnelService {
      *                 If null or the tunnel is not found, no action is taken.
      */
     @Transactional
-    public void heartbeat(final String tunnelId) {
-        if (tunnelId == null) {
-            return;
-        }
-        final var id = parseUuid(tunnelId);
-        if (id == null) {
-            return;
-        }
-        tunnelRepository.findById(id).ifPresent(entity -> {
+    public void heartbeat(final UUID tunnelId) {
+        findByTunnelId(tunnelId).ifPresent(entity -> {
             entity.setLastHeartbeatAt(OffsetDateTime.now());
             tunnelRepository.save(entity);
         });
@@ -182,26 +178,10 @@ public class TunnelService {
      *                 If null or the tunnel is not found, no action is taken.
      */
     @Transactional
-    public void markClosed(final String tunnelId) {
-        if (tunnelId == null) {
-            return;
-        }
-        final var id = parseUuid(tunnelId);
-        if (id == null) {
-            return;
-        }
-        tunnelRepository.findById(id).ifPresent(entity -> {
+    public void markClosed(final UUID tunnelId) {
+        findByTunnelId(tunnelId).ifPresent(entity -> {
             entity.setStatus(TunnelStatus.CLOSED);
             tunnelRepository.save(entity);
         });
-    }
-
-    private UUID parseUuid(final String id) {
-        try {
-            return UUID.fromString(id);
-        } catch (final Exception e) {
-            log.warn("Invalid tunnelId format: {}", id);
-            return null;
-        }
     }
 }

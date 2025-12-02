@@ -4,10 +4,11 @@
 
 package tech.amak.portbuddy.server.tunnel;
 
-import java.net.URI;
 import java.util.Base64;
+import java.util.UUID;
 
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -21,6 +22,7 @@ import tech.amak.portbuddy.common.tunnel.ControlMessage;
 import tech.amak.portbuddy.common.tunnel.HttpTunnelMessage;
 import tech.amak.portbuddy.common.tunnel.MessageEnvelope;
 import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
+import tech.amak.portbuddy.common.utils.IdUtils;
 import tech.amak.portbuddy.server.service.TunnelService;
 
 @Slf4j
@@ -33,24 +35,37 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
     private final TunnelService tunnelService;
 
     @Override
-    public void afterConnectionEstablished(final WebSocketSession session) throws Exception {
-        final var uri = session.getUri();
-        final var tunnelId = extractTunnelId(uri);
-        if (tunnelId == null || !registry.attachSession(tunnelId, session)) {
-            log.warn("Tunnel not found for id={}", tunnelId);
-            session.close(CloseStatus.NORMAL);
-            return;
+    @Transactional
+    public void afterConnectionEstablished(final WebSocketSession session) {
+        final var tunnelId = extractTunnelId(session);
+
+        tunnelService.findByTunnelId(tunnelId).ifPresentOrElse(
+            tunnel -> {
+                registry.register(tunnel, session);
+                tunnelService.markConnected(tunnelId);
+                log.info("Tunnel session established: {}", tunnelId);
+            },
+            () -> {
+                log.warn("Tunnel not found for id={}", tunnelId);
+                closeWebsocket(session, CloseStatus.NORMAL);
+            });
+    }
+
+    private void closeWebsocket(final WebSocketSession session,
+                                final CloseStatus status) {
+        try {
+            session.close(status);
+            log.debug("Closed websocket. Status: {}, URI: {}", status, session.getUri());
+        } catch (final Exception e) {
+            log.warn("Failed to close websocket: {}", e.toString());
         }
-        tunnelService.markConnected(tunnelId);
-        log.info("Tunnel session established: {}", tunnelId);
     }
 
     @Override
-    protected void handleTextMessage(final WebSocketSession session, final TextMessage message) throws Exception {
+    protected void handleTextMessage(final WebSocketSession session, final TextMessage message) {
         try {
             log.trace("Received message from client: {}", message.getPayload());
-            final var uri = session.getUri();
-            final var tunnelId = extractTunnelId(uri);
+            final var tunnelId = extractTunnelId(session);
 
             tunnelService.heartbeat(tunnelId);
 
@@ -83,7 +98,7 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
-    private void handleWsFromClient(final String tunnelId, final WsTunnelMessage message) throws Exception {
+    private void handleWsFromClient(final UUID tunnelId, final WsTunnelMessage message) throws Exception {
         final var browser = registry.getBrowserSession(tunnelId, message.getConnectionId());
         if (browser == null) {
             log.debug("No browser WS for connectionId={} tunnelId={}", message.getConnectionId(), tunnelId);
@@ -110,8 +125,7 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionClosed(final WebSocketSession session, final CloseStatus status) {
-        final var uri = session.getUri();
-        final var tunnelId = extractTunnelId(uri);
+        final var tunnelId = extractTunnelId(session);
         final var tunnel = registry.getByTunnelId(tunnelId);
         if (tunnel != null) {
             tunnel.setSession(null);
@@ -122,15 +136,7 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
         tunnelService.markClosed(tunnelId);
     }
 
-    private String extractTunnelId(final URI uri) {
-        if (uri == null) {
-            return null;
-        }
-        final var path = uri.getPath();
-        if (path == null) {
-            return null;
-        }
-        final var parts = path.split("/");
-        return parts.length > 0 ? parts[parts.length - 1] : null;
+    private UUID extractTunnelId(final WebSocketSession session) {
+        return IdUtils.extractTunnelId(session.getUri());
     }
 }
