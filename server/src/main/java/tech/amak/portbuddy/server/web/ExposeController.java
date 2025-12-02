@@ -61,7 +61,7 @@ public class ExposeController {
         final var account = user.getAccount();
 
         final var domainEntity = domainService.resolveDomain(
-            account, userId, request.domain(), request.host(), request.port());
+            account, request.domain(), request.host(), request.port());
         final var subdomain = domainEntity.getSubdomain();
 
         final var tunnelId = UUID.randomUUID().toString();
@@ -71,7 +71,7 @@ public class ExposeController {
         final var source = "%s://%s:%s".formatted(request.scheme(), request.host(), request.port());
 
         final var apiKeyId = extractApiKeyId(jwt);
-        tunnelService.createHttpTunnel(userId, apiKeyId, tunnelId, request, publicUrl, subdomain);
+        tunnelService.createHttpTunnel(account.getId(), apiKeyId, tunnelId, request, publicUrl, subdomain);
         return new ExposeResponse(source, publicUrl, null, null, tunnelId, subdomain);
     }
 
@@ -96,8 +96,12 @@ public class ExposeController {
             final var exposeResponse = tcpProxyClient.exposePort(tunnelId);
             log.info("Expose TCP port response: {}", exposeResponse);
             final var userId = resolveUserId(jwt);
+            final var user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+            final var account = user.getAccount();
+
             final var apiKeyId = extractApiKeyId(jwt);
-            tunnelService.createTcpTunnel(userId, apiKeyId, tunnelId, request,
+            tunnelService.createTcpTunnel(account.getId(), apiKeyId, tunnelId, request,
                 exposeResponse.publicHost(), exposeResponse.publicPort());
             return exposeResponse;
         } catch (final Exception e) {

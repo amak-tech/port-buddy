@@ -26,24 +26,27 @@ public interface TunnelRepository extends JpaRepository<TunnelEntity, UUID> {
 
     boolean existsBySubdomainAndStatus(String subdomain, TunnelStatus status);
 
-    Optional<TunnelEntity> findFirstByUserIdAndLocalHostAndLocalPortAndSubdomainIsNotNullOrderByCreatedAtDesc(
-        UUID userId, String localHost, Integer localPort);
+    Optional<TunnelEntity> findFirstByAccountIdAndLocalHostAndLocalPortAndSubdomainIsNotNullOrderByCreatedAtDesc(
+        UUID accountId, String localHost, Integer localPort);
 
-    default Optional<TunnelEntity> findUsedTunnel(UUID userId, String localHost, Integer localPort) {
-        return findFirstByUserIdAndLocalHostAndLocalPortAndSubdomainIsNotNullOrderByCreatedAtDesc(
-            userId, localHost, localPort);
+    default Optional<TunnelEntity> findUsedTunnel(final UUID accountId,
+                                                  final String localHost,
+                                                  final Integer localPort) {
+        return findFirstByAccountIdAndLocalHostAndLocalPortAndSubdomainIsNotNullOrderByCreatedAtDesc(
+            accountId, localHost, localPort);
     }
 
-    Page<TunnelEntity> findAllByUserId(UUID userId, Pageable pageable);
+    Page<TunnelEntity> findAllByAccountId(UUID accountId, Pageable pageable);
 
     @Query(value = """
         SELECT *
         FROM tunnels t
-        WHERE t.user_id = :userId
+        WHERE t.account_id = :accountId
         ORDER BY (t.last_heartbeat_at IS NULL), t.last_heartbeat_at DESC, t.created_at DESC""",
-        countQuery = "SELECT COUNT(1) FROM tunnels t WHERE t.user_id = :userId",
+        countQuery = "SELECT COUNT(1) FROM tunnels t WHERE t.account_id = :accountId",
         nativeQuery = true)
-    Page<TunnelEntity> pageByUserOrderByLastHeartbeatDescNullsLast(@Param("userId") UUID userId, Pageable pageable);
+    Page<TunnelEntity> pageByAccountOrderByLastHeartbeatDescNullsLast(
+        @Param("accountId") UUID accountId, Pageable pageable);
 
     /**
      * Closes tunnels that are in CONNECTED status but have stale or missing heartbeat.

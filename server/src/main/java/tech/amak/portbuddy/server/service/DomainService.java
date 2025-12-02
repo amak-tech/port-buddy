@@ -70,7 +70,6 @@ public class DomainService {
      * an available domain, taking into account resource affinity.
      *
      * @param account         the account entity for which the domain resolution is performed
-     * @param userId          the unique identifier of the user attempting to resolve the domain
      * @param requestedDomain the fully-qualified domain name requested by the user, or null if no specific domain is
      *                        requested
      * @param localHost       the local hostname of the user's resource requesting the domain
@@ -80,7 +79,6 @@ public class DomainService {
      */
     @Transactional(readOnly = true)
     public DomainEntity resolveDomain(final AccountEntity account,
-                                      final UUID userId,
                                       final String requestedDomain,
                                       final String localHost,
                                       final Integer localPort) {
@@ -110,7 +108,7 @@ public class DomainService {
         }
 
         // Affinity check: Find the last used subdomain for this resource
-        final var lastTunnel = tunnelRepository.findUsedTunnel(userId, localHost, localPort);
+        final var lastTunnel = tunnelRepository.findUsedTunnel(account.getId(), localHost, localPort);
 
         if (lastTunnel.isPresent()) {
             final var lastSubdomain = lastTunnel.get().getSubdomain();
@@ -126,7 +124,7 @@ public class DomainService {
         return availableDomains.getFirst();
     }
 
-    private boolean isTunnelConnected(String subdomain) {
+    private boolean isTunnelConnected(final String subdomain) {
         return tunnelRepository.existsBySubdomainAndStatus(subdomain, TunnelStatus.CONNECTED);
     }
 

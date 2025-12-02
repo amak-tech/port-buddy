@@ -43,8 +43,8 @@ public class TunnelEntity {
     private TunnelStatus status;
 
     // Ownership
-    @Column(name = "user_id", nullable = false)
-    private UUID userId;
+    @Column(name = "account_id", nullable = false)
+    private UUID accountId;
 
     @Column(name = "api_key_id")
     private UUID apiKeyId;
