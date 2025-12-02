@@ -49,15 +49,10 @@ public class TunnelRegistry {
      * @return the created Tunnel instance
      */
     public Tunnel createPending(final String subdomain, final String tunnelId) {
-        final var tunnel = new Tunnel(subdomain, tunnelId);
+        final var tunnel = new Tunnel(tunnelId);
         bySubdomain.put(subdomain, tunnel);
         byTunnelId.put(tunnelId, tunnel);
         return tunnel;
-    }
-
-    public void remove(final Tunnel tunnel) {
-        bySubdomain.remove(tunnel.subdomain());
-        byTunnelId.remove(tunnel.tunnelId());
     }
 
     public Tunnel getBySubdomain(final String subdomain) {
@@ -257,7 +252,6 @@ public class TunnelRegistry {
     @RequiredArgsConstructor
     public static class Tunnel {
 
-        private final String subdomain;
         private final String tunnelId;
 
         @Setter
@@ -266,10 +260,6 @@ public class TunnelRegistry {
         // Browser WS peers for this tunnel
         private final Map<String, WebSocketSession> browserByConnection = new ConcurrentHashMap<>();
         private final Map<WebSocketSession, Ids> browserReverse = new ConcurrentHashMap<>();
-
-        public String subdomain() {
-            return subdomain;
-        }
 
         public String tunnelId() {
             return tunnelId;
