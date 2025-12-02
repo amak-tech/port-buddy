@@ -23,8 +23,6 @@ import tech.amak.portbuddy.server.db.entity.TunnelStatus;
 @Repository
 public interface TunnelRepository extends JpaRepository<TunnelEntity, UUID> {
 
-    Optional<TunnelEntity> findByTunnelId(String tunnelId);
-
     boolean existsByDomainAndStatus(DomainEntity domain, TunnelStatus status);
 
     boolean existsByDomainAndStatusNot(DomainEntity domain, TunnelStatus status);

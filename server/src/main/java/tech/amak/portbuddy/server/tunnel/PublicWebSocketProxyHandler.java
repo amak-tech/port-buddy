@@ -49,12 +49,12 @@ public class PublicWebSocketProxyHandler extends AbstractWebSocketHandler {
             browserSession.close(CloseStatus.SERVICE_RESTARTED);
             return;
         }
-        final var connId = UUID.randomUUID().toString();
-        registry.registerBrowserWs(tunnel.tunnelId(), connId, browserSession);
+        final var connectionId = UUID.randomUUID().toString();
+        registry.registerBrowserWs(tunnel.tunnelId(), connectionId, browserSession);
 
         final var uri = browserSession.getUri();
         final var message = new WsTunnelMessage();
-        message.setConnectionId(connId);
+        message.setConnectionId(connectionId);
         message.setWsType(WsTunnelMessage.Type.OPEN);
         if (uri != null) {
             final var normalized = normalizePublicPath(subdomain, uri.getPath());

@@ -27,88 +27,102 @@ public class TunnelService {
     private final TunnelRepository tunnelRepository;
 
     /**
-     * Creates a new HTTP tunnel. This method initializes and saves the HTTP tunnel
-     * record in the database with a 'PENDING' status.
+     * Creates a new HTTP tunnel using the database entity id as the tunnel id.
+     * The record is saved with a 'PENDING' status and returned id is used as the tunnel identifier.
      *
      * @param accountId The unique identifier of the account creating the tunnel.
      * @param userId    The unique identifier of the user creating the tunnel.
      * @param apiKeyId  The optional API key identifier associated with the tunnel.
-     * @param tunnelId  The unique identifier for the tunnel.
      * @param request   The HTTP expose request containing details of the local HTTP service (scheme, host, port).
      * @param publicUrl The public URL where the service will be accessible.
      * @param domain    The domain entity used for the public HTTP endpoint.
+     * @return the created tunnel id (same as entity id string)
      */
     @Transactional
-    public void createHttpTunnel(final UUID accountId,
-                                 final UUID userId,
-                                 final String apiKeyId,
-                                 final String tunnelId,
-                                 final HttpExposeRequest request,
-                                 final String publicUrl,
-                                 final DomainEntity domain) {
-        final var entity = new TunnelEntity();
-        entity.setId(UUID.randomUUID());
-        entity.setTunnelId(tunnelId);
-        entity.setType(TunnelType.HTTP);
-        entity.setStatus(TunnelStatus.PENDING);
-        entity.setAccountId(accountId);
-        entity.setUserId(userId);
+    public TunnelEntity createHttpTunnel(final UUID accountId,
+                                         final UUID userId,
+                                         final String apiKeyId,
+                                         final HttpExposeRequest request,
+                                         final String publicUrl,
+                                         final DomainEntity domain) {
+        final var tunnel = new TunnelEntity();
+        final var id = UUID.randomUUID();
+        tunnel.setId(id);
+        tunnel.setType(TunnelType.HTTP);
+        tunnel.setStatus(TunnelStatus.PENDING);
+        tunnel.setAccountId(accountId);
+        tunnel.setUserId(userId);
         if (apiKeyId != null && !apiKeyId.isBlank()) {
-            entity.setApiKeyId(UUID.fromString(apiKeyId));
+            tunnel.setApiKeyId(UUID.fromString(apiKeyId));
         }
         if (request != null) {
-            entity.setLocalScheme(request.scheme());
-            entity.setLocalHost(request.host());
-            entity.setLocalPort(request.port());
+            tunnel.setLocalScheme(request.scheme());
+            tunnel.setLocalHost(request.host());
+            tunnel.setLocalPort(request.port());
         }
-        entity.setPublicUrl(publicUrl);
-        entity.setDomain(domain);
-        tunnelRepository.save(entity);
+        tunnel.setPublicUrl(publicUrl);
+        tunnel.setDomain(domain);
+        tunnelRepository.save(tunnel);
         log.info("Created HTTP tunnel record tunnelId={} accountId={} userId={} subdomain={}",
-            tunnelId, accountId, userId, domain.getSubdomain());
+            id, accountId, userId, domain.getSubdomain());
+        return tunnel;
     }
 
     /**
-     * Creates a new TCP tunnel. This method initializes and saves the TCP tunnel
-     * record in the database with a 'PENDING' status.
+     * Creates a pending TCP tunnel and returns its tunnel id (entity id).
+     * Public host/port can be set later via {@link #updateTcpTunnelPublic(String, String, Integer)}.
      *
-     * @param accountId  The unique identifier of the account creating the tunnel.
-     * @param userId     The unique identifier of the user creating the tunnel.
-     * @param apiKeyId   The optional API key identifier associated with the tunnel.
-     * @param tunnelId   The unique identifier for the tunnel.
-     * @param request    The HTTP expose request containing details of the local service
-     *                   (scheme, host, port) to be tunneled.
-     * @param publicHost The public host where the service will be exposed.
-     * @param publicPort The public port on which the service will be accessible.
+     * @param accountId The unique identifier of the account creating the tunnel.
+     * @param userId    The unique identifier of the user creating the tunnel.
+     * @param apiKeyId  The optional API key identifier associated with the tunnel.
+     * @param request   The expose request containing details of the local service.
+     * @return the created tunnel id (same as entity id string)
      */
     @Transactional
-    public void createTcpTunnel(final UUID accountId,
-                                final UUID userId,
-                                final String apiKeyId,
-                                final String tunnelId,
-                                final HttpExposeRequest request,
-                                final String publicHost,
-                                final Integer publicPort) {
-        final var entity = new TunnelEntity();
-        entity.setId(UUID.randomUUID());
-        entity.setTunnelId(tunnelId);
-        entity.setType(TunnelType.TCP);
-        entity.setStatus(TunnelStatus.PENDING);
-        entity.setAccountId(accountId);
-        entity.setUserId(userId);
+    public TunnelEntity createPendingTcpTunnel(final UUID accountId,
+                                               final UUID userId,
+                                               final String apiKeyId,
+                                               final HttpExposeRequest request) {
+        final var tunnel = new TunnelEntity();
+        final var id = UUID.randomUUID();
+        tunnel.setId(id);
+        tunnel.setType(TunnelType.TCP);
+        tunnel.setStatus(TunnelStatus.PENDING);
+        tunnel.setAccountId(accountId);
+        tunnel.setUserId(userId);
         if (apiKeyId != null && !apiKeyId.isBlank()) {
-            entity.setApiKeyId(UUID.fromString(apiKeyId));
+            tunnel.setApiKeyId(UUID.fromString(apiKeyId));
         }
         if (request != null) {
-            entity.setLocalScheme(request.scheme());
-            entity.setLocalHost(request.host());
-            entity.setLocalPort(request.port());
+            tunnel.setLocalScheme(request.scheme());
+            tunnel.setLocalHost(request.host());
+            tunnel.setLocalPort(request.port());
         }
-        entity.setPublicHost(publicHost);
-        entity.setPublicPort(publicPort);
-        tunnelRepository.save(entity);
-        log.info("Created TCP tunnel record tunnelId={} accountId={} userId={} publicHost={} publicPort={} ",
-            tunnelId, accountId, userId, publicHost, publicPort);
+        tunnelRepository.save(tunnel);
+        log.info("Created pending TCP tunnel record tunnelId={} accountId={} userId={}",
+            id, accountId, userId);
+        return tunnel;
+    }
+
+    /**
+     * Updates public host and port for a TCP tunnel identified by tunnelId.
+     *
+     * @param tunnelId   The tunnel id (entity id string)
+     * @param publicHost Public host allocated by TCP proxy
+     * @param publicPort Public port allocated by TCP proxy
+     */
+    @Transactional
+    public void updateTcpTunnelPublic(final UUID tunnelId,
+                                      final String publicHost,
+                                      final Integer publicPort) {
+        if (tunnelId == null) {
+            return;
+        }
+        tunnelRepository.findById(tunnelId).ifPresent(entity -> {
+            entity.setPublicHost(publicHost);
+            entity.setPublicPort(publicPort);
+            tunnelRepository.save(entity);
+        });
     }
 
     /**
@@ -125,7 +139,11 @@ public class TunnelService {
         if (tunnelId == null) {
             return;
         }
-        tunnelRepository.findByTunnelId(tunnelId).ifPresent(entity -> {
+        final var id = parseUuid(tunnelId);
+        if (id == null) {
+            return;
+        }
+        tunnelRepository.findById(id).ifPresent(entity -> {
             entity.setStatus(TunnelStatus.CONNECTED);
             entity.setLastHeartbeatAt(OffsetDateTime.now());
             tunnelRepository.save(entity);
@@ -145,7 +163,11 @@ public class TunnelService {
         if (tunnelId == null) {
             return;
         }
-        tunnelRepository.findByTunnelId(tunnelId).ifPresent(entity -> {
+        final var id = parseUuid(tunnelId);
+        if (id == null) {
+            return;
+        }
+        tunnelRepository.findById(id).ifPresent(entity -> {
             entity.setLastHeartbeatAt(OffsetDateTime.now());
             tunnelRepository.save(entity);
         });
@@ -164,9 +186,22 @@ public class TunnelService {
         if (tunnelId == null) {
             return;
         }
-        tunnelRepository.findByTunnelId(tunnelId).ifPresent(entity -> {
+        final var id = parseUuid(tunnelId);
+        if (id == null) {
+            return;
+        }
+        tunnelRepository.findById(id).ifPresent(entity -> {
             entity.setStatus(TunnelStatus.CLOSED);
             tunnelRepository.save(entity);
         });
+    }
+
+    private UUID parseUuid(final String id) {
+        try {
+            return UUID.fromString(id);
+        } catch (final Exception e) {
+            log.warn("Invalid tunnelId format: {}", id);
+            return null;
+        }
     }
 }

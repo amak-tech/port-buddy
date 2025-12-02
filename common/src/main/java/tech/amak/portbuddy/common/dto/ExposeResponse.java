@@ -4,6 +4,8 @@
 
 package tech.amak.portbuddy.common.dto;
 
+import java.util.UUID;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
@@ -15,7 +17,7 @@ public record ExposeResponse(
     String publicUrl,
     String publicHost,
     Integer publicPort,
-    String tunnelId,
+    UUID tunnelId,
     String subdomain
 ) {
 }

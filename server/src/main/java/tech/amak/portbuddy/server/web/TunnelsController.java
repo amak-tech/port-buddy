@@ -70,7 +70,6 @@ public class TunnelsController {
 
         return new TunnelView(
             tunnel.getId().toString(),
-            tunnel.getTunnelId(),
             tunnel.getType(),
             tunnel.getStatus(),
             local,
@@ -90,7 +89,6 @@ public class TunnelsController {
 
     public record TunnelView(
         String id,
-        String tunnelId,
         TunnelType type,
         TunnelStatus status,
         String local,

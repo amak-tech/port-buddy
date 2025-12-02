@@ -34,9 +34,6 @@ public class TunnelEntity {
     @Column(name = "id", nullable = false)
     private UUID id;
 
-    @Column(name = "tunnel_id", nullable = false, unique = true)
-    private String tunnelId;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false)
     private TunnelType type;

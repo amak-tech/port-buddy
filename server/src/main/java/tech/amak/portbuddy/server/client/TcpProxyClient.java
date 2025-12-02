@@ -6,6 +6,8 @@ package tech.amak.portbuddy.server.client;
 
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 
+import java.util.UUID;
+
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,7 +25,7 @@ import tech.amak.portbuddy.common.dto.ExposeResponse;
 public interface TcpProxyClient {
 
     @PostMapping("/api/tcp-proxy/expose")
-    ExposeResponse exposePort(@RequestParam("tunnelId") String tunnelId);
+    ExposeResponse exposePort(@RequestParam("tunnelId") UUID tunnelId);
 
     class Configuration {
 

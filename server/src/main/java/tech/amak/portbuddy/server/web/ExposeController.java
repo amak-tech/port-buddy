@@ -6,8 +6,6 @@ package tech.amak.portbuddy.server.web;
 
 import static tech.amak.portbuddy.server.security.JwtService.resolveUserId;
 
-import java.util.UUID;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -63,22 +61,20 @@ public class ExposeController {
         final var domain = domainService.resolveDomain(
             account, request.domain(), request.host(), request.port());
         final var subdomain = domain.getSubdomain();
-
-        final var tunnelId = UUID.randomUUID().toString();
-        registry.createPending(subdomain, tunnelId);
         final var gateway = properties.gateway();
         final var publicUrl = "%s://%s.%s".formatted(gateway.schema(), subdomain, gateway.domain());
         final var source = "%s://%s:%s".formatted(request.scheme(), request.host(), request.port());
 
         final var apiKeyId = extractApiKeyId(jwt);
-        tunnelService.createHttpTunnel(
+        final var tunnel = tunnelService.createHttpTunnel(
             account.getId(),
             user.getId(),
             apiKeyId,
-            tunnelId,
             request,
             publicUrl,
             domain);
+        final var tunnelId = tunnel.getId();
+        registry.createPending(subdomain, tunnelId.toString());
         return new ExposeResponse(source, publicUrl, null, null, tunnelId, subdomain);
     }
 
@@ -96,20 +92,22 @@ public class ExposeController {
     @PostMapping("/tcp")
     public ExposeResponse exposeTcp(final @AuthenticationPrincipal Jwt jwt,
                                     final @RequestBody HttpExposeRequest request) {
-        final var tunnelId = UUID.randomUUID().toString();
+        final var userId = resolveUserId(jwt);
+        final var user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+        final var account = user.getAccount();
+
+        final var apiKeyId = extractApiKeyId(jwt);
+        // Pre-create tunnel and use its DB id as tunnelId
+        final var tunnel = tunnelService.createPendingTcpTunnel(account.getId(), user.getId(), apiKeyId, request);
+        final var tunnelId = tunnel.getId();
 
         // Ask the selected tcp-proxy to allocate a public TCP port for this tunnelId
         try {
             final var exposeResponse = tcpProxyClient.exposePort(tunnelId);
             log.info("Expose TCP port response: {}", exposeResponse);
-            final var userId = resolveUserId(jwt);
-            final var user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
-            final var account = user.getAccount();
 
-            final var apiKeyId = extractApiKeyId(jwt);
-            tunnelService.createTcpTunnel(account.getId(), user.getId(), apiKeyId, tunnelId, request,
-                exposeResponse.publicHost(), exposeResponse.publicPort());
+            tunnelService.updateTcpTunnelPublic(tunnelId, exposeResponse.publicHost(), exposeResponse.publicPort());
             return exposeResponse;
         } catch (final Exception e) {
             log.error("Failed to allocate public TCP port for tunnelId={}: {}", tunnelId, e.getMessage(), e);
