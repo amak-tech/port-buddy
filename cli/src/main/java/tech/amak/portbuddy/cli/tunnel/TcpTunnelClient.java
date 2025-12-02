@@ -55,7 +55,7 @@ public class TcpTunnelClient {
     private WebSocket webSocket;
 
     private final Map<String, LocalTcp> locals = new ConcurrentHashMap<>();
-    private final CountDownLatch closed = new CountDownLatch(1);
+    private CountDownLatch closed = new CountDownLatch(1);
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
         final var thread = new Thread(runnable, "port-buddy-tcp-heartbeat");
         thread.setDaemon(true);
@@ -63,6 +63,7 @@ public class TcpTunnelClient {
     });
     private volatile ScheduledFuture<?> heartbeatTask;
     private final AtomicBoolean closedReported = new AtomicBoolean(false);
+    private final AtomicBoolean stop = new AtomicBoolean(false);
 
     /**
      * Establishes and maintains a WebSocket connection for TCP tunneling.
@@ -77,17 +78,41 @@ public class TcpTunnelClient {
      * - Handles interruptions by setting the thread's interrupt status.
      */
     public void runBlocking() {
-        final var scheme = secure ? "https://" : "http://";
-        final var url = toWebSocketUrl(scheme + proxyHost + ":" + proxyHttpPort, "/api/tcp-tunnel/" + tunnelId);
-        final var request = new Request.Builder().url(url);
-        if (authToken != null && !authToken.isBlank()) {
-            request.addHeader("Authorization", "Bearer " + authToken);
-        }
-        webSocket = http.newWebSocket(request.build(), new Listener());
-        try {
-            closed.await();
-        } catch (final InterruptedException e) {
-            Thread.currentThread().interrupt();
+        var backoffMs = 1000L;
+        final var maxBackoffMs = 30000L;
+        while (!stop.get()) {
+            try {
+                closed = new CountDownLatch(1);
+                final var scheme = secure ? "https://" : "http://";
+                final var url = toWebSocketUrl(scheme + proxyHost + ":" + proxyHttpPort, "/api/tcp-tunnel/" + tunnelId);
+                final var request = new Request.Builder().url(url);
+                if (authToken != null && !authToken.isBlank()) {
+                    request.addHeader("Authorization", "Bearer " + authToken);
+                }
+                webSocket = http.newWebSocket(request.build(), new Listener());
+
+                // Block until this connection is closed
+                closed.await();
+                if (stop.get()) {
+                    break;
+                }
+                // Reconnect with backoff
+                log.info("TCP tunnel disconnected; reconnecting in {} ms...", backoffMs);
+                Thread.sleep(backoffMs);
+                backoffMs = Math.min(backoffMs * 2, maxBackoffMs);
+            } catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            } catch (final Exception e) {
+                log.warn("TCP tunnel loop error: {}", e.toString());
+                try {
+                    Thread.sleep(backoffMs);
+                } catch (final InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+                backoffMs = Math.min(backoffMs * 2, maxBackoffMs);
+            }
         }
     }
 
@@ -105,6 +130,7 @@ public class TcpTunnelClient {
      */
     public void close() {
         try {
+            stop.set(true);
             final var task = heartbeatTask;
             if (task != null) {
                 task.cancel(true);
@@ -140,6 +166,8 @@ public class TcpTunnelClient {
             } catch (final Exception e) {
                 log.debug("Failed to report TCP connected: {}", e.toString());
             }
+            // allow reporting CLOSED again for future disconnects after a successful reconnect
+            closedReported.set(false);
             try {
                 final var existing = heartbeatTask;
                 if (existing != null && !existing.isCancelled()) {
