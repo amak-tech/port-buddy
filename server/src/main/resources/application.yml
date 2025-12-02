@@ -34,6 +34,9 @@ app:
     session-idle-timeout: 10m
 
 spring:
+  mvc:
+    problem-details:
+      enabled: true
   servlet:
     multipart:
       max-request-size: 1GB
