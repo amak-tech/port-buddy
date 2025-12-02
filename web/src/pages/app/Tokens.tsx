@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { apiJson, apiRaw } from '../../lib/api'
 import { useAuth } from '../../auth/AuthContext'
 import { usePageTitle } from '../../components/PageHeader'
+import { ConfirmModal } from '../../components/Modal'
 import { 
   KeyIcon, 
   TrashIcon, 
@@ -20,6 +21,9 @@ export default function Tokens() {
   const [loading, setLoading] = useState(false)
   const [newLabel, setNewLabel] = useState('cli')
   const [justCreatedToken, setJustCreatedToken] = useState<string | null>(null)
+  
+  // Dialog state
+  const [revokeId, setRevokeId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!hasUser) return
@@ -64,6 +68,18 @@ export default function Tokens() {
 
   return (
     <div className="max-w-4xl">
+      <ConfirmModal
+        isOpen={!!revokeId}
+        onClose={() => setRevokeId(null)}
+        onConfirm={() => {
+            if (revokeId) void revokeToken(revokeId)
+        }}
+        title="Revoke Token"
+        message="Are you sure you want to revoke this token? This action cannot be undone and any applications using this token will lose access."
+        confirmText="Revoke"
+        isDangerous
+      />
+
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-white">Access Tokens</h2>
         <p className="text-slate-400 mt-1">Generate and manage API tokens to authenticate the CLI.</p>
@@ -157,7 +173,7 @@ export default function Tokens() {
                 {!t.revoked && (
                   <button 
                     className="self-end sm:self-center px-4 py-2 text-sm font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg border border-transparent hover:border-red-500/20 transition-all flex items-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100"
-                    onClick={() => { if(confirm('Are you sure you want to revoke this token?')) void revokeToken(t.id) }}
+                    onClick={() => setRevokeId(t.id)}
                   >
                     <TrashIcon className="w-4 h-4" />
                     Revoke

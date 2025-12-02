@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2025 AMAK Inc. All rights reserved.
+ */
+
 package tech.amak.portbuddy.server.web;
 
 import java.util.List;
@@ -34,6 +38,12 @@ public class DomainsController {
     private final DomainService domainService;
     private final UserRepository userRepository;
 
+    /**
+     * Retrieves a list of domains associated with the account of the authenticated user.
+     *
+     * @param principal the JWT representing the authenticated user
+     * @return a list of domain DTOs representing the user's associated domains
+     */
     @GetMapping
     public List<DomainDto> list(final @AuthenticationPrincipal Jwt principal) {
         final var account = getAccount(principal);

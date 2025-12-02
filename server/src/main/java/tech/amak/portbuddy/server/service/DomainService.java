@@ -38,6 +38,16 @@ public class DomainService {
         return domainRepository.findAllByAccount(account);
     }
 
+    /**
+     * Creates a new domain for the given account. A unique subdomain is
+     * generated and assigned to the domain entity associated with the account.
+     * If a unique subdomain cannot be generated after the maximum number of retries,
+     * an exception is thrown.
+     *
+     * @param account The account entity to which the new domain will be associated.
+     * @return The newly created domain entity with its associated subdomain and account.
+     * @throws RuntimeException if a unique subdomain cannot be generated within the maximum attempts.
+     */
     @Transactional
     public DomainEntity createDomain(final AccountEntity account) {
         String subdomain;
@@ -66,6 +76,19 @@ public class DomainService {
         createDomain(account);
     }
 
+    /**
+     * Updates the subdomain of a specified domain entity associated with a given account.
+     * If the domain is currently being used by an active tunnel, the update will not be allowed.
+     * Additionally, it ensures that the new subdomain is unique globally before updating.
+     *
+     * @param id           the unique identifier of the domain to update
+     * @param account      the account associated with the domain
+     * @param newSubdomain the new subdomain to assign to the domain
+     * @return the updated DomainEntity if the operation is successful
+     * @throws RuntimeException if the domain is not found for the given id and account
+     * @throws RuntimeException if the domain is currently used by an active tunnel
+     * @throws RuntimeException if the new subdomain is already taken globally
+     */
     @Transactional
     public DomainEntity updateDomain(final UUID id, final AccountEntity account, final String newSubdomain) {
         final var domain = domainRepository.findByIdAndAccount(id, account)
@@ -85,6 +108,14 @@ public class DomainService {
         return domain;
     }
 
+    /**
+     * Deletes a domain associated with the specified account.
+     * Ensures the domain exists and is not being used by an active tunnel before deletion.
+     *
+     * @param id      The unique identifier of the domain to be deleted.
+     * @param account The account entity associated with the domain to validate ownership.
+     * @throws RuntimeException if the domain is not found or is being used by an active tunnel.
+     */
     @Transactional
     public void deleteDomain(final UUID id, final AccountEntity account) {
         final var domain = domainRepository.findByIdAndAccount(id, account)

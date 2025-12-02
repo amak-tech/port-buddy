@@ -3,6 +3,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { usePageTitle } from '../../components/PageHeader'
 import { GlobeAltIcon, PlusIcon, TrashIcon, PencilIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { apiJson } from '../../lib/api'
+import { AlertModal, ConfirmModal } from '../../components/Modal'
 
 interface Domain {
   id: string
@@ -22,6 +23,14 @@ export default function Domains() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
   const [creating, setCreating] = useState(false)
+
+  // Dialog states
+  const [alertState, setAlertState] = useState<{ isOpen: boolean, title: string, message: string }>({ 
+    isOpen: false, 
+    title: '', 
+    message: '' 
+  })
+  const [deleteId, setDeleteId] = useState<string | null>(null)
 
   const fetchDomains = async () => {
     try {
@@ -44,7 +53,11 @@ export default function Domains() {
       const newDomain = await apiJson<Domain>('/api/domains', { method: 'POST' })
       setDomains([...domains, newDomain])
     } catch (err: any) {
-        alert(err.message || 'Failed to add domain')
+        setAlertState({ 
+            isOpen: true, 
+            title: 'Error', 
+            message: err.message || 'Failed to add domain' 
+        })
     } finally {
         setCreating(false)
     }
@@ -69,22 +82,51 @@ export default function Domains() {
           setDomains(domains.map(d => d.id === id ? updated : d))
           setEditingId(null)
       } catch (err: any) {
-          alert(err.message || 'Failed to update domain')
+          setAlertState({ 
+            isOpen: true, 
+            title: 'Error', 
+            message: err.message || 'Failed to update domain' 
+        })
       }
   }
   
-  const handleDelete = async (id: string) => {
-      if (!confirm('Are you sure you want to delete this domain?')) return;
+  const handleDeleteClick = (id: string) => {
+      setDeleteId(id)
+  }
+
+  const handleConfirmDelete = async () => {
+      if (!deleteId) return
       try {
-          await apiJson(`/api/domains/${id}`, { method: 'DELETE' })
-          setDomains(domains.filter(d => d.id !== id))
+          await apiJson(`/api/domains/${deleteId}`, { method: 'DELETE' })
+          setDomains(domains.filter(d => d.id !== deleteId))
       } catch (err: any) {
-          alert(err.message || 'Failed to delete domain')
+          setAlertState({ 
+            isOpen: true, 
+            title: 'Error', 
+            message: err.message || 'Failed to delete domain' 
+        })
       }
   }
 
   return (
     <div className="max-w-5xl">
+      <AlertModal 
+        isOpen={alertState.isOpen} 
+        onClose={() => setAlertState({ ...alertState, isOpen: false })}
+        title={alertState.title}
+        message={alertState.message}
+      />
+
+      <ConfirmModal
+        isOpen={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Domain"
+        message="Are you sure you want to delete this domain? This action cannot be undone."
+        confirmText="Delete"
+        isDangerous
+      />
+
       <div className="flex items-center justify-between mb-8">
         <div>
             <h2 className="text-2xl font-bold text-white">Domains</h2>
@@ -187,7 +229,7 @@ export default function Domains() {
                                       <PencilIcon className="w-5 h-5" />
                                   </button>
                                   <button
-                                      onClick={() => handleDelete(domain.id)}
+                                      onClick={() => handleDeleteClick(domain.id)}
                                       className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
                                       title="Delete"
                                   >

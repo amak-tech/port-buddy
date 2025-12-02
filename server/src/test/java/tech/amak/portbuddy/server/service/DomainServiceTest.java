@@ -1,11 +1,17 @@
+/*
+ * Copyright (c) 2025 AMAK Inc. All rights reserved.
+ */
+
 package tech.amak.portbuddy.server.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -30,15 +36,15 @@ class DomainServiceTest {
     private DomainRepository domainRepository;
     @Mock
     private TunnelRepository tunnelRepository;
-    
+
     private DomainService domainService;
     private AccountEntity account;
 
     @BeforeEach
     void setUp() {
-        var gateway = new AppProperties.Gateway("url", "portbuddy.dev", "https");
-        var appProps = new AppProperties(gateway, null, null);
-        
+        final var gateway = new AppProperties.Gateway("url", "portbuddy.dev", "https");
+        final var appProps = new AppProperties(gateway, null, null);
+
         domainService = new DomainService(domainRepository, tunnelRepository, appProps);
         account = new AccountEntity();
         account.setId(UUID.randomUUID());
@@ -49,7 +55,7 @@ class DomainServiceTest {
         when(domainRepository.existsBySubdomainGlobal(anyString())).thenReturn(false);
         when(domainRepository.save(any(DomainEntity.class))).thenAnswer(i -> i.getArguments()[0]);
 
-        var domain = domainService.createDomain(account);
+        final var domain = domainService.createDomain(account);
 
         assertNotNull(domain);
         assertEquals("portbuddy.dev", domain.getDomain());
@@ -65,7 +71,7 @@ class DomainServiceTest {
             .thenReturn(false);
         when(domainRepository.save(any(DomainEntity.class))).thenAnswer(i -> i.getArguments()[0]);
 
-        var domain = domainService.createDomain(account);
+        final var domain = domainService.createDomain(account);
 
         assertNotNull(domain);
         // Called 3 times: 1st loop (collision), 2nd loop (success), post-loop check (success)
@@ -74,8 +80,8 @@ class DomainServiceTest {
 
     @Test
     void updateDomain_Success() {
-        var id = UUID.randomUUID();
-        var domain = new DomainEntity();
+        final var id = UUID.randomUUID();
+        final var domain = new DomainEntity();
         domain.setId(id);
         domain.setSubdomain("old");
         domain.setAccount(account);
@@ -85,7 +91,7 @@ class DomainServiceTest {
         when(domainRepository.existsBySubdomainGlobal("new")).thenReturn(false);
         when(domainRepository.save(any(DomainEntity.class))).thenAnswer(i -> i.getArguments()[0]);
 
-        var updated = domainService.updateDomain(id, account, "new");
+        final var updated = domainService.updateDomain(id, account, "new");
 
         assertEquals("new", updated.getSubdomain());
         verify(domainRepository).save(domain);
@@ -93,8 +99,8 @@ class DomainServiceTest {
 
     @Test
     void updateDomain_ActiveTunnel() {
-        var id = UUID.randomUUID();
-        var domain = new DomainEntity();
+        final var id = UUID.randomUUID();
+        final var domain = new DomainEntity();
         domain.setId(id);
         domain.setSubdomain("old");
 
@@ -106,8 +112,8 @@ class DomainServiceTest {
 
     @Test
     void deleteDomain_Success() {
-        var id = UUID.randomUUID();
-        var domain = new DomainEntity();
+        final var id = UUID.randomUUID();
+        final var domain = new DomainEntity();
         domain.setId(id);
         domain.setSubdomain("foo");
 
