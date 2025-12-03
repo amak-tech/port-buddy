@@ -3,7 +3,7 @@
   -->
 
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:fragment="layout(content)">
 <head>
     <meta charset="UTF-8"/>
     <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
@@ -55,9 +55,7 @@
                     <tr>
                         <td class="content">
                             <!-- Content injection point -->
-                            <div th:fragment="layout(content)">
-                                <th:block th:replace="${content}"></th:block>
-                            </div>
+                            <th:block th:replace="${content}"></th:block>
                         </td>
                     </tr>
                     <tr>

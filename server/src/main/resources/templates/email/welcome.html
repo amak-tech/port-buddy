@@ -3,66 +3,57 @@
   -->
 
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8"/>
-    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title th:text="${subject}">Welcome to Port Buddy</title>
-</head>
-<body>
-<div th:replace="email/base :: layout(~{::content})">
-    <div th:fragment="content">
-        <h1 class="title" th:text="${greeting}">Welcome to Port Buddy!</h1>
-        <p class="muted" th:text="${intro}">Let’s get your local and private services online in seconds.</p>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{email/base :: layout(~{::content})}">
+<th:block th:fragment="content">
+    <h1 class="title" th:text="${greeting}">Welcome to Port Buddy!</h1>
+    <p class="muted" th:text="${intro}">Let’s get your local and private services online in seconds.</p>
 
-        <p>
-            Port Buddy securely exposes local or private network ports over the public internet. Share your work,
-            demo features, or collaborate with your team — without deploying.
-        </p>
+    <p>
+        Port Buddy securely exposes local or private network ports over the public internet. Share your work,
+        demo features, or collaborate with your team — without deploying.
+    </p>
 
-        <p style="margin: 18px 0;">
-            <a class="btn" th:href="${ctaUrl}" target="_blank" rel="noreferrer" th:text="${ctaText}">Open Web App</a>
-        </p>
+    <p style="margin: 18px 0;">
+        <a class="btn" th:href="${ctaUrl}" target="_blank" rel="noreferrer" th:text="${ctaText}">Open Web App</a>
+    </p>
 
-        <div class="card">
-            <div class="feat-title" th:text="${featuresTitle}">What you can do with Port Buddy</div>
-            <table role="presentation" width="100%" style="margin-top:8px;">
-                <tr>
-                    <td width="33%" style="vertical-align: top; padding-right: 8px;">
-                        <div class="feat-title" style="font-size:14px;" th:text="${feature1Title}">Expose HTTP apps</div>
-                        <p class="feat-desc" th:text="${feature1Desc}">Share your local web app with a secure public URL (HTTP & WebSocket).</p>
-                    </td>
-                    <td width="33%" style="vertical-align: top; padding-right: 8px;">
-                        <div class="feat-title" style="font-size:14px;" th:text="${feature2Title}">Share TCP services</div>
-                        <p class="feat-desc" th:text="${feature2Desc}">Give teammates access to databases or any TCP service with a temporary public port.</p>
-                    </td>
-                    <td width="33%" style="vertical-align: top;">
-                        <div class="feat-title" style="font-size:14px;" th:text="${feature3Title}">Simple CLI</div>
-                        <p class="feat-desc" th:text="${feature3Desc}">One command to expose a port. Auth with API token. Hobby plan is free.</p>
-                    </td>
-                </tr>
-            </table>
-        </div>
-
-        <div class="card">
-            <div class="feat-title">Quick start</div>
-            <p class="muted" style="margin: 0 0 6px 0;">Expose an HTTP service running on localhost:3000:</p>
-            <code class="code">port-buddy 3000</code>
-            <p class="muted" style="margin: 12px 0 6px 0;">Expose a TCP service, e.g. PostgreSQL on 5432:</p>
-            <code class="code">port-buddy tcp 5432</code>
-        </div>
-
-        <p class="muted" style="margin-top: 18px;">
-            Tip: generate an API token in your account and initialize the CLI once:
-        </p>
-        <code class="code">port-buddy init &lt;YOUR_API_TOKEN&gt;</code>
-
-        <p style="margin-top: 18px;" class="muted">
-            Need help? Visit the <a class="link" th:href="${webAppUrl}" target="_blank" rel="noreferrer">web app</a>
-            for docs and examples.
-        </p>
+    <div class="card">
+        <div class="feat-title" th:text="${featuresTitle}">What you can do with Port Buddy</div>
+        <table role="presentation" width="100%" style="margin-top:8px;">
+            <tr>
+                <td width="33%" style="vertical-align: top; padding-right: 8px;">
+                    <div class="feat-title" style="font-size:14px;" th:text="${feature1Title}">Expose HTTP apps</div>
+                    <p class="feat-desc" th:text="${feature1Desc}">Share your local web app with a secure public URL (HTTP & WebSocket).</p>
+                </td>
+                <td width="33%" style="vertical-align: top; padding-right: 8px;">
+                    <div class="feat-title" style="font-size:14px;" th:text="${feature2Title}">Share TCP services</div>
+                    <p class="feat-desc" th:text="${feature2Desc}">Give teammates access to databases or any TCP service with a temporary public port.</p>
+                </td>
+                <td width="33%" style="vertical-align: top;">
+                    <div class="feat-title" style="font-size:14px;" th:text="${feature3Title}">Simple CLI</div>
+                    <p class="feat-desc" th:text="${feature3Desc}">One command to expose a port. Auth with API token. Hobby plan is free.</p>
+                </td>
+            </tr>
+        </table>
     </div>
-  </div>
-</body>
+
+    <div class="card">
+        <div class="feat-title">Quick start</div>
+        <p class="muted" style="margin: 0 0 6px 0;">Expose an HTTP service running on localhost:3000:</p>
+        <code class="code">port-buddy 3000</code>
+        <p class="muted" style="margin: 12px 0 6px 0;">Expose a TCP service, e.g. PostgreSQL on 5432:</p>
+        <code class="code">port-buddy tcp 5432</code>
+    </div>
+
+    <p class="muted" style="margin-top: 18px;">
+        Tip: generate an API token in your account and initialize the CLI once:
+    </p>
+    <code class="code">port-buddy init &lt;YOUR_API_TOKEN&gt;</code>
+
+    <p style="margin-top: 18px;" class="muted">
+        Need help? Visit the <a class="link" th:href="${webAppUrl}" target="_blank" rel="noreferrer">web app</a>
+        for docs and examples.
+    </p>
+</th:block>
 </html>
