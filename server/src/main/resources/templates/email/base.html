@@ -1,0 +1,77 @@
+<!--
+  ~ Copyright (c) 2025 AMAK Inc. All rights reserved.
+  -->
+
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title th:text="${subject}">Port Buddy</title>
+    <style>
+        /* Base reset */
+        body { margin: 0; padding: 0; background: #0b0f16; -webkit-text-size-adjust: 100%; }
+        img { border: 0; outline: none; text-decoration: none; max-width: 100%; }
+        table { border-collapse: collapse; }
+        /* Container */
+        .wrapper { width: 100%; background: #0b0f16; padding: 24px 0; }
+        .container { width: 600px; margin: 0 auto; background: #0f1522; border: 1px solid #1f2937; border-radius: 12px; overflow: hidden; }
+        /* Header */
+        .header { background: linear-gradient(90deg, #1a2333 0%, #0f1522 100%); padding: 24px; text-align: center; }
+        .brand { font-family: "JetBrains Mono", monospace; color: #e2e8f0; font-weight: 700; font-size: 18px; letter-spacing: 0.5px; }
+        /* Content */
+        .content { padding: 24px; font-family: "JetBrains Mono", monospace; color: #cbd5e1; line-height: 1.65; }
+        .title { color: #f8fafc; font-size: 22px; font-weight: 700; margin: 0 0 8px 0; }
+        .muted { color: #94a3b8; }
+        .btn { display: inline-block; padding: 12px 18px; background: #16a34a; color: #0b0f16 !important; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 14px; }
+        .btn:hover { filter: brightness(1.05); }
+        .card { background: #0b0f16; border: 1px solid #1f2937; border-radius: 10px; padding: 16px; margin: 16px 0; }
+        .feat-title { color: #e2e8f0; font-weight: 700; font-size: 16px; margin: 0 0 4px 0; }
+        .feat-desc { color: #94a3b8; margin: 0; font-size: 14px; }
+        .code { background: #0b0f16; border: 1px solid #1f2937; color: #e2e8f0; font-family: "JetBrains Mono", monospace; font-size: 12px; padding: 10px 12px; border-radius: 8px; display: block; }
+        /* Footer */
+        .footer { padding: 16px 24px 24px 24px; text-align: center; font-family: "JetBrains Mono", monospace; color: #64748b; font-size: 12px; }
+        .link { color: #38bdf8; text-decoration: none; }
+        /* Responsive */
+        @media (max-width: 640px) {
+            .container { width: 92% !important; }
+            .content { padding: 20px; }
+            .header { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+<div class="wrapper">
+    <table role="presentation" width="100%">
+        <tr>
+            <td align="center">
+                <table role="presentation" class="container">
+                    <tr>
+                        <td class="header">
+                            <div class="brand">PORT BUDDY</div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="content">
+                            <!-- Content injection point -->
+                            <div th:fragment="layout(content)">
+                                <th:block th:replace="${content}"></th:block>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="footer">
+                            You’re receiving this email because you created a Port Buddy account.
+                            · <a class="link" th:href="${webAppUrl}" target="_blank" rel="noreferrer">Open Web App</a>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+    <!-- Preheader text -->
+    <div style="display:none; max-height:0; overflow:hidden; opacity:0;">Port Buddy — share local and private services securely.</div>
+  </div>
+</body>
+</html>

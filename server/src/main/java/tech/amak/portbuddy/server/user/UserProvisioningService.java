@@ -7,6 +7,7 @@ package tech.amak.portbuddy.server.user;
 import java.util.Objects;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +17,7 @@ import tech.amak.portbuddy.server.db.entity.AccountEntity;
 import tech.amak.portbuddy.server.db.entity.UserEntity;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
+import tech.amak.portbuddy.server.mail.UserCreatedEvent;
 import tech.amak.portbuddy.server.service.DomainService;
 
 @Service
@@ -26,6 +28,7 @@ public class UserProvisioningService {
     private final AccountRepository accountRepository;
     private final PasswordEncoder passwordEncoder;
     private final DomainService domainService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public record ProvisionedUser(UUID userId, UUID accountId) {
     }
@@ -73,6 +76,11 @@ public class UserProvisioningService {
         user.setExternalId(normalizedEmail);
         user.setPassword(passwordEncoder.encode(password));
         userRepository.save(user);
+
+        // Publish event after user persisted; listener will send email AFTER_COMMIT
+        eventPublisher.publishEvent(new UserCreatedEvent(
+            user.getId(), account.getId(), user.getEmail(), user.getFirstName(), user.getLastName()
+        ));
 
         return new ProvisionedUser(user.getId(), account.getId());
     }
@@ -188,6 +196,11 @@ public class UserProvisioningService {
         user.setExternalId(externalId);
         user.setAvatarUrl(avatarUrl);
         userRepository.save(user);
+
+        // Publish event for brand new user
+        eventPublisher.publishEvent(new UserCreatedEvent(
+            user.getId(), account.getId(), user.getEmail(), user.getFirstName(), user.getLastName()
+        ));
 
         return new ProvisionedUser(user.getId(), account.getId());
     }

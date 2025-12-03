@@ -15,7 +15,8 @@ import org.springframework.util.unit.DataSize;
 public record AppProperties(
     Gateway gateway,
     WebSocket webSocket,
-    Jwt jwt
+    Jwt jwt,
+    Mail mail
 ) {
     public record Gateway(
         String url,
@@ -51,5 +52,11 @@ public record AppProperties(
             Resource privateKeyPem
         ) {
         }
+    }
+
+    public record Mail(
+        String fromAddress,
+        String fromName
+    ) {
     }
 }

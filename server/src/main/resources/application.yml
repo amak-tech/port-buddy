@@ -13,6 +13,9 @@ app:
     domain: localhost:8080
     schema: http
     url: ${app.gateway.schema}://${app.gateway.domain}
+  mail:
+    fromAddress: ${MAIL_FROM:no-reply@portbuddy.dev}
+    fromName: ${MAIL_FROM_NAME:Port Buddy}
 
   tunnels:
     heartbeat-timeout: 2m
@@ -68,6 +71,22 @@ spring:
             jwk-set-uri: https://www.googleapis.com/oauth2/v3/certs
             user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
             user-name-attribute: sub
+  mail:
+    host: ${SMTP_HOST:postbox.cloud.yandex.net}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    protocol: smtp
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+        mime:
+          charset: UTF-8
 management:
   endpoints:
     web:
