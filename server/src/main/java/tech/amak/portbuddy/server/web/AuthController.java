@@ -9,9 +9,12 @@ import java.util.HashMap;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -23,8 +26,11 @@ import tech.amak.portbuddy.common.dto.auth.TokenExchangeResponse;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
 import tech.amak.portbuddy.server.security.JwtService;
 import tech.amak.portbuddy.server.service.ApiTokenService;
-import tech.amak.portbuddy.server.user.UserProvisioningService;
+import tech.amak.portbuddy.server.service.user.PasswordResetService;
+import tech.amak.portbuddy.server.service.user.UserProvisioningService;
 import tech.amak.portbuddy.server.web.dto.LoginRequest;
+import tech.amak.portbuddy.server.web.dto.PasswordResetConfirm;
+import tech.amak.portbuddy.server.web.dto.PasswordResetRequest;
 
 @RestController
 @RequestMapping(path = "/api/auth", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -36,6 +42,7 @@ public class AuthController {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserProvisioningService userProvisioningService;
+    private final PasswordResetService passwordResetService;
 
     /**
      * Exchanges a valid API token for a short-lived JWT suitable for authenticating API and WebSocket calls.
@@ -114,5 +121,47 @@ public class AuthController {
 
         final var jwt = jwtService.createToken(claims, user.getId().toString());
         return new TokenExchangeResponse(jwt, "Bearer");
+    }
+
+    /**
+     * Requests a password reset email.
+     */
+    @PostMapping("/password-reset/request")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void requestPasswordReset(final @RequestBody PasswordResetRequest payload) {
+        if (payload == null || payload.email() == null || payload.email().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email is required");
+        }
+        passwordResetService.requestReset(payload.email());
+    }
+
+    /**
+     * Validates a password reset token.
+     */
+    @GetMapping("/password-reset/validate")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void validateResetToken(final @RequestParam("token") String token) {
+        if (token == null || token.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Token is required");
+        }
+        if (!passwordResetService.validateToken(token)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid or expired token");
+        }
+    }
+
+    /**
+     * Confirms password reset and sets a new password.
+     */
+    @PostMapping("/password-reset/confirm")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void confirmPasswordReset(final @RequestBody PasswordResetConfirm payload) {
+        if (payload == null || payload.token() == null || payload.newPassword() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Token and new password are required");
+        }
+        try {
+            passwordResetService.resetPassword(payload.token(), payload.newPassword());
+        } catch (final IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
     }
 }

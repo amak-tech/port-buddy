@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import Landing from './pages/Landing'
 import Installation from './pages/Installation'
 import Login from './pages/Login'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import Billing from './pages/app/Billing'
 import ProtectedRoute from './components/ProtectedRoute'
 import { useAuth } from './auth/AuthContext'
@@ -38,7 +40,7 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false)
   const location = useLocation()
   const isApp = location.pathname.startsWith('/app')
-  const showHeader = !isApp && location.pathname !== '/login'
+  const showHeader = !isApp && !['/login', '/forgot-password', '/reset-password'].includes(location.pathname)
 
   return (
     <div className="min-h-full flex flex-col bg-slate-950 text-slate-200">
@@ -100,6 +102,8 @@ export default function App() {
           <Route path="/" element={<Landing/>} />
           <Route path="/install" element={<Installation/>} />
           <Route path="/login" element={<Login/>} />
+          <Route path="/forgot-password" element={<ForgotPassword/>} />
+          <Route path="/reset-password" element={<ResetPassword/>} />
           <Route path="/auth/callback" element={<Login/>} />
           {/* App area with sidebar layout */}
           <Route path="/app" element={<ProtectedRoute><AppLayout/></ProtectedRoute>}>

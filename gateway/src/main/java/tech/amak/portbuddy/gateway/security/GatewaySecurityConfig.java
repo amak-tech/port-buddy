@@ -25,10 +25,12 @@ public class GatewaySecurityConfig {
                 .pathMatchers(
                     "/", "/index.html", "/assets/**", "/favicon.*",
                     "/install", "/app/**", "/login/**", "/auth/callback",
+                    "/forgot-password**", "/reset-password**",
                     "/oauth2/**", "/login/oauth2/**",
                     "/.well-known/jwks.json",
                     // Token exchange must be public to let CLI obtain a JWT
-                    "/api/auth/token-exchange", "/api/auth/login", "/api/auth/register"
+                    "/api/auth/token-exchange", "/api/auth/login", "/api/auth/register",
+                    "/api/auth/password-reset/**"
                     ).permitAll()
                 // Secure API endpoints
                 .pathMatchers("/api/**").authenticated()

@@ -40,8 +40,11 @@ public class SecurityConfig {
             .cors(AbstractHttpConfigurer::disable)
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(HttpMethod.POST, "/api/auth/token-exchange",
-                    "/api/auth/login", "/api/auth/register").permitAll()
+                .requestMatchers(HttpMethod.POST,
+                    "/api/auth/token-exchange",
+                    "/api/auth/login",
+                    "/api/auth/register").permitAll()
+                .requestMatchers("/api/auth/password-reset/**").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(apiTokenAuthFilter, BearerTokenAuthenticationFilter.class)

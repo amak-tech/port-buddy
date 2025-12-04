@@ -147,6 +147,11 @@ export default function Login() {
                 >
                   {submitting ? 'Signing in...' : 'Sign in'}
                 </button>
+                <div className="text-center">
+                  <Link to="/forgot-password" className="text-xs text-indigo-400 hover:text-indigo-300 hover:underline">
+                    Forgot password?
+                  </Link>
+                </div>
               </form>
             )}
           </div>

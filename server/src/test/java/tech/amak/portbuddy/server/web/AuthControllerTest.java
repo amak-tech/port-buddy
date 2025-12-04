@@ -27,7 +27,9 @@ import tech.amak.portbuddy.common.dto.auth.RegisterRequest;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
 import tech.amak.portbuddy.server.security.JwtService;
 import tech.amak.portbuddy.server.service.ApiTokenService;
-import tech.amak.portbuddy.server.user.UserProvisioningService;
+import tech.amak.portbuddy.server.service.user.PasswordResetService;
+import tech.amak.portbuddy.server.service.user.UserProvisioningService;
+import tech.amak.portbuddy.server.web.dto.PasswordResetRequest;
 
 @WebMvcTest(AuthController.class)
 @AutoConfigureMockMvc(addFilters = false) // Disable security filters to focus on controller logic
@@ -53,6 +55,9 @@ class AuthControllerTest {
 
     @MockitoBean
     private PasswordEncoder passwordEncoder;
+
+    @MockitoBean
+    private PasswordResetService passwordResetService;
 
     @Test
     void register_shouldReturnApiKey() throws Exception {
@@ -86,5 +91,15 @@ class AuthControllerTest {
             .andExpect(jsonPath("$.success").value(false))
             .andExpect(jsonPath("$.message").value("Email and password are required"))
             .andExpect(jsonPath("$.statusCode").value(400));
+    }
+
+    @Test
+    void requestPasswordReset_shouldReturnNoContent() throws Exception {
+        final var request = new PasswordResetRequest("test@example.com");
+
+        mockMvc.perform(post("/api/auth/password-reset/request")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isNoContent());
     }
 }

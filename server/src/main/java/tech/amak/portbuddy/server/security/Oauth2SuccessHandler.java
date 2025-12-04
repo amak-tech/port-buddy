@@ -22,8 +22,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import tech.amak.portbuddy.server.config.AppProperties;
-import tech.amak.portbuddy.server.user.MissingEmailException;
-import tech.amak.portbuddy.server.user.UserProvisioningService;
+import tech.amak.portbuddy.server.service.user.MissingEmailException;
+import tech.amak.portbuddy.server.service.user.UserProvisioningService;
 
 @Component
 @RequiredArgsConstructor
