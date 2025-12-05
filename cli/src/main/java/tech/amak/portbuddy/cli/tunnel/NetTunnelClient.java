@@ -150,6 +150,26 @@ public class NetTunnelClient {
         }
     }
 
+    private void close(final LocalTcp localTcp) {
+        if (localTcp != null) {
+            try {
+                localTcp.sock.close();
+            } catch (final Exception e) {
+                log.debug("Failed to close TCP: {}", e.toString());
+            }
+        }
+    }
+
+    private void close(final LocalUdp localUdp) {
+        if (localUdp != null) {
+            try {
+                localUdp.sock.close();
+            } catch (final Exception e) {
+                log.debug("Failed to close UDP local: {}", e.toString());
+            }
+        }
+    }
+
     private String toWebSocketUrl(final String httpUri, final String path) {
         var uri = httpUri;
         if (uri.startsWith("http://")) {
@@ -266,11 +286,7 @@ public class NetTunnelClient {
             // Close UDP sockets
             if (tunnelType == TunnelType.UDP) {
                 for (final var entry : udpLocals.entrySet()) {
-                    try {
-                        entry.getValue().sock.close();
-                    } catch (final Exception ignore) {
-                        log.debug("Failed to close UDP local: {}", ignore.toString());
-                    }
+                    close(entry.getValue());
                 }
                 udpLocals.clear();
             }
@@ -287,11 +303,7 @@ public class NetTunnelClient {
             closed.countDown();
             if (tunnelType == TunnelType.UDP) {
                 for (final var entry : udpLocals.entrySet()) {
-                    try {
-                        entry.getValue().sock.close();
-                    } catch (final Exception ignore) {
-                        log.debug("Failed to close UDP local: {}", ignore.toString());
-                    }
+                    close(entry.getValue());
                 }
                 udpLocals.clear();
             }
@@ -372,23 +384,9 @@ public class NetTunnelClient {
             }
             case CLOSE -> {
                 if (tunnelType == TunnelType.TCP) {
-                    final var local = locals.remove(connId);
-                    if (local != null) {
-                        try {
-                            local.sock.close();
-                        } catch (final Exception ignore) {
-                            log.error(ignore.getMessage(), ignore);
-                        }
-                    }
+                    close(locals.remove(connId));
                 } else {
-                    final var local = udpLocals.remove(connId);
-                    if (local != null) {
-                        try {
-                            local.sock.close();
-                        } catch (final Exception ignore) {
-                            log.debug("Failed to close UDP local: {}", ignore.toString());
-                        }
-                    }
+                    close(udpLocals.remove(connId));
                 }
             }
             default -> {
@@ -421,11 +419,7 @@ public class NetTunnelClient {
             } catch (final Exception ignore) {
                 log.error("Failed to send local WS close: {}", ignore.toString());
             }
-            try {
-                local.sock.close();
-            } catch (final Exception ignore) {
-                log.error("Failed to close local TCP: {}", ignore.toString());
-            }
+            close(local);
             locals.remove(local.connectionId);
         }
     }
@@ -460,7 +454,8 @@ public class NetTunnelClient {
             while (!local.sock.isClosed()) {
                 final var packet = new DatagramPacket(buffer, buffer.length);
                 local.sock.receive(packet);
-                final var frame = BinaryWsFrame.encodeToArray(local.connectionId, packet.getData(), packet.getOffset(), packet.getLength());
+                final var frame = BinaryWsFrame
+                    .encodeToArray(local.connectionId, packet.getData(), packet.getOffset(), packet.getLength());
                 webSocket.send(ByteString.of(frame));
                 if (trafficSink != null) {
                     trafficSink.onBytesOut(packet.getLength());
@@ -469,10 +464,7 @@ public class NetTunnelClient {
         } catch (final Exception e) {
             // ignore normal close
         } finally {
-            try {
-                local.sock.close();
-            } catch (final Exception ignore) {
-            }
+            close(local);
             udpLocals.remove(local.connectionId);
         }
     }
