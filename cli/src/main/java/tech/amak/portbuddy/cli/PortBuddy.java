@@ -28,8 +28,8 @@ import tech.amak.portbuddy.cli.tunnel.NetTunnelClient;
 import tech.amak.portbuddy.cli.ui.ConsoleUi;
 import tech.amak.portbuddy.common.ClientConfig;
 import tech.amak.portbuddy.common.Mode;
+import tech.amak.portbuddy.common.dto.ExposeRequest;
 import tech.amak.portbuddy.common.dto.ExposeResponse;
-import tech.amak.portbuddy.common.dto.HttpExposeRequest;
 import tech.amak.portbuddy.common.dto.auth.RegisterRequest;
 import tech.amak.portbuddy.common.dto.auth.RegisterResponse;
 import tech.amak.portbuddy.common.dto.auth.TokenExchangeRequest;
@@ -112,7 +112,7 @@ public class PortBuddy implements Callable<Integer> {
 
         if (mode == Mode.HTTP) {
             final var expose = callExposeHttp(config.getServerUrl(), jwt,
-                new HttpExposeRequest(hostPort.scheme, hostPort.host, hostPort.port, domain));
+                new ExposeRequest(mode, hostPort.scheme, hostPort.host, hostPort.port, domain));
             if (expose == null) {
                 System.err.println("Failed to contact server to create tunnel");
                 return CommandLine.ExitCode.SOFTWARE;
@@ -150,7 +150,7 @@ public class PortBuddy implements Callable<Integer> {
             }
         } else {
             final var expose = callExposeTcp(config.getServerUrl(), jwt,
-                new HttpExposeRequest("tcp", hostPort.host, hostPort.port, null));
+                new ExposeRequest(mode, "tcp", hostPort.host, hostPort.port, null));
             if (expose == null || expose.publicHost() == null || expose.publicPort() == null) {
                 System.err.println("Failed to contact server to create TCP tunnel");
                 return CommandLine.ExitCode.SOFTWARE;
@@ -194,7 +194,7 @@ public class PortBuddy implements Callable<Integer> {
         return CommandLine.ExitCode.OK;
     }
 
-    private ExposeResponse callExposeHttp(final String baseUrl, final String jwt, final HttpExposeRequest reqBody) {
+    private ExposeResponse callExposeHttp(final String baseUrl, final String jwt, final ExposeRequest reqBody) {
         try {
             final var url = baseUrl + "/api/expose/http";
             final var json = MAPPER.writeValueAsString(reqBody);
@@ -226,7 +226,7 @@ public class PortBuddy implements Callable<Integer> {
         }
     }
 
-    private ExposeResponse callExposeTcp(final String baseUrl, final String jwt, final HttpExposeRequest reqBody) {
+    private ExposeResponse callExposeTcp(final String baseUrl, final String jwt, final ExposeRequest reqBody) {
         try {
             final var url = baseUrl + "/api/expose/tcp";
             final var json = MAPPER.writeValueAsString(reqBody);

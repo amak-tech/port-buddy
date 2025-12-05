@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import tech.amak.portbuddy.common.dto.HttpExposeRequest;
+import tech.amak.portbuddy.common.dto.ExposeRequest;
 import tech.amak.portbuddy.server.db.entity.DomainEntity;
 import tech.amak.portbuddy.server.db.entity.TunnelEntity;
 import tech.amak.portbuddy.server.db.entity.TunnelStatus;
@@ -43,7 +43,7 @@ public class TunnelService {
     public TunnelEntity createHttpTunnel(final UUID accountId,
                                          final UUID userId,
                                          final String apiKeyId,
-                                         final HttpExposeRequest request,
+                                         final ExposeRequest request,
                                          final String publicUrl,
                                          final DomainEntity domain) {
         final var tunnel = new TunnelEntity();
@@ -80,10 +80,10 @@ public class TunnelService {
      * @return the created tunnel id (same as entity id string)
      */
     @Transactional
-    public TunnelEntity createPendingTcpTunnel(final UUID accountId,
-                                               final UUID userId,
-                                               final String apiKeyId,
-                                               final HttpExposeRequest request) {
+    public TunnelEntity createNetTunnel(final UUID accountId,
+                                        final UUID userId,
+                                        final String apiKeyId,
+                                        final ExposeRequest request) {
         final var tunnel = new TunnelEntity();
         final var id = UUID.randomUUID();
         tunnel.setId(id);

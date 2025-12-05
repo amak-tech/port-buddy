@@ -18,8 +18,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import tech.amak.portbuddy.common.dto.ExposeRequest;
 import tech.amak.portbuddy.common.dto.ExposeResponse;
-import tech.amak.portbuddy.common.dto.HttpExposeRequest;
 import tech.amak.portbuddy.server.client.NetProxyClient;
 import tech.amak.portbuddy.server.config.AppProperties;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
@@ -52,7 +52,7 @@ public class ExposeController {
      */
     @PostMapping("/http")
     public ExposeResponse exposeHttp(final @AuthenticationPrincipal Jwt jwt,
-                                     final @RequestBody HttpExposeRequest request) {
+                                     final @RequestBody ExposeRequest request) {
         final var userId = resolveUserId(jwt);
         final var user = userRepository.findById(userId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
@@ -90,7 +90,7 @@ public class ExposeController {
      */
     @PostMapping("/tcp")
     public ExposeResponse exposeTcp(final @AuthenticationPrincipal Jwt jwt,
-                                    final @RequestBody HttpExposeRequest request) {
+                                    final @RequestBody ExposeRequest request) {
         final var userId = resolveUserId(jwt);
         final var user = userRepository.findById(userId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
@@ -98,7 +98,7 @@ public class ExposeController {
 
         final var apiKeyId = extractApiKeyId(jwt);
         // Pre-create tunnel and use its DB id as tunnelId
-        final var tunnel = tunnelService.createPendingTcpTunnel(account.getId(), user.getId(), apiKeyId, request);
+        final var tunnel = tunnelService.createNetTunnel(account.getId(), user.getId(), apiKeyId, request);
         final var tunnelId = tunnel.getId();
 
         // Ask the selected net-proxy to allocate a public TCP port for this tunnelId
