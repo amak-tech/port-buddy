@@ -150,14 +150,14 @@ public class PortBuddy implements Callable<Integer> {
             }
         } else {
             final var expose = callExposeTunnel(config.getServerUrl(), jwt,
-                new ExposeRequest(mode, "tcp", hostPort.host, hostPort.port, null));
+                new ExposeRequest(mode, mode == TunnelType.UDP ? "udp" : "tcp", hostPort.host, hostPort.port, null));
             if (expose == null || expose.publicHost() == null || expose.publicPort() == null) {
-                System.err.println("Failed to contact server to create TCP tunnel");
+                System.err.println("Failed to contact server to create " + mode + " tunnel");
                 return CommandLine.ExitCode.SOFTWARE;
             }
-            final var localInfo = String.format("tcp %s:%d", hostPort.host, hostPort.port);
+            final var localInfo = String.format("%s %s:%d", mode.name().toLowerCase(), hostPort.host, hostPort.port);
             final var publicInfo = String.format("%s:%d", expose.publicHost(), expose.publicPort());
-            final var ui = new ConsoleUi(TunnelType.TCP, localInfo, publicInfo);
+            final var ui = new ConsoleUi(mode, localInfo, publicInfo);
             final var tunnelId = expose.tunnelId();
             if (tunnelId == null) {
                 System.err.println("Server did not return tunnelId");
@@ -177,9 +177,10 @@ public class PortBuddy implements Callable<Integer> {
                 tunnelId,
                 hostPort.host,
                 hostPort.port,
+                mode,
                 jwt,
                 ui);
-            final var thread = new Thread(tcpClient::runBlocking, "port-buddy-tcp-client");
+            final var thread = new Thread(tcpClient::runBlocking, "port-buddy-net-client-" + mode.name().toLowerCase());
             ui.setOnExit(tcpClient::close);
             thread.start();
             ui.start();

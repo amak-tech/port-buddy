@@ -8,6 +8,8 @@ import static tech.amak.portbuddy.cli.utils.JsonUtils.MAPPER;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.Base64;
@@ -32,6 +34,7 @@ import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
 import okio.ByteString;
 import tech.amak.portbuddy.cli.ui.NetTrafficSink;
+import tech.amak.portbuddy.common.TunnelType;
 import tech.amak.portbuddy.common.tunnel.BinaryWsFrame;
 import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
 
@@ -48,6 +51,7 @@ public class NetTunnelClient {
     private final UUID tunnelId;
     private final String localHost;
     private final int localPort;
+    private final TunnelType tunnelType;
     private final String authToken; // Bearer token if available
     private final NetTrafficSink trafficSink;
 
@@ -56,6 +60,7 @@ public class NetTunnelClient {
     private WebSocket webSocket;
 
     private final Map<String, LocalTcp> locals = new ConcurrentHashMap<>();
+    private final Map<String, LocalUdp> udpLocals = new ConcurrentHashMap<>();
     private CountDownLatch closed = new CountDownLatch(1);
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
         final var thread = new Thread(runnable, "pb-net-heartbeat");
@@ -67,7 +72,7 @@ public class NetTunnelClient {
     private final AtomicBoolean stop = new AtomicBoolean(false);
 
     /**
-     * Establishes and maintains a WebSocket connection for TCP tunneling.
+     * Establishes and maintains a WebSocket connection for TCP/UDP tunneling.
      * This method constructs the WebSocket URL using the configured proxy host, port, and tunnel ID.
      * It sets up an authentication token in the request header, if provided, and initializes the WebSocket connection.
      * The method blocks the current thread until the connection is closed or an interruption occurs.
@@ -98,14 +103,14 @@ public class NetTunnelClient {
                     break;
                 }
                 // Reconnect with backoff
-                log.info("TCP tunnel disconnected; reconnecting in {} ms...", backoffMs);
+                log.info("Net tunnel disconnected; reconnecting in {} ms...", backoffMs);
                 Thread.sleep(backoffMs);
                 backoffMs = Math.min(backoffMs * 2, maxBackoffMs);
             } catch (final InterruptedException e) {
                 Thread.currentThread().interrupt();
                 break;
             } catch (final Exception e) {
-                log.warn("TCP tunnel loop error: {}", e.toString());
+                log.warn("Net tunnel loop error: {}", e.toString());
                 try {
                     Thread.sleep(backoffMs);
                 } catch (final InterruptedException ie) {
@@ -165,7 +170,7 @@ public class NetTunnelClient {
             try {
                 postStatus("/api/tunnels/" + tunnelId + "/connected");
             } catch (final Exception e) {
-                log.debug("Failed to report TCP connected: {}", e.toString());
+                log.debug("Failed to report NET connected: {}", e.toString());
             }
             // allow reporting CLOSED again for future disconnects after a successful reconnect
             closedReported.set(false);
@@ -178,11 +183,11 @@ public class NetTunnelClient {
                     try {
                         postStatus("/api/tunnels/" + tunnelId + "/heartbeat");
                     } catch (final Exception e) {
-                        log.debug("TCP heartbeat failed: {}", e.toString());
+                        log.debug("NET heartbeat failed: {}", e.toString());
                     }
                 }, 0, 20, TimeUnit.SECONDS);
             } catch (final Exception e) {
-                log.debug("Failed to start TCP heartbeat: {}", e.toString());
+                log.debug("Failed to start NET heartbeat: {}", e.toString());
             }
         }
 
@@ -203,16 +208,45 @@ public class NetTunnelClient {
                 if (decoded == null) {
                     return;
                 }
-                final var local = locals.get(decoded.connectionId());
-                if (local != null) {
+                if (tunnelType == TunnelType.TCP) {
+                    final var local = locals.get(decoded.connectionId());
+                    if (local != null) {
+                        try {
+                            local.out.write(decoded.data());
+                            local.out.flush();
+                            if (trafficSink != null) {
+                                trafficSink.onBytesIn(decoded.data().length);
+                            }
+                        } catch (final Exception e) {
+                            log.debug("Write to local TCP failed: {}", e.toString());
+                        }
+                    }
+                } else if (tunnelType == TunnelType.UDP) {
+                    // For UDP, forward the datagram to local UDP server using per-connection socket
+                    final var connId = decoded.connectionId();
+                    var localUdp = udpLocals.get(connId);
+                    if (localUdp == null) {
+                        try {
+                            final var sock = new DatagramSocket();
+                            localUdp = new LocalUdp(connId, sock);
+                            udpLocals.put(connId, localUdp);
+                            // start receive loop for this connection
+                            final var localUdpRef = localUdp;
+                            new Thread(() -> pumpUdpLocalToProxy(localUdpRef)).start();
+                        } catch (final Exception e) {
+                            log.debug("Failed to create local UDP socket: {}", e.toString());
+                            return;
+                        }
+                    }
                     try {
-                        local.out.write(decoded.data());
-                        local.out.flush();
+                        final var packet = new DatagramPacket(decoded.data(), decoded.data().length,
+                            new InetSocketAddress(localHost, localPort));
+                        localUdp.sock.send(packet);
                         if (trafficSink != null) {
                             trafficSink.onBytesIn(decoded.data().length);
                         }
                     } catch (final Exception e) {
-                        log.debug("Write to local TCP failed: {}", e.toString());
+                        log.debug("Write to local UDP failed: {}", e.toString());
                     }
                 }
             } catch (final Exception e) {
@@ -229,6 +263,17 @@ public class NetTunnelClient {
             }
             reportClosedSafe();
             closed.countDown();
+            // Close UDP sockets
+            if (tunnelType == TunnelType.UDP) {
+                for (final var entry : udpLocals.entrySet()) {
+                    try {
+                        entry.getValue().sock.close();
+                    } catch (final Exception ignore) {
+                        log.debug("Failed to close UDP local: {}", ignore.toString());
+                    }
+                }
+                udpLocals.clear();
+            }
         }
 
         @Override
@@ -240,6 +285,16 @@ public class NetTunnelClient {
             }
             reportClosedSafe();
             closed.countDown();
+            if (tunnelType == TunnelType.UDP) {
+                for (final var entry : udpLocals.entrySet()) {
+                    try {
+                        entry.getValue().sock.close();
+                    } catch (final Exception ignore) {
+                        log.debug("Failed to close UDP local: {}", ignore.toString());
+                    }
+                }
+                udpLocals.clear();
+            }
         }
     }
 
@@ -248,7 +303,7 @@ public class NetTunnelClient {
             try {
                 postStatus("/api/tunnels/" + tunnelId + "/closed");
             } catch (final Exception e) {
-                log.debug("Failed to report TCP closed: {}", e.toString());
+                log.debug("Failed to report NET closed: {}", e.toString());
             }
         }
     }
@@ -257,42 +312,82 @@ public class NetTunnelClient {
         final var connId = message.getConnectionId();
         switch (message.getWsType()) {
             case OPEN -> {
-                // Establish local TCP
-                final var socket = new Socket();
-                socket.connect(new InetSocketAddress(localHost, localPort), 5000);
-                final var local = new LocalTcp(connId, socket);
-                locals.put(connId, local);
-                // Ack
-                final var ack = new WsTunnelMessage();
-                ack.setWsType(WsTunnelMessage.Type.OPEN_OK);
-                ack.setConnectionId(connId);
-                webSocket.send(MAPPER.writeValueAsString(ack));
-                // Start reader thread from local TCP to proxy WS
-                new Thread(() -> pumpLocalToProxy(local)).start();
+                if (tunnelType == TunnelType.TCP) {
+                    // Establish local TCP
+                    final var socket = new Socket();
+                    socket.connect(new InetSocketAddress(localHost, localPort), 5000);
+                    final var local = new LocalTcp(connId, socket);
+                    locals.put(connId, local);
+                    // Ack
+                    final var ack = new WsTunnelMessage();
+                    ack.setWsType(WsTunnelMessage.Type.OPEN_OK);
+                    ack.setConnectionId(connId);
+                    webSocket.send(MAPPER.writeValueAsString(ack));
+                    // Start reader thread from local TCP to proxy WS
+                    new Thread(() -> pumpLocalToProxy(local)).start();
+                } else {
+                    // UDP does not use OPEN for per-flow; ignore or acknowledge for compatibility
+                    final var ack = new WsTunnelMessage();
+                    ack.setWsType(WsTunnelMessage.Type.OPEN_OK);
+                    ack.setConnectionId(connId);
+                    webSocket.send(MAPPER.writeValueAsString(ack));
+                }
             }
             case BINARY -> {
-                // Base64 payload from proxy to local TCP
-                final var local = locals.get(connId);
-                if (local != null && message.getDataB64() != null) {
-                    try {
+                if (tunnelType == TunnelType.TCP) {
+                    // Base64 payload from proxy to local TCP (legacy)
+                    final var local = locals.get(connId);
+                    if (local != null && message.getDataB64() != null) {
+                        try {
+                            final var bytes = Base64.getDecoder().decode(message.getDataB64());
+                            local.out.write(bytes);
+                            local.out.flush();
+                            if (trafficSink != null) {
+                                trafficSink.onBytesIn(bytes.length);
+                            }
+                        } catch (final Exception e) {
+                            log.debug("Write to local TCP failed: {}", e.toString());
+                        }
+                    }
+                } else if (tunnelType == TunnelType.UDP) {
+                    // Legacy TEXT BINARY for UDP: forward to local as datagram
+                    if (message.getDataB64() != null) {
+                        var localUdp = udpLocals.get(connId);
+                        if (localUdp == null) {
+                            final var sock = new DatagramSocket();
+                            localUdp = new LocalUdp(connId, sock);
+                            udpLocals.put(connId, localUdp);
+                            final var localUdpRef = localUdp;
+                            new Thread(() -> pumpUdpLocalToProxy(localUdpRef)).start();
+                        }
                         final var bytes = Base64.getDecoder().decode(message.getDataB64());
-                        local.out.write(bytes);
-                        local.out.flush();
+                        final var packet = new DatagramPacket(bytes, bytes.length,
+                            new InetSocketAddress(localHost, localPort));
+                        localUdp.sock.send(packet);
                         if (trafficSink != null) {
                             trafficSink.onBytesIn(bytes.length);
                         }
-                    } catch (final Exception e) {
-                        log.debug("Write to local TCP failed: {}", e.toString());
                     }
                 }
             }
             case CLOSE -> {
-                final var local = locals.remove(connId);
-                if (local != null) {
-                    try {
-                        local.sock.close();
-                    } catch (final Exception ignore) {
-                        log.error(ignore.getMessage(), ignore);
+                if (tunnelType == TunnelType.TCP) {
+                    final var local = locals.remove(connId);
+                    if (local != null) {
+                        try {
+                            local.sock.close();
+                        } catch (final Exception ignore) {
+                            log.error(ignore.getMessage(), ignore);
+                        }
+                    }
+                } else {
+                    final var local = udpLocals.remove(connId);
+                    if (local != null) {
+                        try {
+                            local.sock.close();
+                        } catch (final Exception ignore) {
+                            log.debug("Failed to close UDP local: {}", ignore.toString());
+                        }
                     }
                 }
             }
@@ -346,6 +441,39 @@ public class NetTunnelClient {
             this.sock = sock;
             this.in = sock.getInputStream();
             this.out = sock.getOutputStream();
+        }
+    }
+
+    private static class LocalUdp {
+        final String connectionId;
+        final DatagramSocket sock;
+
+        LocalUdp(final String connectionId, final DatagramSocket sock) {
+            this.connectionId = connectionId;
+            this.sock = sock;
+        }
+    }
+
+    private void pumpUdpLocalToProxy(final LocalUdp local) {
+        final var buffer = new byte[65535];
+        try {
+            while (!local.sock.isClosed()) {
+                final var packet = new DatagramPacket(buffer, buffer.length);
+                local.sock.receive(packet);
+                final var frame = BinaryWsFrame.encodeToArray(local.connectionId, packet.getData(), packet.getOffset(), packet.getLength());
+                webSocket.send(ByteString.of(frame));
+                if (trafficSink != null) {
+                    trafficSink.onBytesOut(packet.getLength());
+                }
+            }
+        } catch (final Exception e) {
+            // ignore normal close
+        } finally {
+            try {
+                local.sock.close();
+            } catch (final Exception ignore) {
+            }
+            udpLocals.remove(local.connectionId);
         }
     }
 
