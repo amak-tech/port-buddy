@@ -103,7 +103,7 @@ public class ExposeController {
 
         // Ask the selected net-proxy to allocate a public TCP port for this tunnelId
         try {
-            final var exposeResponse = netProxyClient.exposePort(tunnelId);
+            final var exposeResponse = netProxyClient.exposePort(tunnelId, "tcp");
             log.info("Expose TCP port response: {}", exposeResponse);
 
             tunnelService.updateTcpTunnelPublic(tunnelId, exposeResponse.publicHost(), exposeResponse.publicPort());
@@ -113,6 +113,38 @@ public class ExposeController {
         }
 
         throw new RuntimeException("Failed to allocate public TCP port for tunnelId=" + tunnelId);
+    }
+
+    /**
+     * Allocates a public UDP port to expose a local UDP service using the provided request
+     * details. This method interacts with a net proxy client to assign a unique tunnel ID
+     * and configure the UDP exposure.
+     */
+    @PostMapping("/udp")
+    public ExposeResponse exposeUdp(final @AuthenticationPrincipal Jwt jwt,
+                                    final @RequestBody ExposeRequest request) {
+        final var userId = resolveUserId(jwt);
+        final var user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+        final var account = user.getAccount();
+
+        final var apiKeyId = extractApiKeyId(jwt);
+        // Pre-create tunnel and use its DB id as tunnelId
+        final var tunnel = tunnelService.createNetTunnel(account.getId(), user.getId(), apiKeyId, request);
+        final var tunnelId = tunnel.getId();
+
+        // Ask the selected net-proxy to allocate a public UDP port for this tunnelId
+        try {
+            final var exposeResponse = netProxyClient.exposePort(tunnelId, "udp");
+            log.info("Expose UDP port response: {}", exposeResponse);
+
+            tunnelService.updateTcpTunnelPublic(tunnelId, exposeResponse.publicHost(), exposeResponse.publicPort());
+            return exposeResponse;
+        } catch (final Exception e) {
+            log.error("Failed to allocate public UDP port for tunnelId={}: {}", tunnelId, e.getMessage(), e);
+        }
+
+        throw new RuntimeException("Failed to allocate public UDP port for tunnelId=" + tunnelId);
     }
 
     private String extractApiKeyId(final Jwt jwt) {
