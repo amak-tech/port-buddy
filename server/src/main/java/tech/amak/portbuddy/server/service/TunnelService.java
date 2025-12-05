@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.dto.ExposeRequest;
 import tech.amak.portbuddy.server.db.entity.DomainEntity;
+import tech.amak.portbuddy.server.db.entity.PortReservationEntity;
 import tech.amak.portbuddy.server.db.entity.TunnelEntity;
 import tech.amak.portbuddy.server.db.entity.TunnelStatus;
 import tech.amak.portbuddy.server.db.repo.TunnelRepository;
@@ -111,6 +112,19 @@ public class TunnelService {
         findByTunnelId(tunnelId).ifPresent(entity -> {
             entity.setPublicHost(publicHost);
             entity.setPublicPort(publicPort);
+            tunnelRepository.save(entity);
+        });
+    }
+
+    /**
+     * Updates the tunnel with selected port reservation and sets public host/port from reservation.
+     */
+    @Transactional
+    public void assignReservation(final UUID tunnelId, final PortReservationEntity reservation) {
+        findByTunnelId(tunnelId).ifPresent(entity -> {
+            entity.setPortReservation(reservation);
+            entity.setPublicHost(reservation.getPublicHost());
+            entity.setPublicPort(reservation.getPublicPort());
             tunnelRepository.save(entity);
         });
     }

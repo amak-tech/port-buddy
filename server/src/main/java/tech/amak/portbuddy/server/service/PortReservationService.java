@@ -17,7 +17,9 @@ import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.server.config.AppProperties;
 import tech.amak.portbuddy.server.db.entity.AccountEntity;
 import tech.amak.portbuddy.server.db.entity.PortReservationEntity;
+import tech.amak.portbuddy.server.db.entity.TunnelStatus;
 import tech.amak.portbuddy.server.db.repo.PortReservationRepository;
+import tech.amak.portbuddy.server.db.repo.TunnelRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +30,7 @@ public class PortReservationService {
 
     private final PortReservationRepository repository;
     private final ProxyDiscoveryService proxyDiscoveryService;
+    private final TunnelRepository tunnelRepository;
     private final AppProperties properties;
 
     @Transactional(readOnly = true)
@@ -112,5 +115,63 @@ public class PortReservationService {
         final var entity = repository.findByIdAndAccount(id, account)
             .orElseThrow(() -> new RuntimeException("Reservation not found"));
         repository.delete(entity);
+    }
+
+    /**
+     * Resolve a port reservation for a NET (TCP/UDP) expose request according to rules:
+     * - If explicit reservation host:port provided, ensure it belongs to the account and is not used by any active tunnel.
+     * - Otherwise, if there was a previous tunnel for the same local resource that used a reservation and it's free, reuse it.
+     * - Otherwise, pick the first existing reservation of the account that is not in use by any active tunnel.
+     * - If none exist, create a new reservation and return it.
+     */
+    @Transactional
+    public PortReservationEntity resolveForNetExpose(final AccountEntity account,
+                                                     final tech.amak.portbuddy.server.db.entity.UserEntity user,
+                                                     final String localHost,
+                                                     final int localPort,
+                                                     final String explicitHostPort) {
+        // 1) Explicit reservation
+        if (explicitHostPort != null && !explicitHostPort.isBlank()) {
+            final var hp = explicitHostPort.trim();
+            final int colon = hp.lastIndexOf(':');
+            if (colon <= 0 || colon == hp.length() - 1) {
+                throw new IllegalArgumentException("Invalid --port-reservation value, expected host:port");
+            }
+            final String host = hp.substring(0, colon);
+            final Integer port = Integer.parseInt(hp.substring(colon + 1));
+            final var reservation = repository.findByAccountAndHostPort(account, host, port)
+                .orElseThrow(() -> new IllegalArgumentException("Port reservation not found for this account: " + hp));
+            if (isReservationInUse(reservation)) {
+                throw new IllegalStateException("Port reservation is currently in use: " + hp);
+            }
+            return reservation;
+        }
+
+        // 2) Reuse by same local resource if possible
+        final var prev = tunnelRepository
+            .findFirstByAccountIdAndLocalHostAndLocalPortAndPortReservationIsNotNullOrderByCreatedAtDesc(
+                account.getId(), localHost, localPort);
+        if (prev.isPresent()) {
+            final var res = prev.get().getPortReservation();
+            if (res != null && !isReservationInUse(res)) {
+                return res;
+            }
+        }
+
+        // 3) First available among existing reservations
+        final var existing = repository.findAllByAccount(account).stream()
+            .sorted(Comparator.comparing(PortReservationEntity::getCreatedAt))
+            .filter(res -> !isReservationInUse(res))
+            .findFirst();
+        if (existing.isPresent()) {
+            return existing.get();
+        }
+
+        // 4) Create new reservation
+        return createReservation(account, user);
+    }
+
+    private boolean isReservationInUse(final PortReservationEntity reservation) {
+        return tunnelRepository.existsByPortReservationAndStatusNot(reservation, TunnelStatus.CLOSED);
     }
 }

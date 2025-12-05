@@ -77,6 +77,10 @@ public class TunnelEntity {
     @JoinColumn(name = "domain_id")
     private DomainEntity domain;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "port_reservation_id")
+    private PortReservationEntity portReservation;
+
     @Column(name = "last_heartbeat_at")
     private OffsetDateTime lastHeartbeatAt;
 

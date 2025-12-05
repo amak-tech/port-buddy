@@ -49,10 +49,10 @@ public class NetTunnelRegistry {
      * @return exposed public port info
      * @throws IOException on IO errors
      */
-    public ExposedPort expose(final UUID tunnelId, final TunnelType tunnelType) throws IOException {
+    public ExposedPort expose(final UUID tunnelId, final TunnelType tunnelType, final Integer desiredPort) throws IOException {
         return switch (tunnelType) {
-            case UDP -> exposeUdp(tunnelId);
-            case TCP -> exposeTcp(tunnelId);
+            case UDP -> exposeUdp(tunnelId, desiredPort);
+            case TCP -> exposeTcp(tunnelId, desiredPort);
             default -> throw new IllegalArgumentException("Unsupported tunnel type: " + tunnelType);
         };
     }
@@ -60,12 +60,17 @@ public class NetTunnelRegistry {
     /**
      * Expose TCP.
      */
-    private ExposedPort exposeTcp(final UUID tunnelId) throws IOException {
+    private ExposedPort exposeTcp(final UUID tunnelId, final Integer desiredPort) throws IOException {
         final var tunnel = byTunnelId.computeIfAbsent(tunnelId, Tunnel::new);
         if (tunnel.serverSocket != null && !tunnel.serverSocket.isClosed()) {
             return new ExposedPort(tunnel.serverSocket.getLocalPort());
         }
-        final var serverSocket = new ServerSocket(0);
+        final ServerSocket serverSocket;
+        if (desiredPort != null && desiredPort > 0) {
+            serverSocket = new ServerSocket(desiredPort);
+        } else {
+            serverSocket = new ServerSocket(0);
+        }
         tunnel.serverSocket = serverSocket;
         ioPool.execute(() -> acceptLoop(tunnel));
         return new ExposedPort(serverSocket.getLocalPort());
@@ -75,12 +80,17 @@ public class NetTunnelRegistry {
      * Expose UDP by binding a datagram socket and starting a receive loop that forwards
      * datagrams over the control WebSocket using binary frames.
      */
-    private ExposedPort exposeUdp(final UUID tunnelId) throws IOException {
+    private ExposedPort exposeUdp(final UUID tunnelId, final Integer desiredPort) throws IOException {
         final var tunnel = byTunnelId.computeIfAbsent(tunnelId, Tunnel::new);
         if (tunnel.udpSocket != null && !tunnel.udpSocket.isClosed()) {
             return new ExposedPort(tunnel.udpSocket.getLocalPort());
         }
-        final var socket = new DatagramSocket(0);
+        final DatagramSocket socket;
+        if (desiredPort != null && desiredPort > 0) {
+            socket = new DatagramSocket(desiredPort);
+        } else {
+            socket = new DatagramSocket(0);
+        }
         tunnel.udpSocket = socket;
         ioPool.execute(() -> udpReceiveLoop(tunnel));
         return new ExposedPort(socket.getLocalPort());

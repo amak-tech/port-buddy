@@ -28,8 +28,9 @@ public class NetProxyController {
 
     @PostMapping("/expose")
     public ExposeResponse expose(final @RequestParam("tunnelId") UUID tunnelId,
-                                 final @RequestParam("type") TunnelType type) throws Exception {
-        final var exposedPort = registry.expose(tunnelId, type);
+                                 final @RequestParam("type") TunnelType type,
+                                 final @RequestParam(value = "desiredPort", required = false) Integer desiredPort) throws Exception {
+        final var exposedPort = registry.expose(tunnelId, type, desiredPort);
         return new ExposeResponse(null, null, properties.publicHost(), exposedPort.getPort(), tunnelId, null);
     }
 

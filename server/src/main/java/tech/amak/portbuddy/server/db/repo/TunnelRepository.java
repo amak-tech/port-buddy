@@ -17,6 +17,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import tech.amak.portbuddy.server.db.entity.DomainEntity;
+import tech.amak.portbuddy.server.db.entity.PortReservationEntity;
 import tech.amak.portbuddy.server.db.entity.TunnelEntity;
 import tech.amak.portbuddy.server.db.entity.TunnelStatus;
 
@@ -38,6 +39,11 @@ public interface TunnelRepository extends JpaRepository<TunnelEntity, UUID> {
     }
 
     Page<TunnelEntity> findAllByAccountId(UUID accountId, Pageable pageable);
+
+    boolean existsByPortReservationAndStatusNot(PortReservationEntity portReservation, TunnelStatus status);
+
+    Optional<TunnelEntity> findFirstByAccountIdAndLocalHostAndLocalPortAndPortReservationIsNotNullOrderByCreatedAtDesc(
+        UUID accountId, String localHost, Integer localPort);
 
     @Query(value = """
         SELECT *

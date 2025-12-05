@@ -53,6 +53,9 @@ public class PortBuddy implements Callable<Integer> {
     @Option(names = {"-d", "--domain"}, description = "Requested domain (e.g. my-domain or my-domain.portbuddy.dev)")
     private String domain;
 
+    @Option(names = {"-pr", "--port-reservation"}, description = "Use specific port reservation host:port for TCP/UDP (e.g. tcp-proxy-1.portbuddy.dev:45432)")
+    private String portReservation;
+
     @Parameters(
         arity = "0..2",
         description = "[mode] [host:][port] or [schema://]host[:port]. Examples: '3000', 'localhost', 'example.com:8080', 'https://example.com'"
@@ -112,7 +115,7 @@ public class PortBuddy implements Callable<Integer> {
 
         if (mode == TunnelType.HTTP) {
             final var expose = callExposeTunnel(config.getServerUrl(), jwt,
-                new ExposeRequest(mode, hostPort.scheme, hostPort.host, hostPort.port, domain));
+                new ExposeRequest(mode, hostPort.scheme, hostPort.host, hostPort.port, domain, null));
             if (expose == null) {
                 System.err.println("Failed to contact server to create tunnel");
                 return CommandLine.ExitCode.SOFTWARE;
@@ -150,7 +153,7 @@ public class PortBuddy implements Callable<Integer> {
             }
         } else {
             final var expose = callExposeTunnel(config.getServerUrl(), jwt,
-                new ExposeRequest(mode, mode == TunnelType.UDP ? "udp" : "tcp", hostPort.host, hostPort.port, null));
+                new ExposeRequest(mode, mode == TunnelType.UDP ? "udp" : "tcp", hostPort.host, hostPort.port, null, portReservation));
             if (expose == null || expose.publicHost() == null || expose.publicPort() == null) {
                 System.err.println("Failed to contact server to create " + mode + " tunnel");
                 return CommandLine.ExitCode.SOFTWARE;
