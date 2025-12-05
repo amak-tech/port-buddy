@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
+import tech.amak.portbuddy.common.TunnelType;
 import tech.amak.portbuddy.common.dto.ExposeResponse;
 import tech.amak.portbuddy.netproxy.config.AppProperties;
 import tech.amak.portbuddy.netproxy.tunnel.NetTunnelRegistry;
@@ -27,8 +28,8 @@ public class NetProxyController {
 
     @PostMapping("/expose")
     public ExposeResponse expose(final @RequestParam("tunnelId") UUID tunnelId,
-                                 final @RequestParam("protocol") String protocol) throws Exception {
-        final var exposedPort = registry.expose(tunnelId, protocol);
+                                 final @RequestParam("type") TunnelType type) throws Exception {
+        final var exposedPort = registry.expose(tunnelId, type);
         return new ExposeResponse(null, null, properties.publicHost(), exposedPort.getPort(), tunnelId, null);
     }
 

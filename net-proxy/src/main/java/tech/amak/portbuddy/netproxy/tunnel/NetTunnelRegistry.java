@@ -27,6 +27,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import tech.amak.portbuddy.common.TunnelType;
 import tech.amak.portbuddy.common.tunnel.BinaryWsFrame;
 import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
 
@@ -41,18 +42,18 @@ public class NetTunnelRegistry {
     private final ObjectMapper mapper;
 
     /**
-     * Exposes a network tunnel for either TCP or UDP based on protocol parameter.
+     * Exposes a network tunnel for either TCP or UDP based on tunnelType parameter.
      *
-     * @param tunnelId tunnel identifier
-     * @param protocol protocol string ("tcp" or "udp")
+     * @param tunnelId   tunnel identifier
+     * @param tunnelType tunnelType string ("tcp" or "udp")
      * @return exposed public port info
      * @throws IOException on IO errors
      */
-    public ExposedPort expose(final UUID tunnelId, final String protocol) throws IOException {
-        final var proto = protocol == null ? "tcp" : protocol.toLowerCase();
-        return switch (proto) {
-            case "udp" -> exposeUdp(tunnelId);
-            default -> exposeTcp(tunnelId);
+    public ExposedPort expose(final UUID tunnelId, final TunnelType tunnelType) throws IOException {
+        return switch (tunnelType) {
+            case UDP -> exposeUdp(tunnelId);
+            case TCP -> exposeTcp(tunnelId);
+            default -> throw new IllegalArgumentException("Unsupported tunnel type: " + tunnelType);
         };
     }
 

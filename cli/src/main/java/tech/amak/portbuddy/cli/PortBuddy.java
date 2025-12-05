@@ -27,7 +27,7 @@ import tech.amak.portbuddy.cli.tunnel.HttpTunnelClient;
 import tech.amak.portbuddy.cli.tunnel.NetTunnelClient;
 import tech.amak.portbuddy.cli.ui.ConsoleUi;
 import tech.amak.portbuddy.common.ClientConfig;
-import tech.amak.portbuddy.common.Mode;
+import tech.amak.portbuddy.common.TunnelType;
 import tech.amak.portbuddy.common.dto.ExposeRequest;
 import tech.amak.portbuddy.common.dto.ExposeResponse;
 import tech.amak.portbuddy.common.dto.auth.RegisterRequest;
@@ -86,7 +86,7 @@ public class PortBuddy implements Callable<Integer> {
             hostPortStr = args.get(1);
         }
 
-        final var mode = Mode.from(modeStr);
+        final var mode = TunnelType.from(modeStr);
         final var hostPort = parseHostPort(hostPortStr);
         if (hostPort.port < 1 || hostPort.port > 65535) {
             System.err.println("Port must be in range [1, 65535]");
@@ -110,8 +110,8 @@ public class PortBuddy implements Callable<Integer> {
             return CommandLine.ExitCode.SOFTWARE;
         }
 
-        if (mode == Mode.HTTP) {
-            final var expose = callExposeHttp(config.getServerUrl(), jwt,
+        if (mode == TunnelType.HTTP) {
+            final var expose = callExposeTunnel(config.getServerUrl(), jwt,
                 new ExposeRequest(mode, hostPort.scheme, hostPort.host, hostPort.port, domain));
             if (expose == null) {
                 System.err.println("Failed to contact server to create tunnel");
@@ -120,7 +120,7 @@ public class PortBuddy implements Callable<Integer> {
 
             final var localInfo = String.format("%s://%s:%d", hostPort.scheme, hostPort.host, hostPort.port);
             final var publicInfo = expose.publicUrl();
-            final var ui = new ConsoleUi(Mode.HTTP, localInfo, publicInfo);
+            final var ui = new ConsoleUi(TunnelType.HTTP, localInfo, publicInfo);
             final var tunnelId = expose.tunnelId();
             if (tunnelId == null) {
                 System.err.println("Server did not return tunnelId");
@@ -149,7 +149,7 @@ public class PortBuddy implements Callable<Integer> {
                 Thread.currentThread().interrupt();
             }
         } else {
-            final var expose = callExposeTcp(config.getServerUrl(), jwt,
+            final var expose = callExposeTunnel(config.getServerUrl(), jwt,
                 new ExposeRequest(mode, "tcp", hostPort.host, hostPort.port, null));
             if (expose == null || expose.publicHost() == null || expose.publicPort() == null) {
                 System.err.println("Failed to contact server to create TCP tunnel");
@@ -157,7 +157,7 @@ public class PortBuddy implements Callable<Integer> {
             }
             final var localInfo = String.format("tcp %s:%d", hostPort.host, hostPort.port);
             final var publicInfo = String.format("%s:%d", expose.publicHost(), expose.publicPort());
-            final var ui = new ConsoleUi(Mode.TCP, localInfo, publicInfo);
+            final var ui = new ConsoleUi(TunnelType.TCP, localInfo, publicInfo);
             final var tunnelId = expose.tunnelId();
             if (tunnelId == null) {
                 System.err.println("Server did not return tunnelId");
@@ -194,51 +194,23 @@ public class PortBuddy implements Callable<Integer> {
         return CommandLine.ExitCode.OK;
     }
 
-    private ExposeResponse callExposeHttp(final String baseUrl, final String jwt, final ExposeRequest reqBody) {
+    private ExposeResponse callExposeTunnel(final String baseUrl, final String jwt, final ExposeRequest requestBody) {
+        final var tunnelType = requestBody.tunnelType();
+
         try {
-            final var url = baseUrl + "/api/expose/http";
-            final var json = MAPPER.writeValueAsString(reqBody);
-            final var reqBuilder = new Request.Builder()
+            final var url = baseUrl + "/api/expose/"
+                            + (tunnelType == TunnelType.HTTP ? "http" : "net");
+
+            final var json = MAPPER.writeValueAsString(requestBody);
+            final var request = new Request.Builder()
                 .url(url)
                 .post(RequestBody.create(json, MediaType.parse("application/json")))
-                .header("Authorization", "Bearer " + jwt);
-            final var request = reqBuilder.build();
+                .header("Authorization", "Bearer " + jwt)
+                .build();
 
             try (final var response = http.newCall(request).execute()) {
                 if (!response.isSuccessful()) {
-                    log.warn("Expose HTTP failed: {} {}", response.code(), response.message());
-                    if (response.code() == 401) {
-                        System.err.println("Authentication failed. Please re-initialize CLI with a valid API Key.\n"
-                                           + "Example: port-buddy init {API_TOKEN}");
-                    }
-                    return null;
-                }
-                final var body = response.body();
-                if (body == null) {
-                    return null;
-                }
-                final var str = body.string();
-                return MAPPER.readValue(str, ExposeResponse.class);
-            }
-        } catch (final Exception e) {
-            log.warn("Expose HTTP call error: {}", e.toString());
-            return null;
-        }
-    }
-
-    private ExposeResponse callExposeTcp(final String baseUrl, final String jwt, final ExposeRequest reqBody) {
-        try {
-            final var url = baseUrl + "/api/expose/tcp";
-            final var json = MAPPER.writeValueAsString(reqBody);
-            final var reqBuilder = new Request.Builder()
-                .url(url)
-                .post(RequestBody.create(json, MediaType.parse("application/json")))
-                .header("Authorization", "Bearer " + jwt);
-            final var request = reqBuilder.build();
-
-            try (final var response = http.newCall(request).execute()) {
-                if (!response.isSuccessful()) {
-                    log.warn("Expose TCP failed: {} {}", response.code(), response.message());
+                    log.warn("Expose {} failed: {} {}", tunnelType, response.code(), response.message());
                     if (response.code() == 401) {
                         System.err.println("Authentication failed. Please re-initialize CLI with a valid API Key.\n"
                                            + "Example: port-buddy init {API_TOKEN}");
@@ -252,7 +224,7 @@ public class PortBuddy implements Callable<Integer> {
                 return MAPPER.readValue(body.string(), ExposeResponse.class);
             }
         } catch (final Exception e) {
-            log.warn("Expose TCP call error: {}", e.toString());
+            log.warn("Expose {} tunnel call error: {}", tunnelType, e.toString());
             return null;
         }
     }

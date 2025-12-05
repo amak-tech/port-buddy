@@ -26,7 +26,7 @@ public interface NetProxyClient {
 
     @PostMapping("/api/net-proxy/expose")
     ExposeResponse exposePort(@RequestParam("tunnelId") UUID tunnelId,
-                              @RequestParam("protocol") String protocol);
+                              @RequestParam("type") String protocol);
 
     class Configuration {
 

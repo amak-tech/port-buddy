@@ -24,7 +24,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.cli.config.ConfigurationService;
 import tech.amak.portbuddy.common.ClientConfig;
-import tech.amak.portbuddy.common.Mode;
+import tech.amak.portbuddy.common.TunnelType;
 import tech.amak.portbuddy.common.dto.auth.RegisterRequest;
 
 @Slf4j
@@ -34,7 +34,7 @@ public class ConsoleUi implements HttpLogSink, NetTrafficSink {
     public record HttpLog(String method, String url, int status) {
     }
 
-    private final Mode mode;
+    private final TunnelType tunnelType;
     private final String localDetails;
     private final String publicDetails;
 
@@ -137,7 +137,7 @@ public class ConsoleUi implements HttpLogSink, NetTrafficSink {
 
         clear();
 
-        out.printf("Port Buddy - Mode: %s%n", mode.name().toLowerCase());
+        out.printf("Port Buddy - Mode: %s%n", tunnelType.name().toLowerCase());
         out.println();
         out.printf("Local:  %s%n", localDetails);
         out.printf("Public: %s%n", publicDetails);
@@ -245,7 +245,7 @@ public class ConsoleUi implements HttpLogSink, NetTrafficSink {
     }
 
     private void render() {
-        if (mode == Mode.HTTP) {
+        if (tunnelType == TunnelType.HTTP) {
 
             synchronized (httpLogs) {
                 if (httpLogs.isEmpty()) {

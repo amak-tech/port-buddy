@@ -4,7 +4,7 @@
 
 package tech.amak.portbuddy.common.dto;
 
-import tech.amak.portbuddy.common.Mode;
+import tech.amak.portbuddy.common.TunnelType;
 
 /** Request to expose a local HTTP service. */
-public record ExposeRequest(Mode mode, String scheme, String host, int port, String domain) {}
+public record ExposeRequest(TunnelType tunnelType, String scheme, String host, int port, String domain) {}
