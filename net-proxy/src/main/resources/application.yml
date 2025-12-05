@@ -20,7 +20,7 @@ spring:
           jwk-set-uri: http://localhost:8080/.well-known/jwks.json
 
 app:
-  public-host: localhost
+  public-host: ${PUBLIC_HOST:localhost}
   web-socket:
     max-text-message-size: 100MB
     max-binary-message-size: 1GB

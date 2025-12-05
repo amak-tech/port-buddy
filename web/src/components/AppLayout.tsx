@@ -7,6 +7,7 @@ import {
   ArrowsRightLeftIcon,
   Cog8ToothIcon,
   GlobeAltIcon,
+  LinkIcon,
   LockClosedIcon,
   WalletIcon,
   PowerIcon,
@@ -36,6 +37,7 @@ export default function AppLayout() {
             <SideLink to="/app" end label="Tunnels" Icon={ArrowsRightLeftIcon} />
             <SideLink to="/app/tokens" label="Access Tokens" Icon={LockClosedIcon} />
             <SideLink to="/app/domains" label="Domains" Icon={GlobeAltIcon} />
+            <SideLink to="/app/ports" label="Port Reservations" Icon={LinkIcon} />
             <SideLink to="/app/billing" label="Billing" Icon={WalletIcon} />
             <SideLink to="/app/settings" label="Settings" Icon={Cog8ToothIcon} />
           </nav>

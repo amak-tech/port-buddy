@@ -121,6 +121,9 @@ public class PortReservationService {
     public void deleteReservation(final UUID id, final AccountEntity account) {
         final var entity = repository.findByIdAndAccount(id, account)
             .orElseThrow(() -> new RuntimeException("Reservation not found"));
+        if (isReservationInUse(entity)) {
+            throw new IllegalStateException("Reservation is in use by active tunnels");
+        }
         repository.delete(entity);
     }
 
@@ -182,5 +185,39 @@ public class PortReservationService {
 
     private boolean isReservationInUse(final PortReservationEntity reservation) {
         return tunnelRepository.existsByPortReservationAndStatusNot(reservation, TunnelStatus.CLOSED);
+    }
+
+    /**
+     * Updates an existing reservation host/port ensuring constraints.
+     */
+    @Transactional
+    public PortReservationEntity updateReservation(final AccountEntity account,
+                                                   final UUID id,
+                                                   final String host,
+                                                   final Integer port) {
+        final var entity = repository.findByIdAndAccount(id, account)
+            .orElseThrow(() -> new RuntimeException("Reservation not found"));
+        if (isReservationInUse(entity)) {
+            throw new IllegalStateException("Reservation is in use by active tunnels");
+        }
+
+        if (host != null) {
+            final var hosts = proxyDiscoveryService.listPublicHosts();
+            if (hosts.isEmpty() || !hosts.contains(host)) {
+                throw new IllegalArgumentException("Unknown public host: " + host);
+            }
+            entity.setPublicHost(host);
+        }
+
+        if (port != null) {
+            final var range = properties.portReservations().range();
+            if (port < range.min() || port > range.max()) {
+                throw new IllegalArgumentException("Port is out of allowed range");
+            }
+            entity.setPublicPort(port);
+        }
+
+        // Trigger unique check on save
+        return repository.saveAndFlush(entity);
     }
 }

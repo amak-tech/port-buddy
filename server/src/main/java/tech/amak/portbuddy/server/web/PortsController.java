@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -22,10 +24,14 @@ import org.springframework.web.server.ResponseStatusException;
 
 import lombok.RequiredArgsConstructor;
 import tech.amak.portbuddy.server.db.entity.AccountEntity;
+import tech.amak.portbuddy.server.config.AppProperties;
+import tech.amak.portbuddy.server.service.ProxyDiscoveryService;
 import tech.amak.portbuddy.server.db.entity.PortReservationEntity;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
 import tech.amak.portbuddy.server.service.PortReservationService;
 import tech.amak.portbuddy.server.web.dto.PortReservationDto;
+import tech.amak.portbuddy.server.web.dto.PortReservationUpdateRequest;
+import tech.amak.portbuddy.server.web.dto.PortRangeDto;
 
 @RestController
 @RequestMapping(path = "/api/ports", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -34,6 +40,8 @@ public class PortsController {
 
     private final PortReservationService reservationService;
     private final UserRepository userRepository;
+    private final ProxyDiscoveryService proxyDiscoveryService;
+    private final AppProperties properties;
 
     /**
      * Retrieves a list of port reservations for the authenticated user's account.
@@ -71,7 +79,47 @@ public class PortsController {
     public void delete(final @AuthenticationPrincipal Jwt principal,
                        @PathVariable("id") final UUID id) {
         final var account = getAccount(principal);
-        reservationService.deleteReservation(id, account);
+        try {
+            reservationService.deleteReservation(id, account);
+        } catch (final IllegalStateException e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
+        }
+    }
+
+    /**
+     * Updates an existing port reservation. If there is only one available public host, UI may send only port.
+     */
+    @PutMapping("/{id}")
+    public PortReservationDto update(final @AuthenticationPrincipal Jwt principal,
+                                     @PathVariable("id") final UUID id,
+                                     @RequestBody final PortReservationUpdateRequest body) {
+        final var account = getAccount(principal);
+        try {
+            final var updated = reservationService.updateReservation(account, id, body.publicHost(), body.publicPort());
+            return toDto(updated);
+        } catch (final IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        } catch (final IllegalStateException e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
+        }
+    }
+
+    /**
+     * Lists available tcp-proxy public hosts for selection.
+     */
+    @GetMapping("/hosts")
+    public List<String> hosts() {
+        return proxyDiscoveryService.listPublicHosts();
+    }
+
+    /**
+     * Returns allowed port range for a given host. Currently same for all hosts, derived from config.
+     */
+    @GetMapping("/hosts/{host}/range")
+    public PortRangeDto hostRange(@PathVariable("host") final String host) {
+        // Not validating host existence here; UI should have called /hosts first
+        final var range = properties.portReservations().range();
+        return new PortRangeDto(range.min(), range.max());
     }
 
     private AccountEntity getAccount(final Jwt jwt) {

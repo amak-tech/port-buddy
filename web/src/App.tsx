@@ -13,6 +13,7 @@ import Tunnels from './pages/app/Tunnels'
 import Tokens from './pages/app/Tokens'
 import Domains from './pages/app/Domains'
 import Settings from './pages/app/Settings'
+import Ports from './pages/app/Ports'
 
 function ScrollToHash() {
   const location = useLocation()
@@ -110,6 +111,7 @@ export default function App() {
             <Route index element={<Tunnels/>} />
             <Route path="tokens" element={<Tokens/>} />
             <Route path="domains" element={<Domains/>} />
+            <Route path="ports" element={<Ports/>} />
             <Route path="billing" element={<Billing/>} />
             <Route path="settings" element={<Settings/>} />
           </Route>

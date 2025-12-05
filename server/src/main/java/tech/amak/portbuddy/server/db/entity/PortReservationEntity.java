@@ -17,6 +17,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Where;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -26,6 +28,8 @@ import lombok.Setter;
 @NoArgsConstructor
 @Entity
 @Table(name = "port_reservations")
+@SQLDelete(sql = "UPDATE port_reservations SET deleted = true, updated_at = NOW() WHERE id = ?")
+@Where(clause = "deleted = false")
 public class PortReservationEntity {
 
     @Id
@@ -53,4 +57,7 @@ public class PortReservationEntity {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
+
+    @Column(name = "deleted", nullable = false)
+    private boolean deleted = false;
 }
