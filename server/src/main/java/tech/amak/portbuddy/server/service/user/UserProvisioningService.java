@@ -19,6 +19,7 @@ import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
 import tech.amak.portbuddy.server.mail.UserCreatedEvent;
 import tech.amak.portbuddy.server.service.DomainService;
+import tech.amak.portbuddy.server.service.PortReservationService;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +29,7 @@ public class UserProvisioningService {
     private final AccountRepository accountRepository;
     private final PasswordEncoder passwordEncoder;
     private final DomainService domainService;
+    private final PortReservationService portReservationService;
     private final ApplicationEventPublisher eventPublisher;
 
     public record ProvisionedUser(UUID userId, UUID accountId) {
@@ -76,6 +78,13 @@ public class UserProvisioningService {
         user.setExternalId(normalizedEmail);
         user.setPassword(passwordEncoder.encode(password));
         userRepository.save(user);
+
+        // Try to create an initial port reservation for the account by this user
+        try {
+            portReservationService.createReservation(account, user);
+        } catch (final Exception ignored) {
+            // per spec: if no host/port found during new account creation - ignore
+        }
 
         // Publish event after user persisted; listener will send email AFTER_COMMIT
         eventPublisher.publishEvent(new UserCreatedEvent(
@@ -196,6 +205,13 @@ public class UserProvisioningService {
         user.setExternalId(externalId);
         user.setAvatarUrl(avatarUrl);
         userRepository.save(user);
+
+        // Try to create an initial port reservation for the account by this user
+        try {
+            portReservationService.createReservation(account, user);
+        } catch (final Exception ignored) {
+            // per spec: ignore if no host/port available during account creation
+        }
 
         // Publish event for brand new user
         eventPublisher.publishEvent(new UserCreatedEvent(

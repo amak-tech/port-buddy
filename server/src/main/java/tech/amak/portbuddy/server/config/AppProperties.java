@@ -16,7 +16,8 @@ public record AppProperties(
     Gateway gateway,
     WebSocket webSocket,
     Jwt jwt,
-    Mail mail
+    Mail mail,
+    PortReservations portReservations
 ) {
     public record Gateway(
         String url,
@@ -58,5 +59,15 @@ public record AppProperties(
         String fromAddress,
         String fromName
     ) {
+    }
+
+    public record PortReservations(
+        Range range
+    ) {
+        public record Range(
+            int min,
+            int max
+        ) {
+        }
     }
 }

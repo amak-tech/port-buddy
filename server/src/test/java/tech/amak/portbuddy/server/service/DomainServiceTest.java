@@ -44,7 +44,9 @@ class DomainServiceTest {
     void setUp() {
         final var gateway = new AppProperties.Gateway("url", "portbuddy.dev", "https");
         final var mail = new AppProperties.Mail("no-reply@localhost", "Port Buddy");
-        final var appProps = new AppProperties(gateway, null, null, mail);
+        final var portReservations =
+            new AppProperties.PortReservations(new AppProperties.PortReservations.Range(40000, 60000));
+        final var appProps = new AppProperties(gateway, null, null, mail, portReservations);
 
         domainService = new DomainService(domainRepository, tunnelRepository, appProps);
         account = new AccountEntity();
