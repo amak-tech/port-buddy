@@ -87,7 +87,11 @@ public class TunnelService {
         final var tunnel = new TunnelEntity();
         final var id = UUID.randomUUID();
         tunnel.setId(id);
-        tunnel.setType(TunnelType.TCP);
+        // Determine type based on request mode
+        final var type = request != null && request.mode() != null && request.mode().name().equals("UDP")
+            ? TunnelType.UDP
+            : TunnelType.TCP;
+        tunnel.setType(type);
         tunnel.setStatus(TunnelStatus.PENDING);
         tunnel.setAccountId(accountId);
         tunnel.setUserId(userId);
@@ -100,8 +104,8 @@ public class TunnelService {
             tunnel.setLocalPort(request.port());
         }
         tunnelRepository.save(tunnel);
-        log.info("Created pending TCP tunnel record tunnelId={} accountId={} userId={}",
-            id, accountId, userId);
+        log.info("Created pending {} tunnel record tunnelId={} accountId={} userId={}",
+            type, id, accountId, userId);
         return tunnel;
     }
 

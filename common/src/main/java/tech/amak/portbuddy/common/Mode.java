@@ -28,6 +28,7 @@ public enum Mode {
         return switch (mode.toLowerCase()) {
             case "http" -> HTTP;
             case "tcp" -> TCP;
+            case "udp" -> UDP;
             default -> throw new IllegalArgumentException("Unknown mode: " + mode);
         };
     }

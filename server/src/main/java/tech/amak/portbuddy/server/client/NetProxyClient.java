@@ -25,7 +25,8 @@ import tech.amak.portbuddy.common.dto.ExposeResponse;
 public interface NetProxyClient {
 
     @PostMapping("/api/net-proxy/expose")
-    ExposeResponse exposePort(@RequestParam("tunnelId") UUID tunnelId);
+    ExposeResponse exposePort(@RequestParam("tunnelId") UUID tunnelId,
+                              @RequestParam("protocol") String protocol);
 
     class Configuration {
 

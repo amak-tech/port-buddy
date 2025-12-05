@@ -7,5 +7,6 @@ package tech.amak.portbuddy.server.db.entity;
 /** Tunnel type. */
 public enum TunnelType {
     HTTP,
-    TCP
+    TCP,
+    UDP
 }

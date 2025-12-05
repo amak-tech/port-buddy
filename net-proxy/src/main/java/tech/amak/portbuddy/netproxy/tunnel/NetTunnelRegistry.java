@@ -5,6 +5,9 @@
 package tech.amak.portbuddy.netproxy.tunnel;
 
 import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Base64;
@@ -38,18 +41,25 @@ public class NetTunnelRegistry {
     private final ObjectMapper mapper;
 
     /**
-     * Exposes a TCP tunnel by creating or retrieving a {@link Tunnel} corresponding to the provided
-     * tunnel ID and initializes a {@link ServerSocket} for incoming connections. If the tunnel already
-     * exists and its server socket is open, it returns the existing exposed port. Otherwise, a new
-     * server socket is created, bound to an available port, and an accept loop is started to handle
-     * incoming connections. The exposed local port is returned in an {@link ExposedPort} object.
+     * Exposes a network tunnel for either TCP or UDP based on protocol parameter.
      *
-     * @param tunnelId the identifier of the tunnel to be exposed; if no tunnel exists for this ID,
-     *                 a new one is created.
-     * @return the {@link ExposedPort} object containing the TCP port exposed by the tunnel.
-     * @throws IOException if an I/O error occurs during the initialization of the server socket.
+     * @param tunnelId tunnel identifier
+     * @param protocol protocol string ("tcp" or "udp")
+     * @return exposed public port info
+     * @throws IOException on IO errors
      */
-    public ExposedPort expose(final UUID tunnelId) throws IOException {
+    public ExposedPort expose(final UUID tunnelId, final String protocol) throws IOException {
+        final var proto = protocol == null ? "tcp" : protocol.toLowerCase();
+        return switch (proto) {
+            case "udp" -> exposeUdp(tunnelId);
+            default -> exposeTcp(tunnelId);
+        };
+    }
+
+    /**
+     * Expose TCP.
+     */
+    private ExposedPort exposeTcp(final UUID tunnelId) throws IOException {
         final var tunnel = byTunnelId.computeIfAbsent(tunnelId, Tunnel::new);
         if (tunnel.serverSocket != null && !tunnel.serverSocket.isClosed()) {
             return new ExposedPort(tunnel.serverSocket.getLocalPort());
@@ -58,6 +68,21 @@ public class NetTunnelRegistry {
         tunnel.serverSocket = serverSocket;
         ioPool.execute(() -> acceptLoop(tunnel));
         return new ExposedPort(serverSocket.getLocalPort());
+    }
+
+    /**
+     * Expose UDP by binding a datagram socket and starting a receive loop that forwards
+     * datagrams over the control WebSocket using binary frames.
+     */
+    private ExposedPort exposeUdp(final UUID tunnelId) throws IOException {
+        final var tunnel = byTunnelId.computeIfAbsent(tunnelId, Tunnel::new);
+        if (tunnel.udpSocket != null && !tunnel.udpSocket.isClosed()) {
+            return new ExposedPort(tunnel.udpSocket.getLocalPort());
+        }
+        final var socket = new DatagramSocket(0);
+        tunnel.udpSocket = socket;
+        ioPool.execute(() -> udpReceiveLoop(tunnel));
+        return new ExposedPort(socket.getLocalPort());
     }
 
     public void attachSession(final UUID tunnelId, final WebSocketSession session) {
@@ -122,6 +147,22 @@ public class NetTunnelRegistry {
         }
     }
 
+    private void udpReceiveLoop(final Tunnel tunnel) {
+        final var buffer = new byte[65535];
+        try {
+            while (tunnel.udpSocket != null && !tunnel.udpSocket.isClosed()) {
+                final var packet = new DatagramPacket(buffer, buffer.length);
+                tunnel.udpSocket.receive(packet);
+                final var remote = new InetSocketAddress(packet.getAddress(), packet.getPort());
+                final var connectionId = remote.getHostString() + ":" + remote.getPort();
+                tunnel.udpRemotes.putIfAbsent(connectionId, remote);
+                sendBinaryToClient(tunnel, connectionId, packet.getData(), packet.getOffset(), packet.getLength());
+            }
+        } catch (final Exception e) {
+            log.info("UDP receive loop ended for tunnel {}: {}", tunnel.tunnelId, e.toString());
+        }
+    }
+
     /**
      * Called when client acknowledges an OPEN with OPEN_OK. Starts pumping data
      * from the public socket to the client over WebSocket for the given connection.
@@ -168,6 +209,22 @@ public class NetTunnelRegistry {
         if (tunnel == null) {
             return;
         }
+        // If UDP is active on this tunnel, route as a datagram
+        if (tunnel.udpSocket != null) {
+            final var remote = tunnel.udpRemotes.get(connectionId);
+            if (remote == null) {
+                return;
+            }
+            try {
+                final var packet = new DatagramPacket(data, 0, data.length, remote);
+                tunnel.udpSocket.send(packet);
+            } catch (final IOException e) {
+                log.debug("Failed to send UDP packet: {}", e.toString());
+            }
+            return;
+        }
+
+        // Else assume TCP
         final var connection = tunnel.connections.get(connectionId);
         if (connection == null) {
             return;
@@ -192,12 +249,17 @@ public class NetTunnelRegistry {
         if (tunnel == null) {
             return;
         }
-        final var connection = tunnel.connections.remove(connectionId);
-        if (connection != null) {
-            try {
-                connection.socket.close();
-            } catch (final IOException ignore) {
-                log.error("Failed to close public socket: {}", ignore.toString());
+        if (tunnel.udpSocket != null) {
+            // Just remove mapping; no need to close the UDP socket itself
+            tunnel.udpRemotes.remove(connectionId);
+        } else {
+            final var connection = tunnel.connections.remove(connectionId);
+            if (connection != null) {
+                try {
+                    connection.socket.close();
+                } catch (final IOException ignore) {
+                    log.error("Failed to close public socket: {}", ignore.toString());
+                }
             }
         }
     }
@@ -245,6 +307,8 @@ public class NetTunnelRegistry {
         private volatile WebSocketSession session;
         private volatile ServerSocket serverSocket;
         private final Map<String, Connection> connections = new ConcurrentHashMap<>();
+        private volatile DatagramSocket udpSocket;
+        private final Map<String, InetSocketAddress> udpRemotes = new ConcurrentHashMap<>();
 
         Tunnel(final UUID tunnelId) {
             this.tunnelId = tunnelId;
