@@ -53,7 +53,8 @@ public class PortBuddy implements Callable<Integer> {
     @Option(names = {"-d", "--domain"}, description = "Requested domain (e.g. my-domain or my-domain.portbuddy.dev)")
     private String domain;
 
-    @Option(names = {"-pr", "--port-reservation"}, description = "Use specific port reservation host:port for TCP/UDP (e.g. tcp-proxy-1.portbuddy.dev:45432)")
+    @Option(names = {"-pr", "--port-reservation"},
+        description = "Use specific port reservation host:port for TCP/UDP (e.g. tcp-proxy-1.portbuddy.dev:45432)")
     private String portReservation;
 
     @Parameters(
@@ -152,8 +153,9 @@ public class PortBuddy implements Callable<Integer> {
                 Thread.currentThread().interrupt();
             }
         } else {
+            final var scheme = mode == TunnelType.UDP ? "udp" : "tcp";
             final var expose = callExposeTunnel(config.getServerUrl(), jwt,
-                new ExposeRequest(mode, mode == TunnelType.UDP ? "udp" : "tcp", hostPort.host, hostPort.port, null, portReservation));
+                new ExposeRequest(mode, scheme, hostPort.host, hostPort.port, null, portReservation));
             if (expose == null || expose.publicHost() == null || expose.publicPort() == null) {
                 System.err.println("Failed to contact server to create " + mode + " tunnel");
                 return CommandLine.ExitCode.SOFTWARE;

@@ -35,6 +35,12 @@ public class PortsController {
     private final PortReservationService reservationService;
     private final UserRepository userRepository;
 
+    /**
+     * Retrieves a list of port reservations for the authenticated user's account.
+     *
+     * @param principal the authenticated user's JWT token, which holds the user information.
+     * @return a list of {@code PortReservationDto} objects representing the port reservations for the user's account.
+     */
     @GetMapping
     public List<PortReservationDto> list(final @AuthenticationPrincipal Jwt principal) {
         final var account = getAccount(principal);
@@ -43,6 +49,13 @@ public class PortsController {
             .toList();
     }
 
+    /**
+     * Creates a new port reservation for the authenticated user's account.
+     *
+     * @param principal the authenticated user's JWT token containing user details.
+     * @return a {@code PortReservationDto} object representing the newly created port reservation.
+     * @throws ResponseStatusException if the user cannot be found or is not authorized.
+     */
     @PostMapping
     public PortReservationDto create(final @AuthenticationPrincipal Jwt principal) {
         final var userId = UUID.fromString(principal.getSubject());

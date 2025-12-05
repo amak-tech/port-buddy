@@ -18,6 +18,7 @@ import tech.amak.portbuddy.server.config.AppProperties;
 import tech.amak.portbuddy.server.db.entity.AccountEntity;
 import tech.amak.portbuddy.server.db.entity.PortReservationEntity;
 import tech.amak.portbuddy.server.db.entity.TunnelStatus;
+import tech.amak.portbuddy.server.db.entity.UserEntity;
 import tech.amak.portbuddy.server.db.repo.PortReservationRepository;
 import tech.amak.portbuddy.server.db.repo.TunnelRepository;
 
@@ -44,11 +45,11 @@ public class PortReservationService {
      * - Port assignments are incremental per host within configurable range [min,max].
      * - If next port for the selected host is out of range, try the next host.
      * - If no combination can be generated, throw an exception.
-     *
      * Uniqueness is enforced by a DB unique constraint; in case of race conflicts, the operation retries.
      */
     @Transactional
-    public PortReservationEntity createReservation(final AccountEntity account, final tech.amak.portbuddy.server.db.entity.UserEntity user) {
+    public PortReservationEntity createReservation(final AccountEntity account,
+                                                   final UserEntity user) {
         final var hosts = proxyDiscoveryService.listPublicHosts();
         if (hosts.isEmpty()) {
             throw new IllegalStateException("No available tcp-proxy hosts found");
@@ -110,6 +111,12 @@ public class PortReservationService {
         return next;
     }
 
+    /**
+     * Deletes a reservation associated with the specified account.
+     *
+     * @param id      the unique identifier of the reservation to delete
+     * @param account the account entity associated with the reservation
+     */
     @Transactional
     public void deleteReservation(final UUID id, final AccountEntity account) {
         final var entity = repository.findByIdAndAccount(id, account)
@@ -119,14 +126,16 @@ public class PortReservationService {
 
     /**
      * Resolve a port reservation for a NET (TCP/UDP) expose request according to rules:
-     * - If explicit reservation host:port provided, ensure it belongs to the account and is not used by any active tunnel.
-     * - Otherwise, if there was a previous tunnel for the same local resource that used a reservation and it's free, reuse it.
+     * - If explicit reservation host:port provided, ensure it belongs to the account and is not used by any active
+     * tunnel.
+     * - Otherwise, if there was a previous tunnel for the same local resource that used a reservation
+     * and it's free, reuse it.
      * - Otherwise, pick the first existing reservation of the account that is not in use by any active tunnel.
      * - If none exist, create a new reservation and return it.
      */
     @Transactional
     public PortReservationEntity resolveForNetExpose(final AccountEntity account,
-                                                     final tech.amak.portbuddy.server.db.entity.UserEntity user,
+                                                     final UserEntity user,
                                                      final String localHost,
                                                      final int localPort,
                                                      final String explicitHostPort) {
@@ -139,7 +148,7 @@ public class PortReservationService {
             }
             final String host = hp.substring(0, colon);
             final Integer port = Integer.parseInt(hp.substring(colon + 1));
-            final var reservation = repository.findByAccountAndHostPort(account, host, port)
+            final var reservation = repository.findByAccountAndPublicHostAndPublicPort(account, host, port)
                 .orElseThrow(() -> new IllegalArgumentException("Port reservation not found for this account: " + hp));
             if (isReservationInUse(reservation)) {
                 throw new IllegalStateException("Port reservation is currently in use: " + hp);

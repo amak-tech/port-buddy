@@ -28,8 +28,7 @@ public interface PortReservationRepository extends JpaRepository<PortReservation
     @Query("select max(pr.publicPort) from PortReservationEntity pr where pr.publicHost = :host")
     Optional<Integer> findMaxPortByHost(@Param("host") String publicHost);
 
-    @Query("select pr from PortReservationEntity pr where pr.account = :account and pr.publicHost = :host and pr.publicPort = :port")
-    Optional<PortReservationEntity> findByAccountAndHostPort(@Param("account") AccountEntity account,
-                                                             @Param("host") String host,
-                                                             @Param("port") Integer port);
+    Optional<PortReservationEntity> findByAccountAndPublicHostAndPublicPort(AccountEntity account,
+                                                                            String host,
+                                                                            Integer port);
 }
