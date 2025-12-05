@@ -31,4 +31,23 @@ public interface PortReservationRepository extends JpaRepository<PortReservation
     Optional<PortReservationEntity> findByAccountAndPublicHostAndPublicPort(AccountEntity account,
                                                                             String host,
                                                                             Integer port);
+
+    /**
+     * Finds the minimal free public port for the specified host within the provided inclusive range
+     * using a single SQL query. Only non-deleted reservations are considered busy.
+     */
+    @Query(value = """
+        select gs.port
+        from generate_series(:min, :max) as gs(port)
+        left join port_reservations pr
+               on pr.public_host = :host
+              and pr.public_port = gs.port
+              and pr.deleted = false
+        where pr.public_port is null
+        order by gs.port
+        limit 1
+        """, nativeQuery = true)
+    Optional<Integer> findMinimalFreePort(@Param("host") String host,
+                                          @Param("min") int min,
+                                          @Param("max") int max);
 }

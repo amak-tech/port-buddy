@@ -23,15 +23,15 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import lombok.RequiredArgsConstructor;
-import tech.amak.portbuddy.server.db.entity.AccountEntity;
 import tech.amak.portbuddy.server.config.AppProperties;
-import tech.amak.portbuddy.server.service.ProxyDiscoveryService;
+import tech.amak.portbuddy.server.db.entity.AccountEntity;
 import tech.amak.portbuddy.server.db.entity.PortReservationEntity;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
 import tech.amak.portbuddy.server.service.PortReservationService;
+import tech.amak.portbuddy.server.service.ProxyDiscoveryService;
+import tech.amak.portbuddy.server.web.dto.PortRangeDto;
 import tech.amak.portbuddy.server.web.dto.PortReservationDto;
 import tech.amak.portbuddy.server.web.dto.PortReservationUpdateRequest;
-import tech.amak.portbuddy.server.web.dto.PortRangeDto;
 
 @RestController
 @RequestMapping(path = "/api/ports", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -74,10 +74,19 @@ public class PortsController {
         return toDto(reservation);
     }
 
+    /**
+     * Deletes a port reservation for the specified ID if it belongs to the authenticated user's account.
+     * Responds with a 204 No Content status on success.
+     *
+     * @param principal the authenticated user's JWT token, used to determine the user's account.
+     * @param id        the unique identifier of the port reservation to be deleted.
+     * @throws ResponseStatusException with a 409 Conflict status if the reservation cannot be deleted
+     *                                 due to an illegal state.
+     */
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(final @AuthenticationPrincipal Jwt principal,
-                       @PathVariable("id") final UUID id) {
+                       final @PathVariable("id") UUID id) {
         final var account = getAccount(principal);
         try {
             reservationService.deleteReservation(id, account);
@@ -91,8 +100,8 @@ public class PortsController {
      */
     @PutMapping("/{id}")
     public PortReservationDto update(final @AuthenticationPrincipal Jwt principal,
-                                     @PathVariable("id") final UUID id,
-                                     @RequestBody final PortReservationUpdateRequest body) {
+                                     final @PathVariable("id") UUID id,
+                                     final @RequestBody PortReservationUpdateRequest body) {
         final var account = getAccount(principal);
         try {
             final var updated = reservationService.updateReservation(account, id, body.publicHost(), body.publicPort());

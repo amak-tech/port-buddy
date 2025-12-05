@@ -100,15 +100,8 @@ public class PortReservationService {
     }
 
     private Integer computeNextPort(final String host, final int min, final int max) {
-        final var maxPortOpt = repository.findMaxPortByHost(host);
-        final int next = maxPortOpt.map(p -> p + 1).orElse(min);
-        if (next < min) {
-            return min;
-        }
-        if (next > max) {
-            return null; // out of range for this host
-        }
-        return next;
+        // Efficiently find the minimal available port via a single DB query.
+        return repository.findMinimalFreePort(host, min, max).orElse(null);
     }
 
     /**

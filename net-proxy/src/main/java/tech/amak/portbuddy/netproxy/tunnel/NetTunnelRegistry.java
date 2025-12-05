@@ -49,7 +49,8 @@ public class NetTunnelRegistry {
      * @return exposed public port info
      * @throws IOException on IO errors
      */
-    public ExposedPort expose(final UUID tunnelId, final TunnelType tunnelType, final Integer desiredPort) throws IOException {
+    public ExposedPort expose(final UUID tunnelId, final TunnelType tunnelType, final Integer desiredPort)
+        throws IOException {
         return switch (tunnelType) {
             case UDP -> exposeUdp(tunnelId, desiredPort);
             case TCP -> exposeTcp(tunnelId, desiredPort);
