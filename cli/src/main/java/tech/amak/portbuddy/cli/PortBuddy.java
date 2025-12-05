@@ -24,7 +24,7 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 import tech.amak.portbuddy.cli.config.ConfigurationService;
 import tech.amak.portbuddy.cli.tunnel.HttpTunnelClient;
-import tech.amak.portbuddy.cli.tunnel.TcpTunnelClient;
+import tech.amak.portbuddy.cli.tunnel.NetTunnelClient;
 import tech.amak.portbuddy.cli.ui.ConsoleUi;
 import tech.amak.portbuddy.common.ClientConfig;
 import tech.amak.portbuddy.common.Mode;
@@ -170,7 +170,7 @@ public class PortBuddy implements Callable<Integer> {
                 ? ("https".equalsIgnoreCase(serverUri.getScheme()) ? 443 : 80)
                 : serverUri.getPort();
             final var secure = "https".equalsIgnoreCase(serverUri.getScheme());
-            final var tcpClient = new TcpTunnelClient(
+            final var tcpClient = new NetTunnelClient(
                 wsHost,
                 wsPort,
                 secure,

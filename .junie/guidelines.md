@@ -5,7 +5,7 @@ This project is a tool that allows you to share a port opened on the local host 
 It is built as a client-server application that exposes a port opened on the local host or in private network to the public network. It is an analog of ngrok.com but much simpler. 
 
 To expose a port, user runs command-line application and specify host(optionally) and port number to expose. command template: `port-buddy [mode] [host:][port]`. Where:
-* `mode` is optional and could be one of the following: [http, tcp]. `http` is a default mode.
+* `mode` is optional and could be one of the following: [http, tcp, udp]. `http` is a default mode.
 * `host` is optional and could be valid ip address or domain name. For instance [localhost, 127.0.0.1, myserveraddress.com]. `localhost` is a default host.
 * `port` is required. must be in range [1, 65535].
 
@@ -15,7 +15,7 @@ If someone opens this url (https://abc123.portbuddy.dev) in the browser, he will
 Technically, any http request or websocket connection to the url (https://abc123.portbuddy.dev) will be proxied through client application `port-buddy` to the user's web-app running at localhost:3000.
 
 TCP example: user wants to open a connection to the database which is running in a private network to public network and share it to someone. For instance, user has postgresql db running on localhost:5432.
-User run command `port-buddy tcp 5432`. Console output: `tcp localhost:5432 exposed to: tcp-proxy-3.portbuddy.dev:43452`, where port 43452 is dynamically assigned based on port availability. 
+User run command `port-buddy tcp 5432`. Console output: `tcp localhost:5432 exposed to: net-proxy-3.portbuddy.dev:43452`, where port 43452 is dynamically assigned based on port availability. 
 Then someone could connect to a user's database using a database client by specifying host=abc123.portbuddy.dev and port=43452.
 
 User must be authenticated and have an active subscription. User could log into the system using Google or GitHub account. For authentication OAuth2 protocol with JWT tokens is used,  
@@ -36,7 +36,7 @@ There are two subscription plans:
 
 `Developer` plan includes:
 * Everything in the Hobby plan
-* TCP traffic 
+* TCP and UDP traffic 
 * Number of concurrent tunnels: 10
 * Tunnel lifetime: unlimited
 * 10 static subdomains
@@ -48,7 +48,7 @@ There are two subscription plans:
 
 Project is written as multi-modular maven project and consists of the following modules:
 * server application, serves API for cli app and web app, and handles all http requests and websocket connections. 
-* tcp proxy application, handles tcp connections
+* net proxy application, handles tcp and udp connections
 * command-line app, which works as a proxy between client's private network and public network
 * web application, which has landing page, user's app and admin app. 
 
@@ -77,7 +77,7 @@ Use Spring JPA to access DB.
 Use Flyway to manage DB migrations.
 Dockerized.
 
-### TCP Proxy Application
+### Net Proxy Application
 Is written using Spring Boot 3.5.7 framework.
 Any other necessary libraries could be used.
 Dockerized.

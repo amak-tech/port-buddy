@@ -8,7 +8,7 @@ eureka:
 
 spring:
   application:
-    name: tcp-proxy
+    name: net-proxy
   security:
     oauth2:
       resourceserver:

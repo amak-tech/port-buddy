@@ -4,7 +4,7 @@
 
 package tech.amak.portbuddy.cli.ui;
 
-public interface TcpTrafficSink {
+public interface NetTrafficSink {
 
     void onBytesIn(final long bytes);
 

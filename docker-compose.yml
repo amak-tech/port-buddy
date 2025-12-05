@@ -50,14 +50,14 @@ services:
       options:
         max-size: 10M
 
-  tcp-proxy:
-    image: cr.yandex/crpop0r0f81mcsvg9kei/port-buddy-tcp-proxy:latest
-    container_name: pb-tcp-proxy
+  net-proxy:
+    image: cr.yandex/crpop0r0f81mcsvg9kei/port-buddy-net-proxy:latest
+    container_name: pb-net-proxy
     restart: unless-stopped
     network_mode: host
     volumes:
-      - ${PWD}/tcp-proxy/config:/app/config
-      - ${PWD}/tcp-proxy/logs:/app/logs
+      - ${PWD}/net-proxy/config:/app/config
+      - ${PWD}/net-proxy/logs:/app/logs
     logging:
       options:
         max-size: 10M

@@ -45,7 +45,7 @@ jobs:
             server/target/*.jar
             gateway/target/*.jar
             eureka/target/*.jar
-            tcp-proxy/target/*.jar
+            net-proxy/target/*.jar
             cli/target/*.jar
 
   deploy-backend:
@@ -102,14 +102,14 @@ jobs:
           push: true
           tags: cr.yandex/${{ vars.CR_REGISTRY }}/port-buddy-eureka:latest
 
-      - name: Build and push TCP Proxy
+      - name: Build and push Net Proxy
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: Dockerfile-tcp-proxy
+          file: Dockerfile-net-proxy
           platforms: linux/amd64
           push: true
-          tags: cr.yandex/${{ vars.CR_REGISTRY }}/port-buddy-tcp-proxy:latest
+          tags: cr.yandex/${{ vars.CR_REGISTRY }}/port-buddy-net-proxy:latest
 
   deploy-cli:
     name: Build and Push CLI Images

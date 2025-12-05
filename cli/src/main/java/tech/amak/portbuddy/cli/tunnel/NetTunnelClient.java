@@ -31,13 +31,13 @@ import okhttp3.Response;
 import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
 import okio.ByteString;
-import tech.amak.portbuddy.cli.ui.TcpTrafficSink;
+import tech.amak.portbuddy.cli.ui.NetTrafficSink;
 import tech.amak.portbuddy.common.tunnel.BinaryWsFrame;
 import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
 
 @Slf4j
 @RequiredArgsConstructor
-public class TcpTunnelClient {
+public class NetTunnelClient {
 
     private final String proxyHost;
     private final int proxyHttpPort;
@@ -49,7 +49,7 @@ public class TcpTunnelClient {
     private final String localHost;
     private final int localPort;
     private final String authToken; // Bearer token if available
-    private final TcpTrafficSink trafficSink;
+    private final NetTrafficSink trafficSink;
 
     private final OkHttpClient http = new OkHttpClient();
     private final OkHttpClient rest = new OkHttpClient();
@@ -58,7 +58,7 @@ public class TcpTunnelClient {
     private final Map<String, LocalTcp> locals = new ConcurrentHashMap<>();
     private CountDownLatch closed = new CountDownLatch(1);
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
-        final var thread = new Thread(runnable, "port-buddy-tcp-heartbeat");
+        final var thread = new Thread(runnable, "pb-net-heartbeat");
         thread.setDaemon(true);
         return thread;
     });
@@ -85,7 +85,7 @@ public class TcpTunnelClient {
             try {
                 closed = new CountDownLatch(1);
                 final var scheme = secure ? "https://" : "http://";
-                final var url = toWebSocketUrl(scheme + proxyHost + ":" + proxyHttpPort, "/api/tcp-tunnel/" + tunnelId);
+                final var url = toWebSocketUrl(scheme + proxyHost + ":" + proxyHttpPort, "/api/net-tunnel/" + tunnelId);
                 final var request = new Request.Builder().url(url);
                 if (authToken != null && !authToken.isBlank()) {
                     request.addHeader("Authorization", "Bearer " + authToken);

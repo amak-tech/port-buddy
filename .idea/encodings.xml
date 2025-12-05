@@ -9,12 +9,12 @@
     <file url="file://$PROJECT_DIR$/eureka/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/gateway/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/gateway/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/net-proxy/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/net-proxy/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/server/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/server/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/main/resources" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/tcp-proxy/src/main/java" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/tcp-proxy/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/web/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/web/src/main/resources" charset="UTF-8" />
   </component>

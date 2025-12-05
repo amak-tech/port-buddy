@@ -2,7 +2,7 @@
  * Copyright (c) 2025 AMAK Inc. All rights reserved.
  */
 
-package tech.amak.portbuddy.tcpproxy.tunnel;
+package tech.amak.portbuddy.netproxy.tunnel;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -30,7 +30,7 @@ import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class TcpTunnelRegistry {
+public class NetTunnelRegistry {
 
     private final Map<UUID, Tunnel> byTunnelId = new ConcurrentHashMap<>();
     private final ExecutorService ioPool = Executors.newCachedThreadPool();

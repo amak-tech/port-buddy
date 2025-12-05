@@ -8,8 +8,8 @@
         <artifactId>port-buddy</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
-    <artifactId>tcp-proxy</artifactId>
-    <name>port-buddy-tcp-proxy</name>
+    <artifactId>net-proxy</artifactId>
+    <name>port-buddy-net-proxy</name>
 
     <dependencies>
         <dependency>

@@ -20,7 +20,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.dto.ExposeResponse;
 import tech.amak.portbuddy.common.dto.HttpExposeRequest;
-import tech.amak.portbuddy.server.client.TcpProxyClient;
+import tech.amak.portbuddy.server.client.NetProxyClient;
 import tech.amak.portbuddy.server.config.AppProperties;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
 import tech.amak.portbuddy.server.service.DomainService;
@@ -35,7 +35,7 @@ public class ExposeController {
 
     private final TunnelRegistry registry;
     private final AppProperties properties;
-    private final TcpProxyClient tcpProxyClient;
+    private final NetProxyClient netProxyClient;
     private final TunnelService tunnelService;
     private final UserRepository userRepository;
     private final DomainService domainService;
@@ -101,9 +101,9 @@ public class ExposeController {
         final var tunnel = tunnelService.createPendingTcpTunnel(account.getId(), user.getId(), apiKeyId, request);
         final var tunnelId = tunnel.getId();
 
-        // Ask the selected tcp-proxy to allocate a public TCP port for this tunnelId
+        // Ask the selected net-proxy to allocate a public TCP port for this tunnelId
         try {
-            final var exposeResponse = tcpProxyClient.exposePort(tunnelId);
+            final var exposeResponse = netProxyClient.exposePort(tunnelId);
             log.info("Expose TCP port response: {}", exposeResponse);
 
             tunnelService.updateTcpTunnelPublic(tunnelId, exposeResponse.publicHost(), exposeResponse.publicPort());

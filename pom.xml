@@ -13,7 +13,7 @@
         <module>common</module>
         <module>cli</module>
         <module>server</module>
-        <module>tcp-proxy</module>
+        <module>net-proxy</module>
         <module>web</module>
         <module>gateway</module>
         <module>eureka</module>

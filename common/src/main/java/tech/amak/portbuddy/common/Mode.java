@@ -9,7 +9,8 @@ package tech.amak.portbuddy.common;
  */
 public enum Mode {
     HTTP,
-    TCP;
+    TCP,
+    UDP;
 
     /**
      * Converts a string representation of a mode to its corresponding {@code Mode} enum value.

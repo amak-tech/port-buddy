@@ -38,9 +38,9 @@ spring:
           routes:
             - id: tcp_tunnel_route
               order: 1
-              uri: lb://tcp-proxy
+              uri: lb://net-proxy
               predicates:
-                - Path=/api/tcp-tunnel/**
+                - Path=/api/net-tunnel/**
 
             # WebSocket route for subdomain ingress. Must be evaluated before HTTP route.
             - id: subdomain_ingress_ws_route

@@ -1,7 +1,7 @@
 FROM eclipse-temurin:25-jre
 
 WORKDIR /app
-COPY tcp-proxy/target/tcp-proxy-*.jar /app/app.jar
+COPY net-proxy/target/net-proxy-*.jar /app/app.jar
 COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 

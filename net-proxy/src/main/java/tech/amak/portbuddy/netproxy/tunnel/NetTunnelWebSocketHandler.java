@@ -2,7 +2,7 @@
  * Copyright (c) 2025 AMAK Inc. All rights reserved.
  */
 
-package tech.amak.portbuddy.tcpproxy.tunnel;
+package tech.amak.portbuddy.netproxy.tunnel;
 
 import java.util.UUID;
 
@@ -24,9 +24,9 @@ import tech.amak.portbuddy.common.utils.IdUtils;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class TcpTunnelWebSocketHandler extends AbstractWebSocketHandler {
+public class NetTunnelWebSocketHandler extends AbstractWebSocketHandler {
 
-    private final TcpTunnelRegistry registry;
+    private final NetTunnelRegistry registry;
     private final ObjectMapper mapper;
 
     @Override

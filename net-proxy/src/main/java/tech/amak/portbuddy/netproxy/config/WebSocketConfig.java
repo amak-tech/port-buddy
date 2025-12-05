@@ -2,7 +2,7 @@
  * Copyright (c) 2025 AMAK Inc. All rights reserved.
  */
 
-package tech.amak.portbuddy.tcpproxy.config;
+package tech.amak.portbuddy.netproxy.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,19 +12,19 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 import org.springframework.web.socket.server.standard.ServletServerContainerFactoryBean;
 
 import lombok.RequiredArgsConstructor;
-import tech.amak.portbuddy.tcpproxy.tunnel.TcpTunnelWebSocketHandler;
+import tech.amak.portbuddy.netproxy.tunnel.NetTunnelWebSocketHandler;
 
 @Configuration
 @EnableWebSocket
 @RequiredArgsConstructor
 public class WebSocketConfig implements WebSocketConfigurer {
 
-    private final TcpTunnelWebSocketHandler tcpHandler;
+    private final NetTunnelWebSocketHandler tcpHandler;
     private final AppProperties properties;
 
     @Override
     public void registerWebSocketHandlers(final WebSocketHandlerRegistry registry) {
-        registry.addHandler(tcpHandler, "/api/tcp-tunnel/{tunnelId}").setAllowedOrigins("*");
+        registry.addHandler(tcpHandler, "/api/net-tunnel/{tunnelId}").setAllowedOrigins("*");
     }
 
     /**
