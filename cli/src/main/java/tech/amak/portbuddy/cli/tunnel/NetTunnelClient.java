@@ -11,8 +11,8 @@ import java.io.OutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
-import java.net.URLEncoder;
 import java.net.Socket;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
@@ -100,9 +100,9 @@ public class NetTunnelClient {
                     ? ""
                     : "&public-host=" + URLEncoder.encode(expectedPublicHost, StandardCharsets.UTF_8);
                 final var path = "/api/net-tunnel/" + tunnelId
-                    + "?type=" + tunnelType.name().toLowerCase()
-                    + "&port=" + expectedPublicPort
-                    + publicHostParam;
+                                 + "?type=" + tunnelType.name().toLowerCase()
+                                 + "&port=" + expectedPublicPort
+                                 + publicHostParam;
                 final var url = toWebSocketUrl(scheme + proxyHost + ":" + proxyHttpPort, path);
                 final var request = new Request.Builder().url(url);
                 if (authToken != null && !authToken.isBlank()) {
