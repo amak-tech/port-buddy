@@ -26,4 +26,7 @@ public class ClientConfig {
 
     @JsonProperty("consoleFrameDelay")
     private int consoleFrameDelayMs = 200;
+
+    @JsonProperty("consoleFrameDelay")
+    private int healthcheckIntervalSec = 5;
 }
