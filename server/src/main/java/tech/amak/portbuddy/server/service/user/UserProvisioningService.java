@@ -4,15 +4,19 @@
 
 package tech.amak.portbuddy.server.service.user;
 
+import java.time.Duration;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.server.db.entity.AccountEntity;
 import tech.amak.portbuddy.server.db.entity.UserEntity;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
@@ -23,6 +27,7 @@ import tech.amak.portbuddy.server.service.PortReservationService;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserProvisioningService {
 
     private final UserRepository userRepository;
@@ -31,6 +36,7 @@ public class UserProvisioningService {
     private final DomainService domainService;
     private final PortReservationService portReservationService;
     private final ApplicationEventPublisher eventPublisher;
+    private final PasswordResetService passwordResetService;
 
     public record ProvisionedUser(UUID userId, UUID accountId) {
     }
@@ -49,15 +55,16 @@ public class UserProvisioningService {
             throw new IllegalArgumentException("User already exists");
         }
 
+        final var userName = Optional.ofNullable(name)
+            .filter(StringUtils::isNotBlank)
+            .orElse("Unknown Buddy");
+
         // Split name
-        String firstName = name;
         String lastName = null;
-        if (name != null) {
-            final var parts = name.trim().split("\\s+", 2);
-            firstName = parts[0];
-            if (parts.length > 1) {
-                lastName = parts[1];
-            }
+        final var parts = userName.trim().split("\\s+", 2);
+        final var firstName = parts[0];
+        if (parts.length > 1) {
+            lastName = parts[1];
         }
 
         // Create new account and user
@@ -66,7 +73,6 @@ public class UserProvisioningService {
         account.setName(defaultAccountName(firstName, lastName, normalizedEmail));
         account.setPlan("BASIC");
         accountRepository.save(account);
-        domainService.assignRandomDomain(account);
 
         final var user = new UserEntity();
         user.setId(UUID.randomUUID());
@@ -76,19 +82,29 @@ public class UserProvisioningService {
         user.setLastName(lastName);
         user.setAuthProvider("local");
         user.setExternalId(normalizedEmail);
-        user.setPassword(passwordEncoder.encode(password));
+        Optional.ofNullable(password)
+            .filter(StringUtils::isNotBlank)
+            .map(passwordEncoder::encode)
+            .ifPresent(user::setPassword);
         userRepository.save(user);
 
-        // Try to create an initial port reservation for the account by this user
+        // Try to create an initial port reservation and domain for the account by this user
         try {
+            domainService.assignRandomDomain(account);
             portReservationService.createReservation(account, user);
-        } catch (final Exception ignored) {
-            // per spec: if no host/port found during new account creation - ignore
+        } catch (final Exception ex) {
+            log.error("Failed to create initial reservations for account {}: {}", account.getId(), ex.getMessage(), ex);
+        }
+
+        String resetPasswordLink = null;
+
+        if (StringUtils.isBlank(password)) {
+            resetPasswordLink = passwordResetService.generateResetPasswordLink(user, Duration.ofDays(30));
         }
 
         // Publish event after user persisted; listener will send email AFTER_COMMIT
         eventPublisher.publishEvent(new UserCreatedEvent(
-            user.getId(), account.getId(), user.getEmail(), user.getFirstName(), user.getLastName()
+            user.getId(), account.getId(), user.getEmail(), user.getFirstName(), user.getLastName(), resetPasswordLink
         ));
 
         return new ProvisionedUser(user.getId(), account.getId());
@@ -193,7 +209,6 @@ public class UserProvisioningService {
         account.setName(defaultAccountName(firstName, lastName, email));
         account.setPlan("BASIC");
         accountRepository.save(account);
-        domainService.assignRandomDomain(account);
 
         final var user = new UserEntity();
         user.setId(UUID.randomUUID());
@@ -206,8 +221,9 @@ public class UserProvisioningService {
         user.setAvatarUrl(avatarUrl);
         userRepository.save(user);
 
-        // Try to create an initial port reservation for the account by this user
+        // Try to create an initial port reservation and domain for the account by this user
         try {
+            domainService.assignRandomDomain(account);
             portReservationService.createReservation(account, user);
         } catch (final Exception ignored) {
             // per spec: ignore if no host/port available during account creation
@@ -215,7 +231,7 @@ public class UserProvisioningService {
 
         // Publish event for brand new user
         eventPublisher.publishEvent(new UserCreatedEvent(
-            user.getId(), account.getId(), user.getEmail(), user.getFirstName(), user.getLastName()
+            user.getId(), account.getId(), user.getEmail(), user.getFirstName(), user.getLastName(), null
         ));
 
         return new ProvisionedUser(user.getId(), account.getId());

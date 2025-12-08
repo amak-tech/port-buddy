@@ -4,6 +4,7 @@
 
 package tech.amak.portbuddy.server.service.user;
 
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.UUID;
@@ -16,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.server.config.AppProperties;
 import tech.amak.portbuddy.server.db.entity.PasswordResetTokenEntity;
+import tech.amak.portbuddy.server.db.entity.UserEntity;
 import tech.amak.portbuddy.server.db.repo.PasswordResetTokenRepository;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
 import tech.amak.portbuddy.server.mail.EmailService;
@@ -46,19 +48,9 @@ public class PasswordResetService {
         }
 
         final var user = userOpt.get();
-        // Invalidate existing tokens
-        tokenRepository.deleteByUser(user);
 
-        final var token = UUID.randomUUID().toString();
-        final var entity = new PasswordResetTokenEntity();
-        entity.setId(UUID.randomUUID());
-        entity.setToken(token);
-        entity.setUser(user);
-        entity.setExpiryDate(OffsetDateTime.now().plusHours(1));
-        tokenRepository.save(entity);
+        final var resetLink = generateResetPasswordLink(user, Duration.ofHours(1));
 
-        final var resetLink = properties.gateway().url() + "/reset-password?token=" + token;
-        
         final var model = new HashMap<String, Object>();
         model.put("subject", "Reset Your Password");
         model.put("resetLink", resetLink);
@@ -69,6 +61,33 @@ public class PasswordResetService {
 
         emailService.sendTemplate(user.getEmail(), "Reset Your Password", "email/password-reset", model);
         log.info("Password reset email sent to user: {}", user.getId());
+    }
+
+    /**
+     * Generates a reset password link for the given user and token time-to-live (TTL).
+     * This method invalidates any existing reset tokens for the user, creates a new
+     * token, saves it in the database, and returns the corresponding reset link.
+     *
+     * @param user the user entity for whom the reset password link is being generated
+     * @param ttl the duration for which the reset token is valid
+     * @return the complete reset password link containing the generated token
+     */
+    @Transactional
+    public String generateResetPasswordLink(final UserEntity user, final Duration ttl) {
+
+        // Invalidate existing tokens
+        tokenRepository.deleteByUser(user);
+
+        final var token = UUID.randomUUID().toString();
+        final var entity = new PasswordResetTokenEntity();
+        entity.setId(UUID.randomUUID());
+        entity.setToken(token);
+        entity.setUser(user);
+        // Token TTL
+        entity.setExpiryDate(OffsetDateTime.now().plus(ttl));
+        tokenRepository.save(entity);
+
+        return properties.gateway().url() + "/reset-password?token=" + token;
     }
 
     /**

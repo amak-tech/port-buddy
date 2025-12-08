@@ -54,19 +54,15 @@ public class ConsoleUi implements HttpLogSink, NetTrafficSink {
     private Runnable onExit;
 
     /**
-     * Prompts the user for registration details (name, email, password) using the console.
+     * Prompts the user for registration details using the console.
+     * When no API key is initialized, the user should only be asked for the email address.
      *
-     * @return a RegisterRequest containing the input data
+     * @return a RegisterRequest containing the input data (email only)
      * @throws IOException if an I/O error occurs or console is not available
      */
     public static RegisterRequest promptForUserRegistration() throws IOException {
         try (final var terminal = buildTerminal()) {
             final var reader = LineReaderBuilder.builder().terminal(terminal).build();
-            
-            var name = reader.readLine("Name: ");
-            if (name == null || name.isBlank()) {
-                name = "Unknown Buddy";
-            }
 
             String email;
             while (true) {
@@ -78,16 +74,8 @@ public class ConsoleUi implements HttpLogSink, NetTrafficSink {
                 terminal.flush();
             }
 
-            String password;
-            while (true) {
-                password = reader.readLine("Password: ", '*');
-                if (password != null && password.length() >= 8) {
-                    break;
-                }
-                terminal.writer().println("Password must be at least 8 characters long.");
-                terminal.flush();
-            }
-            return new RegisterRequest(email, name, password);
+            // Only email is required for registration. Name and password are set on the server side.
+            return new RegisterRequest(email, null, null);
         }
     }
 

@@ -7,6 +7,7 @@ package tech.amak.portbuddy.server.service;
 import java.security.SecureRandom;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -49,7 +50,7 @@ public class DomainService {
      * @throws RuntimeException if a unique subdomain cannot be generated within the maximum attempts.
      */
     @Transactional
-    public DomainEntity createDomain(final AccountEntity account) {
+    public Optional<DomainEntity> createDomain(final AccountEntity account) {
         String subdomain;
         int retries = 0;
         do {
@@ -58,7 +59,8 @@ public class DomainService {
         } while (domainRepository.existsBySubdomainGlobal(subdomain) && retries < MAX_RETRIES);
 
         if (domainRepository.existsBySubdomainGlobal(subdomain)) {
-            throw new RuntimeException("Failed to generate unique subdomain after all attempts");
+            log.warn("Failed to generate unique subdomain after all attempts");
+            return Optional.empty();
         }
 
         final var domain = new DomainEntity();
@@ -68,7 +70,7 @@ public class DomainService {
         domain.setAccount(account);
 
         log.info("Assigned subdomain {} to account {}", subdomain, account.getId());
-        return domainRepository.save(domain);
+        return Optional.of(domainRepository.save(domain));
     }
 
     @Transactional

@@ -68,8 +68,8 @@ class AuthControllerTest {
 
         when(userProvisioningService.createLocalUser(any(), any(), any()))
             .thenReturn(new UserProvisioningService.ProvisionedUser(userId, accountId));
-        
-        when(apiTokenService.createToken(accountId, userId, "cli-init"))
+
+        when(apiTokenService.createToken(accountId, userId, "prtb-client"))
             .thenReturn(new ApiTokenService.CreatedToken(UUID.randomUUID().toString(), apiKey));
 
         mockMvc.perform(post("/api/auth/register")
@@ -79,7 +79,7 @@ class AuthControllerTest {
             .andExpect(jsonPath("$.apiKey").value(apiKey))
             .andExpect(jsonPath("$.success").value(true));
     }
-    
+
     @Test
     void register_shouldReturnError_whenMissingFields() throws Exception {
         final var request = new RegisterRequest(null, "Test User", "password");
@@ -89,7 +89,7 @@ class AuthControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isOk()) // We now return 200 with error details
             .andExpect(jsonPath("$.success").value(false))
-            .andExpect(jsonPath("$.message").value("Email and password are required"))
+            .andExpect(jsonPath("$.message").value("Email is required"))
             .andExpect(jsonPath("$.statusCode").value(400));
     }
 

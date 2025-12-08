@@ -40,8 +40,13 @@ public class WelcomeEmailService {
             model.put("subject", "Welcome to Port Buddy");
             model.put("greeting", fullName == null ? "Welcome to Port Buddy!" : "Welcome, " + fullName + "!");
             model.put("intro", "Let’s get your local and private services online in seconds.");
-            model.put("ctaText", "Open My Account");
-            model.put("ctaUrl", webAppUrl);
+            if (event.passwordResetLink() != null) {
+                model.put("ctaText", "Setup My Account");
+                model.put("ctaUrl", event.passwordResetLink());
+            } else {
+                model.put("ctaText", "Open My Account");
+                model.put("ctaUrl", webAppUrl);
+            }
             model.put("webAppUrl", webAppUrl);
             model.put("featuresTitle", "What you can do with Port Buddy");
             model.put("feature1Title", "Expose HTTP apps");

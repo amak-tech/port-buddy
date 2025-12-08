@@ -52,10 +52,19 @@ public class DomainsController {
             .toList();
     }
 
+    /**
+     * Creates a new domain associated with the authenticated user's account.
+     *
+     * @param principal the JWT token representing the authenticated user
+     * @return the created domain as a DomainDto object
+     * @throws RuntimeException if no available domains can be created
+     */
     @PostMapping
     public DomainDto create(final @AuthenticationPrincipal Jwt principal) {
         final var account = getAccount(principal);
-        return toDto(domainService.createDomain(account));
+        return domainService.createDomain(account)
+            .map(DomainsController::toDto)
+            .orElseThrow(() -> new RuntimeException("No available domains"));
     }
 
     @PutMapping("/{id}")

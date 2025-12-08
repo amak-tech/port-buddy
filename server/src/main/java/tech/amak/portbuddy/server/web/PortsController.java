@@ -70,7 +70,8 @@ public class PortsController {
         final var user = userRepository.findById(userId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
         final var account = user.getAccount();
-        final var reservation = reservationService.createReservation(account, user);
+        final var reservation = reservationService.createReservation(account, user)
+            .orElseThrow(() -> new RuntimeException("No available ports"));
         return toDto(reservation);
     }
 

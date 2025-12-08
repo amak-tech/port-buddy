@@ -6,6 +6,7 @@ package tech.amak.portbuddy.server.service;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.dao.DataIntegrityViolationException;
@@ -48,11 +49,12 @@ public class PortReservationService {
      * Uniqueness is enforced by a DB unique constraint; in case of race conflicts, the operation retries.
      */
     @Transactional
-    public PortReservationEntity createReservation(final AccountEntity account,
-                                                   final UserEntity user) {
+    public Optional<PortReservationEntity> createReservation(final AccountEntity account,
+                                                             final UserEntity user) {
         final var hosts = proxyDiscoveryService.listPublicHosts();
         if (hosts.isEmpty()) {
-            throw new IllegalStateException("No available tcp-proxy hosts found");
+            log.warn("No available tcp-proxy hosts found");
+            return Optional.empty();
         }
 
         final var range = properties.portReservations().range();
@@ -85,7 +87,7 @@ public class PortReservationService {
                     reservation.setPublicPort(nextPort);
                     final var saved = repository.save(reservation);
                     log.info("Reserved port {}:{} for account {}", host, nextPort, account.getId());
-                    return saved;
+                    return Optional.of(saved);
                 } catch (final DataIntegrityViolationException e) {
                     // Unique constraint violation possible due to race; retry
                     log.warn("Port reservation conflict for {}:{}, will retry (attempt {}/{})",
@@ -96,7 +98,8 @@ public class PortReservationService {
             // If we got here, we either had conflicts on all hosts or all were exhausted; retry loop continues
         }
 
-        throw new IllegalStateException("Failed to reserve a unique port after " + MAX_RETRIES + " attempts");
+        log.warn("Failed to reserve a unique port after " + MAX_RETRIES + " attempts");
+        return Optional.empty();
     }
 
     private Integer computeNextPort(final String host, final int min, final int max) {
@@ -168,12 +171,10 @@ public class PortReservationService {
             .sorted(Comparator.comparing(PortReservationEntity::getCreatedAt))
             .filter(res -> !isReservationInUse(res))
             .findFirst();
-        if (existing.isPresent()) {
-            return existing.get();
-        }
 
         // 4) Create new reservation
-        return createReservation(account, user);
+        return existing.orElseGet(() -> createReservation(account, user)
+            .orElseThrow(() -> new IllegalStateException("Failed to create a new port reservation")));
     }
 
     private boolean isReservationInUse(final PortReservationEntity reservation) {

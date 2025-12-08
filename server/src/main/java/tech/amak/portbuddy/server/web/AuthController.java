@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.dto.auth.RegisterRequest;
 import tech.amak.portbuddy.common.dto.auth.RegisterResponse;
 import tech.amak.portbuddy.common.dto.auth.TokenExchangeRequest;
@@ -35,6 +36,7 @@ import tech.amak.portbuddy.server.web.dto.PasswordResetRequest;
 @RestController
 @RequestMapping(path = "/api/auth", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
+@Slf4j
 public class AuthController {
 
     private final ApiTokenService apiTokenService;
@@ -69,8 +71,8 @@ public class AuthController {
      */
     @PostMapping("/register")
     public RegisterResponse register(final @RequestBody RegisterRequest payload) {
-        if (payload == null || payload.getEmail() == null || payload.getPassword() == null) {
-            return new RegisterResponse(null, false, "Email and password are required", 400);
+        if (payload == null || payload.getEmail() == null) {
+            return new RegisterResponse(null, false, "Email is required", 400);
         }
 
         try {
@@ -80,11 +82,13 @@ public class AuthController {
                 payload.getPassword()
             );
             final var createdToken = apiTokenService.createToken(
-                provisioned.accountId(), provisioned.userId(), "cli-init");
+                provisioned.accountId(), provisioned.userId(), "prtb-client");
             return new RegisterResponse(createdToken.token(), true, "User registered successfully", 200);
         } catch (final IllegalArgumentException e) {
+            log.error(e.getMessage(), e);
             return new RegisterResponse(null, false, e.getMessage(), 400);
         } catch (final Exception e) {
+            log.error(e.getMessage(), e);
             return new RegisterResponse(null, false, "Internal Server Error: " + e.getMessage(), 500);
         }
     }
