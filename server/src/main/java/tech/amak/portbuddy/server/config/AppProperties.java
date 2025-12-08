@@ -17,6 +17,7 @@ public record AppProperties(
     WebSocket webSocket,
     Jwt jwt,
     Mail mail,
+    Cli cli,
     PortReservations portReservations
 ) {
     public record Gateway(
@@ -69,5 +70,10 @@ public record AppProperties(
             int max
         ) {
         }
+    }
+
+    public record Cli(
+        String minVersion
+    ) {
     }
 }

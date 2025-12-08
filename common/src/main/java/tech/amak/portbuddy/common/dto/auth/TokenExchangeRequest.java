@@ -19,4 +19,7 @@ public class TokenExchangeRequest {
 
     @JsonProperty("apiToken")
     private String apiToken;
+
+    @JsonProperty("cliClientVersion")
+    private String cliClientVersion;
 }

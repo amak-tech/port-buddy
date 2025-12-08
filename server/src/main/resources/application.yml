@@ -41,6 +41,9 @@ app:
     max-binary-message-size: 1GB
     session-idle-timeout: 10m
 
+  cli:
+    min-version: 1.1
+
 spring:
   mvc:
     problem-details:

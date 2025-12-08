@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +45,8 @@ import tech.amak.portbuddy.common.dto.auth.TokenExchangeResponse;
     subcommands = {PortBuddy.InitCommand.class}
 )
 public class PortBuddy implements Callable<Integer> {
+
+    private static final String OUTDATED = "outdated";
 
     private final ConfigurationService configurationService = ConfigurationService.INSTANCE;
 
@@ -107,10 +110,18 @@ public class PortBuddy implements Callable<Integer> {
 
         final var apiKey = config.getApiToken();
         final var jwt = exchangeApiTokenForJwt(config.getServerUrl(), apiKey);
+        if (Objects.equals(jwt, OUTDATED)) {
+            System.err.println("""
+                Your port-buddy CLI is outdated.
+                Please upgrade to the latest version and try again.""");
+            return CommandLine.ExitCode.SOFTWARE;
+        }
+
         if (jwt == null || jwt.isBlank()) {
-            System.err.println("Failed to authenticate with the provided API Key.\n"
-                               + "CLI must be initialized with a valid API Key.\n"
-                               + "Example: port-buddy init {API_TOKEN}");
+            System.err.println("""
+                Failed to authenticate with the provided API Key.
+                CLI must be initialized with a valid API Key.
+                Example: port-buddy init {API_TOKEN}""");
             return CommandLine.ExitCode.SOFTWARE;
         }
 
@@ -242,7 +253,8 @@ public class PortBuddy implements Callable<Integer> {
     private String exchangeApiTokenForJwt(final String baseUrl, final String apiToken) {
         try {
             final var url = baseUrl + "/api/auth/token-exchange";
-            final var payload = new TokenExchangeRequest(apiToken);
+            final var cliVersion = resolveCliVersion();
+            final var payload = new TokenExchangeRequest(apiToken, cliVersion);
             final var json = MAPPER.writeValueAsString(payload);
             final var request = new Request.Builder()
                 .url(url)
@@ -252,6 +264,9 @@ public class PortBuddy implements Callable<Integer> {
             try (final var response = http.newCall(request).execute()) {
                 if (!response.isSuccessful()) {
                     log.warn("Token exchange failed: {} {}", response.code(), response.message());
+                    if (response.code() == 426) {
+                        return OUTDATED;
+                    }
                     return null;
                 }
                 final var body = response.body();
@@ -270,6 +285,26 @@ public class PortBuddy implements Callable<Integer> {
             log.warn("Token exchange call error: {}", e.toString());
             return null;
         }
+    }
+
+    private String resolveCliVersion() {
+        final var pkg = PortBuddy.class.getPackage();
+        final var impl = pkg == null ? null : pkg.getImplementationVersion();
+        if (impl != null && !impl.isBlank()) {
+            return impl.trim();
+        }
+        // Fallback to picocli @Command version string if manifest is missing
+        // Expected format: "port-buddy X.Y[.Z]"
+        final var cmdAnno = PortBuddy.class.getAnnotation(Command.class);
+        if (cmdAnno != null && cmdAnno.version() != null && cmdAnno.version().length > 0) {
+            final var v = cmdAnno.version()[0];
+            final var idx = v.lastIndexOf(' ');
+            if (idx > -1 && idx < v.length() - 1) {
+                return v.substring(idx + 1).trim();
+            }
+            return v.trim();
+        }
+        return "dev";
     }
 
     private boolean ensureAuthenticated(final ClientConfig config) {

@@ -24,6 +24,7 @@ import tech.amak.portbuddy.common.dto.auth.RegisterRequest;
 import tech.amak.portbuddy.common.dto.auth.RegisterResponse;
 import tech.amak.portbuddy.common.dto.auth.TokenExchangeRequest;
 import tech.amak.portbuddy.common.dto.auth.TokenExchangeResponse;
+import tech.amak.portbuddy.server.config.AppProperties;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
 import tech.amak.portbuddy.server.security.JwtService;
 import tech.amak.portbuddy.server.service.ApiTokenService;
@@ -45,6 +46,7 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
     private final UserProvisioningService userProvisioningService;
     private final PasswordResetService passwordResetService;
+    private final AppProperties properties;
 
     /**
      * Exchanges a valid API token for a short-lived JWT suitable for authenticating API and WebSocket calls.
@@ -52,6 +54,15 @@ public class AuthController {
     @PostMapping("/token-exchange")
     public TokenExchangeResponse tokenExchange(final @RequestBody TokenExchangeRequest payload) {
         final var apiToken = payload == null ? "" : String.valueOf(payload.getApiToken()).trim();
+        final var cliClientVersion = payload == null ? null : payload.getCliClientVersion();
+        if (cliClientVersion == null || cliClientVersion.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UPGRADE_REQUIRED,
+                "CLI client version is missing or not supported. Please upgrade your port-buddy CLI.");
+        }
+        if (!isCliVersionSupported(cliClientVersion.trim(), properties.cli().minVersion())) {
+            throw new ResponseStatusException(HttpStatus.UPGRADE_REQUIRED,
+                "Your port-buddy CLI is outdated. Please upgrade to the latest version.");
+        }
         final var validatedOpt = apiTokenService.validateAndGetApiKey(apiToken);
         if (validatedOpt.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid API token");
@@ -64,6 +75,37 @@ public class AuthController {
         claims.put("aid", validated.accountId());
         final var jwt = jwtService.createToken(claims, userId);
         return new TokenExchangeResponse(jwt, "Bearer");
+    }
+
+    private boolean isCliVersionSupported(final String clientVersion, final String minimalVersion) {
+        // allow dev builds
+        final var cv = clientVersion.toLowerCase();
+        if (cv.contains("dev")) {
+            return true;
+        }
+        return compareVersions(clientVersion, minimalVersion) >= 0;
+    }
+
+    private int compareVersions(final String v1, final String v2) {
+        final var a = v1.split("[.\\-]");
+        final var b = v2.split("[.\\-]");
+        final var len = Math.max(a.length, b.length);
+        for (var i = 0; i < len; i++) {
+            final var ai = i < a.length ? parseIntSafe(a[i]) : 0;
+            final var bi = i < b.length ? parseIntSafe(b[i]) : 0;
+            if (ai != bi) {
+                return Integer.compare(ai, bi);
+            }
+        }
+        return 0;
+    }
+
+    private int parseIntSafe(final String part) {
+        try {
+            return Integer.parseInt(part.replaceAll("[^0-9]", ""));
+        } catch (final Exception ignored) {
+            return 0;
+        }
     }
 
     /**
