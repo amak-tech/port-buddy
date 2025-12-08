@@ -52,6 +52,9 @@ public class NetTunnelClient {
     private final String localHost;
     private final int localPort;
     private final TunnelType tunnelType;
+    // Expected public connection details returned by the server during expose REST call
+    private final String expectedPublicHost;
+    private final int expectedPublicPort;
     private final String authToken; // Bearer token if available
     private final NetTrafficSink trafficSink;
 
@@ -70,6 +73,7 @@ public class NetTunnelClient {
     private volatile ScheduledFuture<?> heartbeatTask;
     private final AtomicBoolean closedReported = new AtomicBoolean(false);
     private final AtomicBoolean stop = new AtomicBoolean(false);
+    private final AtomicBoolean warnedAboutReassignment = new AtomicBoolean(false);
 
     /**
      * Establishes and maintains a WebSocket connection for TCP/UDP tunneling.
@@ -90,7 +94,10 @@ public class NetTunnelClient {
             try {
                 closed = new CountDownLatch(1);
                 final var scheme = secure ? "https://" : "http://";
-                final var url = toWebSocketUrl(scheme + proxyHost + ":" + proxyHttpPort, "/api/net-tunnel/" + tunnelId);
+                final var path = "/api/net-tunnel/" + tunnelId
+                    + "?type=" + tunnelType.name().toLowerCase()
+                    + "&port=" + expectedPublicPort;
+                final var url = toWebSocketUrl(scheme + proxyHost + ":" + proxyHttpPort, path);
                 final var request = new Request.Builder().url(url);
                 if (authToken != null && !authToken.isBlank()) {
                     request.addHeader("Authorization", "Bearer " + authToken);
@@ -323,6 +330,23 @@ public class NetTunnelClient {
     private void handleControl(final WsTunnelMessage message) throws Exception {
         final var connId = message.getConnectionId();
         switch (message.getWsType()) {
+            case EXPOSED -> {
+                final var actualHost = message.getPublicHost();
+                final var actualPort = message.getPublicPort();
+                if (actualHost != null && actualPort != null) {
+                    final var hostDiffers = expectedPublicHost != null && !expectedPublicHost.equals(actualHost);
+                    final var portDiffers = expectedPublicPort != actualPort;
+                    if ((hostDiffers || portDiffers) && warnedAboutReassignment.compareAndSet(false, true)) {
+                        System.out.printf(
+                            "Warning: requested public %s:%d but exposed on %s:%d%n",
+                            expectedPublicHost,
+                            expectedPublicPort,
+                            actualHost,
+                            actualPort
+                        );
+                    }
+                }
+            }
             case OPEN -> {
                 if (tunnelType == TunnelType.TCP) {
                     // Establish local TCP

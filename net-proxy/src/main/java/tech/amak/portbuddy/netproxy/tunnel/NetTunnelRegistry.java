@@ -68,7 +68,15 @@ public class NetTunnelRegistry {
         }
         final ServerSocket serverSocket;
         if (desiredPort != null && desiredPort > 0) {
-            serverSocket = new ServerSocket(desiredPort);
+            ServerSocket sock;
+            try {
+                sock = new ServerSocket(desiredPort);
+            } catch (final IOException bindEx) {
+                // Requested port is busy; fallback to a random available port
+                log.info("TCP port {} is busy. Falling back to a random port.", desiredPort);
+                sock = new ServerSocket(0);
+            }
+            serverSocket = sock;
         } else {
             serverSocket = new ServerSocket(0);
         }
@@ -88,7 +96,15 @@ public class NetTunnelRegistry {
         }
         final DatagramSocket socket;
         if (desiredPort != null && desiredPort > 0) {
-            socket = new DatagramSocket(desiredPort);
+            DatagramSocket sock;
+            try {
+                sock = new DatagramSocket(desiredPort);
+            } catch (final IOException bindEx) {
+                // Requested port is busy; fallback to a random available port
+                log.info("UDP port {} is busy. Falling back to a random port.", desiredPort);
+                sock = new DatagramSocket(0);
+            }
+            socket = sock;
         } else {
             socket = new DatagramSocket(0);
         }
@@ -115,6 +131,51 @@ public class NetTunnelRegistry {
                 break;
             }
         }
+    }
+
+    /**
+     * Closes and removes the entire tunnel identified by the given tunnelId.
+     * This will immediately close the TCP ServerSocket (if any), all accepted TCP
+     * connections, and the UDP DatagramSocket (if any). Any associated WebSocket
+     * session reference is cleared. The tunnel entry is removed from the registry.
+     *
+     * @param tunnelId identifier of the tunnel to close
+     */
+    public void closeTunnel(final UUID tunnelId) {
+        final var tunnel = byTunnelId.remove(tunnelId);
+        if (tunnel == null) {
+            return;
+        }
+        // Close TCP acceptor first so accept loops break
+        final var server = tunnel.serverSocket;
+        if (server != null) {
+            try {
+                server.close();
+            } catch (final Exception e) {
+                log.debug("Failed to close ServerSocket: {}", e.toString());
+            }
+        }
+        // Close all live TCP connections
+        for (final var entry : tunnel.connections.entrySet()) {
+            final var connection = entry.getValue();
+            try {
+                connection.socket.close();
+            } catch (final Exception e) {
+                log.debug("Failed to close connection {}: {}", entry.getKey(), e.toString());
+            }
+        }
+        tunnel.connections.clear();
+        // Close UDP socket
+        final var udp = tunnel.udpSocket;
+        if (udp != null) {
+            try {
+                udp.close();
+            } catch (final Exception e) {
+                log.debug("Failed to close DatagramSocket: {}", e.toString());
+            }
+        }
+        tunnel.udpRemotes.clear();
+        tunnel.session = null;
     }
 
     private void acceptLoop(final Tunnel tunnel) {

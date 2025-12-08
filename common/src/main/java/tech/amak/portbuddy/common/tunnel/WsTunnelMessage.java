@@ -69,6 +69,18 @@ public class WsTunnelMessage {
         TEXT,
         BINARY,
         CLOSE,
-        ERROR
+        ERROR,
+        /**
+         * Control message sent by Net Proxy after WebSocket is established to inform CLI
+         * about the actual exposed public endpoint details (host/port).
+         */
+        EXPOSED
     }
+
+    // Public endpoint details for EXPOSED message
+    @JsonProperty("publicHost")
+    private String publicHost;
+
+    @JsonProperty("publicPort")
+    private Integer publicPort;
 }

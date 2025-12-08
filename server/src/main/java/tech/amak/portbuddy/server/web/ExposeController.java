@@ -20,7 +20,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.dto.ExposeRequest;
 import tech.amak.portbuddy.common.dto.ExposeResponse;
-import tech.amak.portbuddy.server.client.NetProxyClient;
 import tech.amak.portbuddy.server.config.AppProperties;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
 import tech.amak.portbuddy.server.service.DomainService;
@@ -34,7 +33,6 @@ import tech.amak.portbuddy.server.service.TunnelService;
 public class ExposeController {
 
     private final AppProperties properties;
-    private final NetProxyClient netProxyClient;
     private final TunnelService tunnelService;
     private final UserRepository userRepository;
     private final DomainService domainService;
@@ -112,24 +110,14 @@ public class ExposeController {
         // Link reservation to tunnel and set public host/port from it
         tunnelService.assignReservation(tunnelId, reservation);
 
-        // Ask the selected net-proxy to bind the desired port for this tunnelId (TCP or UDP)
-        try {
-            final var exposeResponse = netProxyClient.exposePort(
-                tunnelId,
-                request.tunnelType().name().toLowerCase(),
-                reservation.getPublicPort());
-            log.info("Expose NET port response: {}", exposeResponse);
-            return new ExposeResponse(
-                "%s %s:%d".formatted(request.tunnelType().name().toLowerCase(), request.host(), request.port()),
-                null,
-                reservation.getPublicHost(),
-                reservation.getPublicPort(),
-                tunnelId,
-                null);
-        } catch (final Exception e) {
-            log.error("Failed to allocate public NET port for tunnelId={}: {}", tunnelId, e.getMessage(), e);
-            throw new RuntimeException("Failed to allocate public NET port for tunnelId=" + tunnelId, e);
-        }
+        // Do not call net-proxy here. Return allocated details to CLI.
+        return new ExposeResponse(
+            "%s %s:%d".formatted(request.tunnelType().name().toLowerCase(), request.host(), request.port()),
+            null,
+            reservation.getPublicHost(),
+            reservation.getPublicPort(),
+            tunnelId,
+            null);
     }
 
     private String extractApiKeyId(final Jwt jwt) {

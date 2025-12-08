@@ -194,6 +194,8 @@ public class PortBuddy implements Callable<Integer> {
                 hostPort.host,
                 hostPort.port,
                 mode,
+                expose.publicHost(),
+                expose.publicPort(),
                 jwt,
                 ui);
             final var thread = new Thread(tcpClient::runBlocking, "port-buddy-net-client-" + mode.name().toLowerCase());
