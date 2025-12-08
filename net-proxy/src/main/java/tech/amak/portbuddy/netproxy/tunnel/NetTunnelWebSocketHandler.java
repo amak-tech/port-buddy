@@ -22,6 +22,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.TunnelType;
 import tech.amak.portbuddy.common.tunnel.BinaryWsFrame;
+import tech.amak.portbuddy.common.tunnel.ControlMessage;
+import tech.amak.portbuddy.common.tunnel.MessageEnvelope;
 import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
 import tech.amak.portbuddy.common.utils.IdUtils;
 import tech.amak.portbuddy.netproxy.config.AppProperties;
@@ -94,16 +96,32 @@ public class NetTunnelWebSocketHandler extends AbstractWebSocketHandler {
     protected void handleTextMessage(final WebSocketSession session, final TextMessage textMessage) throws Exception {
         final var tunnelId = extractTunnelId(session);
         final var payload = textMessage.getPayload();
-        final var message = mapper.readValue(payload, WsTunnelMessage.class);
-        switch (message.getWsType()) {
-            case OPEN_OK -> registry.onClientOpenOk(tunnelId, message.getConnectionId());
-            case BINARY -> {
-                // Backward compatibility: accept base64 text payloads
-                registry.onClientBinary(tunnelId, message.getConnectionId(), message.getDataB64());
+        // Route by envelope kind: CTRL (heartbeat), WS (control/data)
+        final var env = mapper.readValue(payload, MessageEnvelope.class);
+        if (env.getKind() != null && env.getKind().equals("CTRL")) {
+            final var ctrl = mapper.readValue(payload, ControlMessage.class);
+            if (ctrl.getType() == ControlMessage.Type.PING) {
+                final var pong = new ControlMessage();
+                pong.setType(ControlMessage.Type.PONG);
+                pong.setTs(System.currentTimeMillis());
+                session.sendMessage(new TextMessage(mapper.writeValueAsString(pong)));
             }
-            case CLOSE -> registry.onClientClose(tunnelId, message.getConnectionId());
-            default -> log.debug("Ignoring WS control type: {}", message.getWsType());
+            return;
         }
+        if (env.getKind() != null && env.getKind().equals("WS")) {
+            final var message = mapper.readValue(payload, WsTunnelMessage.class);
+            switch (message.getWsType()) {
+                case OPEN_OK -> registry.onClientOpenOk(tunnelId, message.getConnectionId());
+                case BINARY -> {
+                    // Backward compatibility: accept base64 text payloads
+                    registry.onClientBinary(tunnelId, message.getConnectionId(), message.getDataB64());
+                }
+                case CLOSE -> registry.onClientClose(tunnelId, message.getConnectionId());
+                default -> log.debug("Ignoring WS control type: {}", message.getWsType());
+            }
+            return;
+        }
+        // Unknown kinds are ignored
     }
 
     @Override

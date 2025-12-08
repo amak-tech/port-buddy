@@ -36,8 +36,11 @@ import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
 import okio.ByteString;
 import tech.amak.portbuddy.cli.ui.NetTrafficSink;
+import tech.amak.portbuddy.cli.config.ConfigurationService;
 import tech.amak.portbuddy.common.TunnelType;
 import tech.amak.portbuddy.common.tunnel.BinaryWsFrame;
+import tech.amak.portbuddy.common.tunnel.ControlMessage;
+import tech.amak.portbuddy.common.tunnel.MessageEnvelope;
 import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
 
 @Slf4j
@@ -73,6 +76,7 @@ public class NetTunnelClient {
         return thread;
     });
     private volatile ScheduledFuture<?> heartbeatTask;
+    private volatile ScheduledFuture<?> wsHeartbeatTask;
     private final AtomicBoolean closedReported = new AtomicBoolean(false);
     private final AtomicBoolean stop = new AtomicBoolean(false);
     private final AtomicBoolean warnedAboutReassignment = new AtomicBoolean(false);
@@ -154,6 +158,10 @@ public class NetTunnelClient {
             if (task != null) {
                 task.cancel(true);
             }
+            final var wsTask = wsHeartbeatTask;
+            if (wsTask != null) {
+                wsTask.cancel(true);
+            }
             if (webSocket != null) {
                 webSocket.close(1000, "Client exit");
             }
@@ -222,15 +230,46 @@ public class NetTunnelClient {
             } catch (final Exception e) {
                 log.debug("Failed to start NET heartbeat: {}", e.toString());
             }
+
+            // Start WS application-level heartbeat (PING/PONG)
+            try {
+                final var existingWs = wsHeartbeatTask;
+                if (existingWs != null && !existingWs.isCancelled()) {
+                    existingWs.cancel(true);
+                }
+                final var config = ConfigurationService.INSTANCE.getConfig();
+                final var intervalSec = Math.max(1, config.getHealthcheckIntervalSec());
+                wsHeartbeatTask = scheduler.scheduleAtFixedRate(() -> {
+                    try {
+                        final var ping = new ControlMessage();
+                        ping.setType(ControlMessage.Type.PING);
+                        ping.setTs(System.currentTimeMillis());
+                        NetTunnelClient.this.webSocket.send(MAPPER.writeValueAsString(ping));
+                    } catch (final Exception e) {
+                        log.debug("WS heartbeat send failed: {}", e.toString());
+                    }
+                }, intervalSec, intervalSec, TimeUnit.SECONDS);
+            } catch (final Exception e) {
+                log.debug("Failed to start WS heartbeat: {}", e.toString());
+            }
         }
 
         @Override
         public void onMessage(final WebSocket webSocket, final String text) {
             try {
-                final var message = MAPPER.readValue(text, WsTunnelMessage.class);
-                handleControl(message);
+                final var env = MAPPER.readValue(text, MessageEnvelope.class);
+                if (env.getKind() != null && env.getKind().equals("CTRL")) {
+                    // Ignore CTRL (e.g., PONG) messages
+                    return;
+                }
+                if (env.getKind() != null && env.getKind().equals("WS")) {
+                    final var msg = MAPPER.readValue(text, WsTunnelMessage.class);
+                    handleControl(msg);
+                    return;
+                }
+                // Unknown kinds are ignored for NET tunnels
             } catch (final Exception e) {
-                log.warn("Bad control message: {}", e.toString());
+                log.warn("Failed to process WS text message: {}", e.toString());
             }
         }
 
@@ -294,6 +333,10 @@ public class NetTunnelClient {
             if (task != null) {
                 task.cancel(true);
             }
+            final var wsTask = wsHeartbeatTask;
+            if (wsTask != null) {
+                wsTask.cancel(true);
+            }
             reportClosedSafe();
             closed.countDown();
             // Close UDP sockets
@@ -311,6 +354,10 @@ public class NetTunnelClient {
             final var task = heartbeatTask;
             if (task != null) {
                 task.cancel(true);
+            }
+            final var wsTask = wsHeartbeatTask;
+            if (wsTask != null) {
+                wsTask.cancel(true);
             }
             reportClosedSafe();
             closed.countDown();

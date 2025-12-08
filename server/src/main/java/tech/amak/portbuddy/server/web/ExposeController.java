@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -49,6 +50,7 @@ public class ExposeController {
      *     the generated public URL, tunnel ID, and subdomain information for the exposed service
      */
     @PostMapping("/http")
+    @Transactional
     public ExposeResponse exposeHttp(final @AuthenticationPrincipal Jwt jwt,
                                      final @RequestBody ExposeRequest request) {
         final var userId = resolveUserId(jwt);
@@ -87,6 +89,7 @@ public class ExposeController {
      * @throws RuntimeException if the allocation of the public TCP or UDP port fails
      */
     @PostMapping("/net")
+    @Transactional
     public ExposeResponse exposeNet(final @AuthenticationPrincipal Jwt jwt,
                                     final @RequestBody ExposeRequest request) {
         final var userId = resolveUserId(jwt);
