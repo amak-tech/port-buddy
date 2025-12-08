@@ -96,7 +96,7 @@ spring:
               uri: forward:/index.html
               order: 3
               predicates:
-                - Path=/install, /app/**, /login/**, /auth/callback, /forgot-password**, /reset-password**, /404
+                - Path=/install, /app/**, /login/**, /auth/callback, /forgot-password**, /reset-password**, /404, /500
 
             # Dev: Proxy SPA paths to the Vite dev server
             - id: spa_frontend_route

@@ -15,6 +15,7 @@ import Domains from './pages/app/Domains'
 import Settings from './pages/app/Settings'
 import Ports from './pages/app/Ports'
 import NotFound from './pages/NotFound'
+import ServerError from './pages/ServerError'
 
 function ScrollToHash() {
   const location = useLocation()
@@ -122,6 +123,7 @@ export default function App() {
           <Route path="/app/profile" element={<Navigate to="/app/settings" replace />} />
           <Route path="/app/subscription" element={<Navigate to="/app/billing" replace />} />
           {/* Global 404 */}
+          <Route path="/500" element={<ServerError/>} />
           <Route path="*" element={<NotFound/>} />
         </Routes>
         <ScrollToHash />
