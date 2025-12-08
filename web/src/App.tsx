@@ -14,6 +14,7 @@ import Tokens from './pages/app/Tokens'
 import Domains from './pages/app/Domains'
 import Settings from './pages/app/Settings'
 import Ports from './pages/app/Ports'
+import NotFound from './pages/NotFound'
 
 function ScrollToHash() {
   const location = useLocation()
@@ -114,10 +115,14 @@ export default function App() {
             <Route path="ports" element={<Ports/>} />
             <Route path="billing" element={<Billing/>} />
             <Route path="settings" element={<Settings/>} />
+            {/* Unknown app routes redirect to dashboard */}
+            <Route path="*" element={<Navigate to="/app" replace />} />
           </Route>
           {/* Backward-compat for old links */}
           <Route path="/app/profile" element={<Navigate to="/app/settings" replace />} />
           <Route path="/app/subscription" element={<Navigate to="/app/billing" replace />} />
+          {/* Global 404 */}
+          <Route path="*" element={<NotFound/>} />
         </Routes>
         <ScrollToHash />
         <Outlet />
