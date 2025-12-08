@@ -41,6 +41,7 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: jars
+          retention-days: 1
           path: |
             server/target/*.jar
             gateway/target/*.jar
