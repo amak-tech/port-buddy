@@ -45,7 +45,7 @@ public class WelcomeEmailService {
                 model.put("ctaUrl", event.passwordResetLink());
             } else {
                 model.put("ctaText", "Open My Account");
-                model.put("ctaUrl", webAppUrl);
+                model.put("ctaUrl", webAppUrl + "/app");
             }
             model.put("webAppUrl", webAppUrl);
             model.put("featuresTitle", "What you can do with Port Buddy");
