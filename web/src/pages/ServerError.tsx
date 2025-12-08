@@ -2,12 +2,41 @@
  * Copyright (c) 2025 AMAK Inc. All rights reserved.
  */
 
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { ArrowPathIcon, HomeIcon, WrenchScrewdriverIcon } from '@heroicons/react/24/outline'
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import Seo from '../components/Seo'
 
 export default function ServerError() {
+  const [searchParams] = useSearchParams()
+  const [retryUrl, setRetryUrl] = useState<string | null>(null)
+
+  // Extract and decode retry param once
+  useEffect(() => {
+    const raw = searchParams.get('retry')?.trim()
+    if (raw) {
+      try {
+        const decoded = decodeURIComponent(raw)
+        setRetryUrl(decoded)
+      } catch (_err) {
+        setRetryUrl(null)
+      }
+    }
+  // run once on mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Clean retry from address bar without navigation
+  useEffect(() => {
+    if (searchParams.has('retry')) {
+      const params = new URLSearchParams(searchParams as unknown as URLSearchParams)
+      params.delete('retry')
+      const queryString = params.toString()
+      const hash = window.location.hash || ''
+      const newUrl = window.location.pathname + (queryString ? `?${queryString}` : '') + hash
+      window.history.replaceState({}, document.title, newUrl)
+    }
+  }, [searchParams])
   return (
     <div className="flex flex-col gap-16 pb-24">
       <Seo
@@ -38,7 +67,13 @@ export default function ServerError() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => {
+                if (retryUrl && retryUrl.length > 0) {
+                  window.location.assign(retryUrl)
+                } else {
+                  window.location.reload()
+                }
+              }}
               className="w-full sm:w-auto px-6 py-3 bg-red-600 hover:bg-red-500 text-white rounded-lg font-semibold transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-500/20"
             >
               <ArrowPathIcon className="w-5 h-5" />

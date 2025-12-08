@@ -112,6 +112,7 @@ app:
   domain: localhost:8080
   scheme: http
   url: ${app.scheme}://${app.domain}
+  server-error-page: ${app.url}/500
   spa-backend-enabled: true
   spa-fallback-enabled: false
   jwt:
