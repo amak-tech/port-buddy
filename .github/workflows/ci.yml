@@ -38,6 +38,7 @@ jobs:
         run: ./mvnw clean package
 
       - name: Upload build artifacts
+        if: github.ref == 'refs/heads/master'
         uses: actions/upload-artifact@v5
         with:
           name: jars
@@ -147,3 +148,15 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: portbuddy/cli:latest
+
+  cleanup:
+    name: Cleanup
+    needs: build
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete artifacts
+        uses: geekyeggo/delete-artifact@v5
+        with:
+          name: jars
+          failOnError: false
