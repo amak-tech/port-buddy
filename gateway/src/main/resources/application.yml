@@ -36,7 +36,7 @@ spring:
 #              enabled: true
 
           routes:
-            - id: tcp_tunnel_route
+            - id: net_proxy_route
               order: 1
               uri: lb://net-proxy
               predicates:
