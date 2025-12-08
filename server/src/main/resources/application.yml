@@ -42,7 +42,7 @@ app:
     session-idle-timeout: 10m
 
   cli:
-    min-version: 1.1
+    min-version: 1.0
 
 spring:
   mvc:
