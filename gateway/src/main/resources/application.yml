@@ -5,7 +5,7 @@ eureka:
   client:
     # Fetch registry updates from Eureka more frequently so the gateway sees
     # service instance changes with lower latency.
-    registryFetchIntervalSeconds: 5
+    registryFetchIntervalSeconds: 2
     # Poll interval for refreshing Eureka server URLs (keep modest, default is 5 minutes)
     eurekaServiceUrlPollIntervalSeconds: 60
     service-url:
@@ -16,6 +16,18 @@ spring:
     name: api-gateway
 
   cloud:
+    loadbalancer:
+      # Reduce cache TTL so instance list updates propagate quickly after
+      # Eureka registry refresh. This helps newly registered/restarted
+      # services become routable within a few seconds.
+      cache:
+        enabled: true
+        ttl: 2s
+      # Proactively check instance health and refresh the list to avoid
+      # routing to stale instances and to speed up availability.
+      health-check:
+        enabled: true
+        interval: 2s
     gateway:
       server:
         webflux:
