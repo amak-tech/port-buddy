@@ -35,7 +35,6 @@ import okhttp3.WebSocketListener;
 import okio.ByteString;
 import tech.amak.portbuddy.cli.config.ConfigurationService;
 import tech.amak.portbuddy.cli.ui.HttpLogSink;
-import tech.amak.portbuddy.common.ClientConfig;
 import tech.amak.portbuddy.common.tunnel.ControlMessage;
 import tech.amak.portbuddy.common.tunnel.HttpTunnelMessage;
 import tech.amak.portbuddy.common.tunnel.MessageEnvelope;
