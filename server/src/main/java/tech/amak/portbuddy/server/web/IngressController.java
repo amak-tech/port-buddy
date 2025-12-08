@@ -26,6 +26,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.tunnel.HttpTunnelMessage;
+import tech.amak.portbuddy.server.config.AppProperties;
 import tech.amak.portbuddy.server.tunnel.TunnelRegistry;
 
 /**
@@ -37,6 +38,7 @@ import tech.amak.portbuddy.server.tunnel.TunnelRegistry;
 public class IngressController {
 
     private final TunnelRegistry registry;
+    private final AppProperties properties;
 
     private static final Set<String> HOP_BY_HOP_RESPONSE_HEADERS = Set.of(
         // RFC 7230 hop-by-hop headers + common variants we do not want to relay
@@ -63,6 +65,15 @@ public class IngressController {
     private void forwardViaTunnel(final String subdomain,
                                   final HttpServletRequest request,
                                   final HttpServletResponse response) throws IOException {
+        // If there is no active tunnel for the requested subdomain — redirect users to SPA 404 page
+        final var tunnel = registry.getBySubdomain(subdomain);
+        if (tunnel == null || !tunnel.isOpen()) {
+            final var notFoundUrl = properties.gateway().url() + "/404";
+            response.setStatus(307); // Temporary Redirect, preserves method for non-GET
+            response.setHeader(HttpHeaders.LOCATION, notFoundUrl);
+            return;
+        }
+
         final var pathWithin = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
         final var bestMatch = (String) request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);
         final var matcher = new AntPathMatcher();
