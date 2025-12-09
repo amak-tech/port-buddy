@@ -10,6 +10,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +34,7 @@ public class DomainService {
     private final TunnelRepository tunnelRepository;
     private final AppProperties properties;
     private final SecureRandom random = new SecureRandom();
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional(readOnly = true)
     public List<DomainEntity> getDomains(final AccountEntity account) {
@@ -129,6 +131,46 @@ public class DomainService {
 
         domainRepository.delete(domain);
         log.info("Deleted domain {} for account {}", domain.getSubdomain(), account.getId());
+    }
+
+    /**
+     * Sets or updates a passcode for the specified domain belonging to the provided account.
+     * The passcode will be stored as a hash using the configured {@link PasswordEncoder}.
+     *
+     * @param id       the unique identifier of the domain
+     * @param account  the owner account of the domain
+     * @param passcode the new raw passcode value to set
+     * @return the updated domain entity
+     */
+    @Transactional
+    public DomainEntity setPasscode(final UUID id, final AccountEntity account, final String passcode) {
+        if (passcode == null || passcode.isBlank()) {
+            throw new RuntimeException("Passcode must not be blank");
+        }
+        if (passcode.length() < 4 || passcode.length() > 128) {
+            throw new RuntimeException("Passcode length must be between 4 and 128 characters");
+        }
+
+        final var domain = domainRepository.findByIdAndAccount(id, account)
+            .orElseThrow(() -> new RuntimeException("Domain not found"));
+
+        final var hash = passwordEncoder.encode(passcode);
+        domain.setPasscodeHash(hash);
+        return domainRepository.save(domain);
+    }
+
+    /**
+     * Clears passcode protection for the specified domain belonging to the provided account.
+     *
+     * @param id      the unique identifier of the domain
+     * @param account the owner account of the domain
+     */
+    @Transactional
+    public void clearPasscode(final UUID id, final AccountEntity account) {
+        final var domain = domainRepository.findByIdAndAccount(id, account)
+            .orElseThrow(() -> new RuntimeException("Domain not found"));
+        domain.setPasscodeHash(null);
+        domainRepository.save(domain);
     }
 
     /**

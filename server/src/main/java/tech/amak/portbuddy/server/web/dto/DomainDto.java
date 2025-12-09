@@ -11,6 +11,7 @@ public record DomainDto(
     UUID id,
     String subdomain,
     String domain,
+    boolean passcodeProtected,
     OffsetDateTime createdAt,
     OffsetDateTime updatedAt
 ) {
