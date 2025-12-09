@@ -4,6 +4,8 @@
 
 package tech.amak.portbuddy.server.web;
 
+import static org.springframework.http.HttpStatus.TEMPORARY_REDIRECT;
+
 import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -16,6 +18,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,6 +33,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.tunnel.HttpTunnelMessage;
 import tech.amak.portbuddy.server.config.AppProperties;
+import tech.amak.portbuddy.server.db.entity.DomainEntity;
 import tech.amak.portbuddy.server.db.repo.DomainRepository;
 import tech.amak.portbuddy.server.service.TunnelService;
 import tech.amak.portbuddy.server.tunnel.TunnelRegistry;
@@ -77,7 +81,7 @@ public class IngressController {
         final var tunnel = registry.getBySubdomain(subdomain);
         if (tunnel == null || !tunnel.isOpen()) {
             final var notFoundUrl = properties.gateway().url() + "/404";
-            response.setStatus(307); // Temporary Redirect, preserves method for non-GET
+            response.setStatus(TEMPORARY_REDIRECT.value()); // Temporary Redirect, preserves method for non-GET
             response.setHeader(HttpHeaders.LOCATION, notFoundUrl);
             return;
         }
@@ -87,7 +91,7 @@ public class IngressController {
             final var gateway = properties.gateway();
             final var originalDomain = "%s.%s".formatted(subdomain, gateway.domain());
             final var redirect = "%s/passcode?target_domain=%s".formatted(gateway.url(), originalDomain);
-            response.setStatus(302);
+            response.setStatus(TEMPORARY_REDIRECT.value());
             response.setHeader(HttpHeaders.LOCATION, redirect);
             return;
         }
@@ -179,7 +183,7 @@ public class IngressController {
             request.getParameter("passcode"));
 
         final var domainHash = domainRepository.findBySubdomain(subdomain)
-            .map(d -> d.getPasscodeHash())
+            .map(DomainEntity::getPasscodeHash)
             .orElse(null);
 
         final var tempPasscodeHash = tunnelService.getTempPasscodeHash(tunnelId).orElse(null);
