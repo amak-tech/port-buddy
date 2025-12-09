@@ -89,7 +89,7 @@ public class IngressController {
         final var tunnel = registry.getBySubdomain(subdomain);
         if (tunnel == null || !tunnel.isOpen()) {
             final var notFoundUrl = properties.gateway().notFoundPage();
-            response.setStatus(HttpServletResponse.SC_TEMPORARY_REDIRECT); // Temporary Redirect, preserves method for non-GET
+            response.setStatus(HttpServletResponse.SC_TEMPORARY_REDIRECT);
             response.setHeader(HttpHeaders.LOCATION, notFoundUrl);
             return;
         }
