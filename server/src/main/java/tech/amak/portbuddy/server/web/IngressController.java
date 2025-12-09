@@ -9,16 +9,22 @@ import static org.springframework.http.HttpStatus.TEMPORARY_REDIRECT;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -45,6 +51,8 @@ import tech.amak.portbuddy.server.tunnel.TunnelRegistry;
 @RequiredArgsConstructor
 public class IngressController {
 
+    private static final String PASSCODE_COOKIE_NAME = "pbp";
+
     private final TunnelRegistry registry;
     private final AppProperties properties;
     private final DomainRepository domainRepository;
@@ -67,6 +75,7 @@ public class IngressController {
 
     // Path-based fallback ingress for local/dev: http://server/_/{subdomain}/...
     @RequestMapping("/_/{subdomain}/**")
+    @Transactional
     public void ingressPathBased(final @PathVariable("subdomain") String subdomain,
                                  final HttpServletRequest request,
                                  final HttpServletResponse response) throws IOException {
@@ -79,8 +88,8 @@ public class IngressController {
         // If there is no active tunnel for the requested subdomain — redirect users to SPA 404 page
         final var tunnel = registry.getBySubdomain(subdomain);
         if (tunnel == null || !tunnel.isOpen()) {
-            final var notFoundUrl = properties.gateway().url() + "/404";
-            response.setStatus(TEMPORARY_REDIRECT.value()); // Temporary Redirect, preserves method for non-GET
+            final var notFoundUrl = properties.gateway().notFoundPage();
+            response.setStatus(HttpServletResponse.SC_TEMPORARY_REDIRECT); // Temporary Redirect, preserves method for non-GET
             response.setHeader(HttpHeaders.LOCATION, notFoundUrl);
             return;
         }
@@ -89,7 +98,7 @@ public class IngressController {
         if (!isAuthorized(subdomain, tunnel.tunnelId(), request, response)) {
             final var gateway = properties.gateway();
             final var originalDomain = "%s.%s".formatted(subdomain, gateway.domain());
-            final var redirect = "%s/passcode?target_domain=%s".formatted(gateway.url(), originalDomain);
+            final var redirect = "%s?target_domain=%s".formatted(gateway.passcodePage(), originalDomain);
             response.setStatus(TEMPORARY_REDIRECT.value());
             response.setHeader(HttpHeaders.LOCATION, redirect);
             return;
@@ -155,11 +164,10 @@ public class IngressController {
                         // Skip hop-by-hop or conflicting headers
                         continue;
                     }
-                    for (final var v : values) {
-                        if (v != null) {
-                            response.addHeader(name, v);
-                        }
-                    }
+                    values.stream()
+                        .filter(Objects::nonNull)
+                        .forEach(value ->
+                            response.addHeader(name, value));
                 }
             }
             if (resp.getRespBodyB64() != null) {
@@ -168,7 +176,7 @@ public class IngressController {
             }
         } catch (final Exception ex) {
             log.warn("Tunnel forward failed for subdomain={}: {}", subdomain, ex.toString());
-            response.setStatus(502);
+            response.setStatus(HttpServletResponse.SC_BAD_GATEWAY);
             response.getWriter().write("Bad Gateway: tunnel unavailable");
         }
     }
@@ -177,56 +185,38 @@ public class IngressController {
                                  final UUID tunnelId,
                                  final HttpServletRequest request,
                                  final HttpServletResponse response) {
-        final var provided = firstNonBlank(
-            request.getHeader("X-API-Key"),
-            request.getParameter("passcode"));
 
-        final var domainHash = domainRepository.findBySubdomain(subdomain)
-            .map(DomainEntity::getPasscodeHash)
+        final var passcodeHash = tunnelService.getTempPasscodeHash(tunnelId)
+            .or(() -> domainRepository.findBySubdomain(subdomain)
+                .map(DomainEntity::getPasscodeHash))
             .orElse(null);
 
-        final var tempPasscodeHash = tunnelService.getTempPasscodeHash(tunnelId).orElse(null);
-
-        final var cookie = findCookie(request, "pbp");
-        final var cookieVal = cookie != null ? cookie.getValue() : null;
-
         // If there is no passcode configured for either the domain or the tunnel — allow access
-        final var protectionEnabled = (domainHash != null && !domainHash.isBlank())
-                                      || (tempPasscodeHash != null && !tempPasscodeHash.isBlank());
-        if (!protectionEnabled) {
+        if (passcodeHash == null) {
             return true;
         }
 
+        final var passcode = StringUtils.firstNonBlank(
+            request.getHeader("X-API-Key"),
+            request.getParameter("passcode"));
+
         // If passcode provided via header or query, validate and set cookie on success
-        if (provided != null && !provided.isBlank()) {
-            if (matches(provided, tempPasscodeHash) || matches(provided, domainHash)) {
-                issueCookie(response, subdomain, provided);
+        if (passcode != null) {
+            if (matches(passcode, passcodeHash)) {
+                issueCookie(response, subdomain, passcode);
                 return true;
             }
             return false;
         }
 
-        // No provided passcode; allow if cookie matches
-        if (cookieVal != null && !cookieVal.isBlank()) {
-            if (matches(cookieVal, tempPasscodeHash) || matches(cookieVal, domainHash)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static String firstNonBlank(final String a, final String b) {
-        if (a != null && !a.isBlank()) {
-            return a;
-        }
-        if (b != null && !b.isBlank()) {
-            return b;
-        }
-        return null;
+        return findCookie(request, PASSCODE_COOKIE_NAME)
+            .map(Cookie::getValue)
+            .map(cookiePasscode -> matches(cookiePasscode, passcodeHash))
+            .orElse(false);
     }
 
     private boolean matches(final String raw, final String hash) {
-        if (hash == null || hash.isBlank()) {
+        if (hash == null || raw == null) {
             return false;
         }
         try {
@@ -236,22 +226,16 @@ public class IngressController {
         }
     }
 
-    private Cookie findCookie(final HttpServletRequest request, final String name) {
-        final var arr = request.getCookies();
-        if (arr == null) {
-            return null;
-        }
-        for (final var c : arr) {
-            if (name.equals(c.getName())) {
-                return c;
-            }
-        }
-        return null;
+    private Optional<Cookie> findCookie(final HttpServletRequest request, final String name) {
+        return Stream.ofNullable(request.getCookies())
+            .flatMap(Arrays::stream)
+            .filter(cookie -> Objects.equals(name, cookie.getName()))
+            .findFirst();
     }
 
     private void issueCookie(final HttpServletResponse response, final String subdomain, final String value) {
         final var gateway = properties.gateway();
-        final var cookie = new Cookie("pbp", value);
+        final var cookie = new Cookie(PASSCODE_COOKIE_NAME, value);
         cookie.setHttpOnly(true);
         cookie.setSecure("https".equalsIgnoreCase(gateway.schema()));
         cookie.setPath("/");
@@ -278,7 +262,9 @@ public class IngressController {
 
         // Compose manual Set-Cookie with SameSite=Lax; add Domain only when it is valid
         final var sb = new StringBuilder();
-        sb.append("pbp=").append(value)
+        sb.append(PASSCODE_COOKIE_NAME)
+            .append("=")
+            .append(value)
             .append("; Path=/; Max-Age=43200; HttpOnly; SameSite=Lax");
         if (shouldSetDomain) {
             sb.append("; Domain=").append(fullDomain);
