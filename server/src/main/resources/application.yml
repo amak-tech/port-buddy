@@ -13,6 +13,8 @@ app:
     domain: localhost:8080
     schema: http
     url: ${app.gateway.schema}://${app.gateway.domain}
+    not-found-page: ${app.gateway.url}/404
+    passcode-page: ${app.gateway.url}/passcode
   mail:
     fromAddress: ${MAIL_FROM:no-reply@portbuddy.dev}
     fromName: ${MAIL_FROM_NAME:Port Buddy}

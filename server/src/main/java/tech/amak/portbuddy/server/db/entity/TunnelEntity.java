@@ -77,6 +77,10 @@ public class TunnelEntity {
     @JoinColumn(name = "domain_id")
     private DomainEntity domain;
 
+    // Optional temporary passcode hash set for this tunnel via CLI
+    @Column(name = "temp_passcode_hash")
+    private String tempPasscodeHash;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "port_reservation_id")
     private PortReservationEntity portReservation;

@@ -90,6 +90,11 @@ public class TunnelService {
             tunnel.setApiKeyId(UUID.fromString(apiKeyId));
         }
 
+        // Ensure non-null timestamps for created_at/updated_at to satisfy DB NOT NULL constraints
+        // in case the persistence provider performs an update instead of insert for a new entity.
+        tunnel.setCreatedAt(OffsetDateTime.now());
+        tunnel.setUpdatedAt(OffsetDateTime.now());
+
         tunnelRepository.save(tunnel);
 
         log.info("Created pending {} tunnel record tunnelId={} accountId={} userId={}",
@@ -139,6 +144,24 @@ public class TunnelService {
     public Optional<TunnelEntity> findByTunnelId(final UUID tunnelId) {
         return Optional.ofNullable(tunnelId)
             .flatMap(tunnelRepository::findById);
+    }
+
+    /**
+     * Sets a temporary passcode hash on the tunnel entity.
+     */
+    @Transactional
+    public void setTempPasscodeHash(final UUID tunnelId, final String hash) {
+        findByTunnelId(tunnelId).ifPresent(entity -> {
+            entity.setTempPasscodeHash(hash);
+            tunnelRepository.save(entity);
+        });
+    }
+
+    /**
+     * Returns the temporary passcode hash for a tunnel, if present.
+     */
+    public Optional<String> getTempPasscodeHash(final UUID tunnelId) {
+        return findByTunnelId(tunnelId).map(TunnelEntity::getTempPasscodeHash);
     }
 
     /**

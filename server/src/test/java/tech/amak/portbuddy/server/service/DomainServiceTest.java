@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import tech.amak.portbuddy.server.config.AppProperties;
 import tech.amak.portbuddy.server.db.entity.AccountEntity;
@@ -37,13 +38,20 @@ class DomainServiceTest {
     private DomainRepository domainRepository;
     @Mock
     private TunnelRepository tunnelRepository;
+    @Mock
+    private PasswordEncoder passwordEncoder;
 
     private DomainService domainService;
     private AccountEntity account;
 
     @BeforeEach
     void setUp() {
-        final var gateway = new AppProperties.Gateway("url", "portbuddy.dev", "https");
+        final var gateway = new AppProperties.Gateway(
+            "url",
+            "portbuddy.dev",
+            "https",
+            "https://portbuddy.dev/404",
+            "https://portbuddy.dev/passcode");
         final var mail = new AppProperties.Mail("no-reply@localhost", "Port Buddy");
         final var portReservations =
             new AppProperties.PortReservations(new AppProperties.PortReservations.Range(40000, 60000));
@@ -55,7 +63,7 @@ class DomainServiceTest {
             new AppProperties.Cli("1.0"),
             portReservations);
 
-        domainService = new DomainService(domainRepository, tunnelRepository, appProps);
+        domainService = new DomainService(domainRepository, tunnelRepository, appProps, passwordEncoder);
         account = new AccountEntity();
         account.setId(UUID.randomUUID());
     }

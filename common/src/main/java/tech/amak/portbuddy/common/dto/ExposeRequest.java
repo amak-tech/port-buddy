@@ -13,5 +13,6 @@ public record ExposeRequest(
     String host,
     int port,
     String domain,
-    String portReservation /* optional, format: host:port for TCP/UDP */
+    String portReservation /* optional, format: host:port for TCP/UDP */,
+    String passcode /* optional, for HTTP tunnels only */
 ) {}

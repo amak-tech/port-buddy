@@ -28,6 +28,7 @@ import tech.amak.portbuddy.server.db.entity.DomainEntity;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
 import tech.amak.portbuddy.server.service.DomainService;
 import tech.amak.portbuddy.server.web.dto.DomainDto;
+import tech.amak.portbuddy.server.web.dto.SetPasscodeRequest;
 import tech.amak.portbuddy.server.web.dto.UpdateDomainRequest;
 
 @RestController
@@ -83,6 +84,37 @@ public class DomainsController {
         domainService.deleteDomain(id, account);
     }
 
+    /**
+     * Sets or updates a passcode for the given domain. The provided passcode will be hashed
+     * and stored server-side. Subsequent requests to the public domain will require the passcode.
+     *
+     * @param principal authenticated user token
+     * @param id domain id
+     * @param request passcode payload
+     * @return updated domain dto
+     */
+    @PutMapping("/{id}/passcode")
+    public DomainDto setPasscode(final @AuthenticationPrincipal Jwt principal,
+                                 @PathVariable("id") final UUID id,
+                                 @RequestBody final SetPasscodeRequest request) {
+        final var account = getAccount(principal);
+        return toDto(domainService.setPasscode(id, account, request.passcode()));
+    }
+
+    /**
+     * Deletes passcode protection for the given domain.
+     *
+     * @param principal authenticated user token
+     * @param id domain id
+     */
+    @DeleteMapping("/{id}/passcode")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deletePasscode(final @AuthenticationPrincipal Jwt principal,
+                               @PathVariable("id") final UUID id) {
+        final var account = getAccount(principal);
+        domainService.clearPasscode(id, account);
+    }
+
     private AccountEntity getAccount(final Jwt jwt) {
         final var userId = UUID.fromString(jwt.getSubject());
         return userRepository.findById(userId)
@@ -95,6 +127,7 @@ public class DomainsController {
             domain.getId(),
             domain.getSubdomain(),
             domain.getDomain(),
+            domain.getPasscodeHash() != null && !domain.getPasscodeHash().isBlank(),
             domain.getCreatedAt(),
             domain.getUpdatedAt()
         );

@@ -9,6 +9,7 @@ import static tech.amak.portbuddy.server.security.JwtService.resolveUserId;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -38,6 +39,7 @@ public class ExposeController {
     private final UserRepository userRepository;
     private final DomainService domainService;
     private final PortReservationService portReservationService;
+    private final PasswordEncoder passwordEncoder;
 
     /**
      * Creates a public HTTP endpoint to expose a local HTTP service by generating a unique
@@ -74,6 +76,12 @@ public class ExposeController {
             publicUrl,
             domain);
         final var tunnelId = tunnel.getId();
+
+        // If passcode provided, store temporary passcode hash on the tunnel entity
+        if (request.passcode() != null && !request.passcode().isBlank()) {
+            final var hash = passwordEncoder.encode(request.passcode());
+            tunnelService.setTempPasscodeHash(tunnelId, hash);
+        }
         return new ExposeResponse(source, publicUrl, null, null, tunnelId, subdomain);
     }
 

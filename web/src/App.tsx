@@ -16,6 +16,7 @@ import Settings from './pages/app/Settings'
 import Ports from './pages/app/Ports'
 import NotFound from './pages/NotFound'
 import ServerError from './pages/ServerError'
+import Passcode from './pages/Passcode'
 
 function ScrollToHash() {
   const location = useLocation()
@@ -108,6 +109,7 @@ export default function App() {
           <Route path="/forgot-password" element={<ForgotPassword/>} />
           <Route path="/reset-password" element={<ResetPassword/>} />
           <Route path="/auth/callback" element={<Login/>} />
+          <Route path="/passcode" element={<Passcode/>} />
           {/* App area with sidebar layout */}
           <Route path="/app" element={<ProtectedRoute><AppLayout/></ProtectedRoute>}>
             <Route index element={<Tunnels/>} />

@@ -28,4 +28,6 @@ public interface DomainRepository extends JpaRepository<DomainEntity, UUID> {
     Optional<DomainEntity> findByAccountAndSubdomain(AccountEntity account, String subdomain);
 
     Optional<DomainEntity> findByIdAndAccount(UUID id, AccountEntity account);
+
+    Optional<DomainEntity> findBySubdomain(String subdomain);
 }
