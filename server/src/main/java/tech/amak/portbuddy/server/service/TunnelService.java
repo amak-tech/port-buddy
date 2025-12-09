@@ -90,6 +90,11 @@ public class TunnelService {
             tunnel.setApiKeyId(UUID.fromString(apiKeyId));
         }
 
+        // Ensure non-null timestamps for created_at/updated_at to satisfy DB NOT NULL constraints
+        // in case the persistence provider performs an update instead of insert for a new entity.
+        tunnel.setCreatedAt(OffsetDateTime.now());
+        tunnel.setUpdatedAt(OffsetDateTime.now());
+
         tunnelRepository.save(tunnel);
 
         log.info("Created pending {} tunnel record tunnelId={} accountId={} userId={}",

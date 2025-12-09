@@ -185,6 +185,13 @@ public class IngressController {
         final var cookie = findCookie(request, "pbp");
         final var cookieVal = cookie != null ? cookie.getValue() : null;
 
+        // If there is no passcode configured for either the domain or the tunnel — allow access
+        final var protectionEnabled = (domainHash != null && !domainHash.isBlank())
+            || (tempPasscodeHash != null && !tempPasscodeHash.isBlank());
+        if (!protectionEnabled) {
+            return true;
+        }
+
         // If passcode provided via header or query, validate and set cookie on success
         if (provided != null && !provided.isBlank()) {
             if (matches(provided, tempPasscodeHash) || matches(provided, domainHash)) {
