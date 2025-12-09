@@ -42,6 +42,9 @@ public class DomainEntity {
     @Column(name = "domain", nullable = false)
     private String domain;
 
+    @Column(name = "passcode_hash")
+    private String passcodeHash;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "account_id", nullable = false)
     private AccountEntity account;

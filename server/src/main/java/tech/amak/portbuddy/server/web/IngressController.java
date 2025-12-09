@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.springframework.http.HttpHeaders;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,6 +28,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.tunnel.HttpTunnelMessage;
 import tech.amak.portbuddy.server.config.AppProperties;
+import tech.amak.portbuddy.server.db.repo.DomainRepository;
+import tech.amak.portbuddy.server.service.TunnelService;
 import tech.amak.portbuddy.server.tunnel.TunnelRegistry;
 
 /**
@@ -39,6 +42,9 @@ public class IngressController {
 
     private final TunnelRegistry registry;
     private final AppProperties properties;
+    private final DomainRepository domainRepository;
+    private final TunnelService tunnelService;
+    private final PasswordEncoder passwordEncoder;
 
     private static final Set<String> HOP_BY_HOP_RESPONSE_HEADERS = Set.of(
         // RFC 7230 hop-by-hop headers + common variants we do not want to relay
@@ -71,6 +77,16 @@ public class IngressController {
             final var notFoundUrl = properties.gateway().url() + "/404";
             response.setStatus(307); // Temporary Redirect, preserves method for non-GET
             response.setHeader(HttpHeaders.LOCATION, notFoundUrl);
+            return;
+        }
+
+        // Passcode protection check (query param, header, or cookie)
+        if (!isAuthorized(subdomain, tunnel.tunnelId(), request, response)) {
+            final var gateway = properties.gateway();
+            final var originalDomain = "%s.%s".formatted(subdomain, gateway.domain());
+            final var redirect = "%s/passcode?target_domain=%s".formatted(gateway.url(), originalDomain);
+            response.setStatus(302);
+            response.setHeader(HttpHeaders.LOCATION, redirect);
             return;
         }
 
@@ -150,5 +166,78 @@ public class IngressController {
             response.setStatus(502);
             response.getWriter().write("Bad Gateway: tunnel unavailable");
         }
+    }
+
+    private boolean isAuthorized(final String subdomain,
+                                 final java.util.UUID tunnelId,
+                                 final HttpServletRequest request,
+                                 final HttpServletResponse response) {
+        final var provided = firstNonBlank(
+            request.getHeader("X-API-Key"),
+            request.getParameter("passcode"));
+
+        final var domainHash = domainRepository.findBySubdomain(subdomain)
+            .map(d -> d.getPasscodeHash())
+            .orElse(null);
+
+        final var tempPasscodeHash = tunnelService.getTempPasscodeHash(tunnelId).orElse(null);
+
+        final var cookie = findCookie(request, "pbp");
+        final var cookieVal = cookie != null ? cookie.getValue() : null;
+
+        // If passcode provided via header or query, validate and set cookie on success
+        if (provided != null && !provided.isBlank()) {
+            if (matches(provided, tempPasscodeHash) || matches(provided, domainHash)) {
+                issueCookie(response, subdomain, provided);
+                return true;
+            }
+            return false;
+        }
+
+        // No provided passcode; allow if cookie matches
+        if (cookieVal != null && !cookieVal.isBlank()) {
+            if (matches(cookieVal, tempPasscodeHash) || matches(cookieVal, domainHash)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String firstNonBlank(final String a, final String b) {
+        if (a != null && !a.isBlank()) return a;
+        if (b != null && !b.isBlank()) return b;
+        return null;
+    }
+
+    private boolean matches(final String raw, final String hash) {
+        if (hash == null || hash.isBlank()) return false;
+        try {
+            return passwordEncoder.matches(raw, hash);
+        } catch (final Exception e) {
+            return false;
+        }
+    }
+
+    private jakarta.servlet.http.Cookie findCookie(final HttpServletRequest request, final String name) {
+        final var arr = request.getCookies();
+        if (arr == null) return null;
+        for (final var c : arr) {
+            if (name.equals(c.getName())) return c;
+        }
+        return null;
+    }
+
+    private void issueCookie(final HttpServletResponse response, final String subdomain, final String value) {
+        final var gateway = properties.gateway();
+        final var cookie = new jakarta.servlet.http.Cookie("pbp", value);
+        cookie.setHttpOnly(true);
+        cookie.setSecure("https".equalsIgnoreCase(gateway.schema()));
+        cookie.setPath("/");
+        // Scope to the specific public subdomain
+        cookie.setDomain(subdomain + "." + gateway.domain());
+        cookie.setMaxAge(60 * 60 * 12); // 12 hours
+        response.addCookie(cookie);
+        // Best-effort SameSite=Lax
+        response.addHeader("Set-Cookie", "pbp=" + value + "; Path=/; Max-Age=43200; HttpOnly; SameSite=Lax; Domain=" + subdomain + "." + gateway.domain() + (cookie.getSecure() ? "; Secure" : ""));
     }
 }

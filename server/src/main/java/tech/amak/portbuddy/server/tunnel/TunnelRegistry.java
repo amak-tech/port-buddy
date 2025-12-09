@@ -71,6 +71,7 @@ public class TunnelRegistry {
         return tunnel;
     }
 
+
     public Tunnel getBySubdomain(final String subdomain) {
         return bySubdomain.get(subdomain);
     }
@@ -259,6 +260,7 @@ public class TunnelRegistry {
         private final Map<String, WebSocketSession> browserByConnection = new ConcurrentHashMap<>();
         private final Map<WebSocketSession, Ids> browserReverse = new ConcurrentHashMap<>();
 
+
         public UUID tunnelId() {
             return tunnelId;
         }
@@ -282,5 +284,7 @@ public class TunnelRegistry {
         public Map<WebSocketSession, Ids> browserReverse() {
             return browserReverse;
         }
+
+        // No passcode kept in-memory; use DB via TunnelService when needed
     }
 }

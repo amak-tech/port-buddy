@@ -142,6 +142,24 @@ public class TunnelService {
     }
 
     /**
+     * Sets a temporary passcode hash on the tunnel entity.
+     */
+    @Transactional
+    public void setTempPasscodeHash(final UUID tunnelId, final String hash) {
+        findByTunnelId(tunnelId).ifPresent(entity -> {
+            entity.setTempPasscodeHash(hash);
+            tunnelRepository.save(entity);
+        });
+    }
+
+    /**
+     * Returns the temporary passcode hash for a tunnel, if present.
+     */
+    public Optional<String> getTempPasscodeHash(final UUID tunnelId) {
+        return findByTunnelId(tunnelId).map(TunnelEntity::getTempPasscodeHash);
+    }
+
+    /**
      * Updates the status of a tunnel to 'CONNECTED' and sets its last heartbeat
      * timestamp to the current time. This method retrieves the tunnel from the
      * repository using the provided tunnel ID and applies the updates if the
