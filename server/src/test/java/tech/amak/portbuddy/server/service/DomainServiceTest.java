@@ -46,7 +46,12 @@ class DomainServiceTest {
 
     @BeforeEach
     void setUp() {
-        final var gateway = new AppProperties.Gateway("url", "portbuddy.dev", "https");
+        final var gateway = new AppProperties.Gateway(
+            "url",
+            "portbuddy.dev",
+            "https",
+            "https://portbuddy.dev/404",
+            "https://portbuddy.dev/passcode");
         final var mail = new AppProperties.Mail("no-reply@localhost", "Port Buddy");
         final var portReservations =
             new AppProperties.PortReservations(new AppProperties.PortReservations.Range(40000, 60000));
