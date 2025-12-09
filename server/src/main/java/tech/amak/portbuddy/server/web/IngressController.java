@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -170,7 +171,7 @@ public class IngressController {
     }
 
     private boolean isAuthorized(final String subdomain,
-                                 final java.util.UUID tunnelId,
+                                 final UUID tunnelId,
                                  final HttpServletRequest request,
                                  final HttpServletResponse response) {
         final var provided = firstNonBlank(
