@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../auth/AuthContext'
 import { usePageTitle } from '../../components/PageHeader'
-import { GlobeAltIcon, PlusIcon, TrashIcon, PencilIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { GlobeAltIcon, PlusIcon, TrashIcon, PencilIcon, CheckIcon, XMarkIcon, LockClosedIcon, LockOpenIcon } from '@heroicons/react/24/outline'
 import { apiJson } from '../../lib/api'
 import { AlertModal, ConfirmModal, Modal } from '../../components/Modal'
 
@@ -28,7 +28,6 @@ export default function Domains() {
   // Passcode modal state
   const [passcodeDomainId, setPasscodeDomainId] = useState<string | null>(null)
   const [pass1, setPass1] = useState('')
-  const [pass2, setPass2] = useState('')
   const [passSaving, setPassSaving] = useState(false)
   const [passRemoving, setPassRemoving] = useState(false)
 
@@ -119,13 +118,11 @@ export default function Domains() {
   const openSetPasscode = (id: string) => {
     setPasscodeDomainId(id)
     setPass1('')
-    setPass2('')
   }
 
   const closePasscodeModal = () => {
     setPasscodeDomainId(null)
     setPass1('')
-    setPass2('')
     setPassSaving(false)
     setPassRemoving(false)
   }
@@ -134,10 +131,6 @@ export default function Domains() {
     if (!passcodeDomainId) return
     if (pass1.length < 4) {
       setAlertState({ isOpen: true, title: 'Invalid passcode', message: 'Passcode must be at least 4 characters long.' })
-      return
-    }
-    if (pass1 !== pass2) {
-      setAlertState({ isOpen: true, title: 'Passcodes do not match', message: 'Please retype the passcode.' })
       return
     }
     setPassSaving(true)
@@ -200,16 +193,6 @@ export default function Domains() {
               onChange={e => setPass1(e.target.value)}
               className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
               placeholder="Enter passcode"
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-slate-300 mb-1">Confirm Passcode</label>
-            <input
-              type="password"
-              value={pass2}
-              onChange={e => setPass2(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
-              placeholder="Retype passcode"
             />
           </div>
           <div className="flex items-center justify-between gap-3 pt-2">
@@ -342,22 +325,21 @@ export default function Domains() {
                                   >
                                       <PencilIcon className="w-5 h-5" />
                                   </button>
-                                  {/* Passcode controls */}
-                                  {domain.passcodeProtected ? (
-                                    <button
-                                      onClick={() => openSetPasscode(domain.id)}
-                                      className="px-3 py-1 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
-                                    >
-                                      Change Passcode
-                                    </button>
-                                  ) : (
-                                    <button
-                                      onClick={() => openSetPasscode(domain.id)}
-                                      className="px-3 py-1 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
-                                    >
-                                      Set Passcode
-                                    </button>
-                                  )}
+                                  {/* Passcode control icon */}
+                                  <button
+                                    onClick={() => openSetPasscode(domain.id)}
+                                    className={`p-2 rounded-lg transition-colors ${domain.passcodeProtected
+                                      ? 'text-green-400 hover:bg-green-400/10'
+                                      : 'text-slate-400 hover:text-indigo-400 hover:bg-indigo-400/10'}`}
+                                    title={domain.passcodeProtected ? 'Change passcode' : 'Set passcode'}
+                                    aria-label={domain.passcodeProtected ? 'Change passcode' : 'Set passcode'}
+                                  >
+                                    {domain.passcodeProtected ? (
+                                      <LockClosedIcon className="w-5 h-5" />
+                                    ) : (
+                                      <LockOpenIcon className="w-5 h-5" />
+                                    )}
+                                  </button>
                                   <button
                                       onClick={() => handleDeleteClick(domain.id)}
                                       className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
