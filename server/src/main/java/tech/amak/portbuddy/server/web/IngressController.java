@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.HandlerMapping;
 
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -187,7 +188,7 @@ public class IngressController {
 
         // If there is no passcode configured for either the domain or the tunnel — allow access
         final var protectionEnabled = (domainHash != null && !domainHash.isBlank())
-            || (tempPasscodeHash != null && !tempPasscodeHash.isBlank());
+                                      || (tempPasscodeHash != null && !tempPasscodeHash.isBlank());
         if (!protectionEnabled) {
             return true;
         }
@@ -211,13 +212,19 @@ public class IngressController {
     }
 
     private static String firstNonBlank(final String a, final String b) {
-        if (a != null && !a.isBlank()) return a;
-        if (b != null && !b.isBlank()) return b;
+        if (a != null && !a.isBlank()) {
+            return a;
+        }
+        if (b != null && !b.isBlank()) {
+            return b;
+        }
         return null;
     }
 
     private boolean matches(final String raw, final String hash) {
-        if (hash == null || hash.isBlank()) return false;
+        if (hash == null || hash.isBlank()) {
+            return false;
+        }
         try {
             return passwordEncoder.matches(raw, hash);
         } catch (final Exception e) {
@@ -225,26 +232,56 @@ public class IngressController {
         }
     }
 
-    private jakarta.servlet.http.Cookie findCookie(final HttpServletRequest request, final String name) {
+    private Cookie findCookie(final HttpServletRequest request, final String name) {
         final var arr = request.getCookies();
-        if (arr == null) return null;
+        if (arr == null) {
+            return null;
+        }
         for (final var c : arr) {
-            if (name.equals(c.getName())) return c;
+            if (name.equals(c.getName())) {
+                return c;
+            }
         }
         return null;
     }
 
     private void issueCookie(final HttpServletResponse response, final String subdomain, final String value) {
         final var gateway = properties.gateway();
-        final var cookie = new jakarta.servlet.http.Cookie("pbp", value);
+        final var cookie = new Cookie("pbp", value);
         cookie.setHttpOnly(true);
         cookie.setSecure("https".equalsIgnoreCase(gateway.schema()));
         cookie.setPath("/");
-        // Scope to the specific public subdomain
-        cookie.setDomain(subdomain + "." + gateway.domain());
+
+        // Build a safe cookie domain: strip port and avoid setting Domain for localhost/IP to satisfy RFC6265
+        final var configuredDomain = gateway.domain();
+        final var domainWithoutPort = configuredDomain.contains(":")
+            ? configuredDomain.substring(0, configuredDomain.indexOf(':'))
+            : configuredDomain;
+        final var fullDomain = subdomain + "." + domainWithoutPort;
+
+        final var isLocalhost = "localhost".equalsIgnoreCase(domainWithoutPort)
+                                || domainWithoutPort.endsWith('.' + "localhost");
+        final var isIpv4 = domainWithoutPort.matches("^\\d+\\.\\d+\\.\\d+\\.\\d+$");
+
+        // Only set Domain attribute for real registrable domains (no port, not localhost, not IP)
+        final var shouldSetDomain = !(isLocalhost || isIpv4);
+        if (shouldSetDomain) {
+            cookie.setDomain(fullDomain);
+        }
+
         cookie.setMaxAge(60 * 60 * 12); // 12 hours
         response.addCookie(cookie);
-        // Best-effort SameSite=Lax
-        response.addHeader("Set-Cookie", "pbp=" + value + "; Path=/; Max-Age=43200; HttpOnly; SameSite=Lax; Domain=" + subdomain + "." + gateway.domain() + (cookie.getSecure() ? "; Secure" : ""));
+
+        // Compose manual Set-Cookie with SameSite=Lax; add Domain only when it is valid
+        final var sb = new StringBuilder();
+        sb.append("pbp=").append(value)
+            .append("; Path=/; Max-Age=43200; HttpOnly; SameSite=Lax");
+        if (shouldSetDomain) {
+            sb.append("; Domain=").append(fullDomain);
+        }
+        if (cookie.getSecure()) {
+            sb.append("; Secure");
+        }
+        response.addHeader("Set-Cookie", sb.toString());
     }
 }
