@@ -59,7 +59,7 @@ spring:
               order: 0
               uri: lb:ws://port-buddy-server
               predicates:
-                - Host={subdomain}.localhost:8080
+                - Host={subdomain}.${app.domain}
                 # Route ONLY real websocket upgrade requests to the WS upstream.
                 # Use case-insensitive match to be robust across clients/proxies.
                 - Header=Upgrade, (?i)websocket
@@ -77,7 +77,7 @@ spring:
               order: 1
               uri: lb://port-buddy-server
               predicates:
-                - Host={subdomain}.localhost:8080
+                - Host={subdomain}.${app.domain}
               filters:
                 - PreserveHostHeader
                 - name: PortBuddyRewritePath
