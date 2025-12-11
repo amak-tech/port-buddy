@@ -17,6 +17,7 @@
         <module>web</module>
         <module>gateway</module>
         <module>eureka</module>
+        <module>ssl-service</module>
     </modules>
 
     <properties>

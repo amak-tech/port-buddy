@@ -1,0 +1,48 @@
+server:
+  port: 0
+
+spring:
+  application:
+    name: ssl-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/${DB_NAME:portbuddy}
+    username: ${DB_USER:portbuddy}
+    password: ${DB_PASSWORD:portbuddy}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+app:
+  jwt:
+    issuer: port-buddy
+    jwkSetUri: http://localhost:8080/.well-known/jwks.json
+  acme:
+    serverUrl: https://acme-v02.api.letsencrypt.org/directory
+    accountKeyPath: file:config/acme/account.key
+    contactEmail: admin@portbuddy.dev
+    retry:
+      maxAttempts: 6
+      initialDelayMs: 1000
+      maxDelayMs: 10000
+      multiplier: 2.0
+      jitterMs: 500
+  storage:
+    certificatesDir: file:certs

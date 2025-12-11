@@ -1,0 +1,64 @@
+/*
+ * Copyright (c) 2025 AMAK Inc. All rights reserved.
+ */
+
+package tech.amak.portbuddy.sslservice.service;
+
+import java.security.KeyPair;
+
+import org.shredzone.acme4j.Account;
+import org.shredzone.acme4j.AccountBuilder;
+import org.shredzone.acme4j.Session;
+import org.shredzone.acme4j.exception.AcmeException;
+import org.springframework.stereotype.Service;
+
+import lombok.RequiredArgsConstructor;
+import tech.amak.portbuddy.sslservice.config.AppProperties;
+
+/**
+ * Provides ACME Session and Account using configured ACME directory and contact email.
+ */
+@Service
+@RequiredArgsConstructor
+public class AcmeClientService {
+
+    private final AppProperties properties;
+
+    /**
+     * Creates an ACME {@link Session} for the configured server URL.
+     *
+     * @return a new Session
+     */
+    public Session newSession() {
+        return new Session(properties.acme().serverUrl());
+    }
+
+    /**
+     * Logs into an existing ACME account using the provided key, or creates it on-the-fly if not found.
+     *
+     * @param session the ACME session
+     * @param keyPair the ACME account key pair
+     * @return logged-in or newly created {@link Account}
+     * @throws AcmeException on ACME failures
+     */
+    public Account loginOrRegister(final Session session, final KeyPair keyPair) throws AcmeException {
+        // Try to log in to an existing account identified by the key pair
+        try {
+            return new AccountBuilder()
+                .onlyExisting()
+                .useKeyPair(keyPair)
+                .create(session);
+        } catch (final AcmeException ex) {
+            // Not found -> create a new account below
+        }
+
+        final var contactEmail = properties.acme().contactEmail();
+        final var builder = new AccountBuilder()
+            .agreeToTermsOfService()
+            .useKeyPair(keyPair);
+        if (contactEmail != null && !contactEmail.isEmpty()) {
+            builder.addContact("mailto:" + contactEmail);
+        }
+        return builder.create(session);
+    }
+}

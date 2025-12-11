@@ -48,6 +48,13 @@ spring:
 #              enabled: true
 
           routes:
+            - id: acme_http01_route
+              order: -1
+              uri: lb://ssl-service
+              predicates:
+                - Path=/.well-known/acme-challenge/**
+              filters:
+                - PreserveHostHeader
             - id: net_proxy_route
               order: 1
               uri: lb://net-proxy
