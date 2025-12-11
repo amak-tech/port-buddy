@@ -1,5 +1,5 @@
 server:
-  port: 0
+  port: ${SSL_SERVICE_PORT:8050}
 
 spring:
   application:
@@ -33,7 +33,7 @@ management:
 app:
   jwt:
     issuer: port-buddy
-    jwkSetUri: http://localhost:8080/.well-known/jwks.json
+    jwkSetUri: lb://port-buddy-server/.well-known/jwks.json
   acme:
     serverUrl: https://acme-v02.api.letsencrypt.org/directory
     accountKeyPath: file:config/acme/account.key

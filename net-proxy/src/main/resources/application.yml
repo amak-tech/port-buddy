@@ -1,5 +1,5 @@
 server:
-  port: ${PORT:8070}
+  port: ${NET_PROXY_PORT:8070}
 
 eureka:
   client:
@@ -17,7 +17,7 @@ spring:
       resourceserver:
         jwt:
           # Validate incoming JWTs using the Server's public JWKS
-          jwk-set-uri: http://localhost:8080/.well-known/jwks.json
+          jwk-set-uri: lb://port-buddy-server/.well-known/jwks.json
 
 app:
   public-host: ${PUBLIC_HOST:localhost}
