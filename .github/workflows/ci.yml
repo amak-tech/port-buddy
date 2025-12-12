@@ -49,6 +49,7 @@ jobs:
             eureka/target/*.jar
             net-proxy/target/*.jar
             cli/target/*.jar
+            ssl-service/target/*.jar
 
   deploy-backend:
     name: Build and Push Docker Images to YC CR
@@ -112,6 +113,15 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: cr.yandex/${{ vars.CR_REGISTRY }}/port-buddy-net-proxy:latest
+
+      - name: Build and push SSL Service
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile-ssl-service
+          platforms: linux/amd64
+          push: true
+          tags: cr.yandex/${{ vars.CR_REGISTRY }}/port-buddy-ssl-service:latest
 
   deploy-cli:
     name: Build and Push CLI Images
