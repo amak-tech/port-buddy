@@ -11,12 +11,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
 import tech.amak.portbuddy.sslservice.domain.CertificateJobEntity;
 import tech.amak.portbuddy.sslservice.repo.CertificateJobRepository;
+import tech.amak.portbuddy.sslservice.service.AcmeCertificateService;
 
 @RestController
 @RequestMapping("/api/certificates/jobs")
@@ -24,6 +26,7 @@ import tech.amak.portbuddy.sslservice.repo.CertificateJobRepository;
 public class JobsController {
 
     private final CertificateJobRepository jobRepository;
+    private final AcmeCertificateService acmeCertificateService;
 
     /**
      * Returns job by id.
@@ -45,6 +48,18 @@ public class JobsController {
     @GetMapping
     public Page<CertificateJobEntity> listJobs(final Pageable pageable) {
         return jobRepository.findAll(pageable);
+    }
+
+    /**
+     * Confirms that DNS TXT records were added for the job and continues issuance.
+     *
+     * @param id job id
+     * @return 202 Accepted on success
+     */
+    @PostMapping("/{id}/confirm-dns")
+    public ResponseEntity<Void> confirmDns(@PathVariable("id") final UUID id) {
+        acmeCertificateService.confirmDnsAndContinue(id);
+        return ResponseEntity.accepted().build();
     }
 
 }

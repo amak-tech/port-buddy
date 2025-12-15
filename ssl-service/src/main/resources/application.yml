@@ -15,9 +15,29 @@ spring:
       hibernate:
         jdbc:
           time_zone: UTC
+        default_schema: certificates
+
   flyway:
     enabled: true
     locations: classpath:db/migration
+    default-schema: certificates
+
+  mail:
+    host: ${SMTP_HOST:postbox.cloud.yandex.net}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    protocol: smtp
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+        mime:
+          charset: UTF-8
 
 eureka:
   client:
@@ -46,3 +66,7 @@ app:
       jitterMs: 500
   storage:
     certificatesDir: file:certs
+  mail:
+    enabled: ${MAIL_ENABLED:false}
+    from: ${MAIL_FROM:no-reply@portbuddy.dev}
+    defaultTo: ${MAIL_DEFAULT_TO:}

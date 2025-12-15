@@ -4,6 +4,9 @@
 
 package tech.amak.portbuddy.sslservice.web;
 
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +25,7 @@ import tech.amak.portbuddy.sslservice.domain.CertificateJobEntity;
 import tech.amak.portbuddy.sslservice.repo.CertificateRepository;
 import tech.amak.portbuddy.sslservice.service.AcmeCertificateService;
 import tech.amak.portbuddy.sslservice.web.dto.CreateCertificateRequest;
+import tech.amak.portbuddy.sslservice.web.dto.CreateManagedCertificateRequest;
 
 @RestController
 @RequestMapping("/api/certificates")
@@ -69,6 +73,40 @@ public class CertificatesController {
     @GetMapping
     public Page<CertificateEntity> listCertificates(final Pageable pageable) {
         return certificateRepository.findAll(pageable);
+    }
+
+    /**
+     * Onboards or updates a managed certificate entry for a domain. Managed entries are
+     * scanned by the renewal scheduler and automatically renewed.
+     *
+     * @param request request payload
+     * @return created/updated certificate metadata
+     */
+    @PostMapping("/managed")
+    public CertificateEntity createManagedCertificate(
+        @Valid @RequestBody final CreateManagedCertificateRequest request
+    ) {
+        final var domain = request.domain().toLowerCase();
+        final var certificate = certificateRepository.findByDomainIgnoreCase(domain)
+            .orElseGet(() -> CertificateEntity.builder()
+                .domain(domain)
+                .build());
+        certificate.setManaged(true);
+        certificate.setVerificationMethod(
+            Optional.ofNullable(request.verificationMethod())
+                .orElse("MANUAL_DNS01"));
+        certificate.setContactEmail(request.contactEmail());
+        return certificateRepository.save(certificate);
+    }
+
+    /**
+     * Lists managed certificate entries.
+     *
+     * @return page of managed certificates
+     */
+    @GetMapping("/managed")
+    public List<CertificateEntity> listManagedCertificates() {
+        return certificateRepository.findAllByManagedTrue();
     }
 
 }

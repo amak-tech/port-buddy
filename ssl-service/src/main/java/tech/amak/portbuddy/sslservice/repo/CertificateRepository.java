@@ -4,7 +4,6 @@
 
 package tech.amak.portbuddy.sslservice.repo;
 
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -12,7 +11,6 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import tech.amak.portbuddy.sslservice.domain.CertificateEntity;
-import tech.amak.portbuddy.sslservice.domain.CertificateStatus;
 
 public interface CertificateRepository extends JpaRepository<CertificateEntity, UUID> {
 
@@ -33,11 +31,9 @@ public interface CertificateRepository extends JpaRepository<CertificateEntity, 
     Optional<CertificateEntity> findByDomainIgnoreCase(String domain);
 
     /**
-     * Returns certificates that expire before the provided time and have the given status.
+     * Returns all certificates that are marked as managed by the service.
      *
-     * @param time   cutoff time
-     * @param status certificate status
-     * @return list of certificates
+     * @return list of managed certificates
      */
-    List<CertificateEntity> findByExpiresAtBeforeAndStatus(OffsetDateTime time, CertificateStatus status);
+    List<CertificateEntity> findAllByManagedTrue();
 }

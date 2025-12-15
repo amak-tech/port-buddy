@@ -20,6 +20,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
@@ -44,6 +45,23 @@ public class CertificateJobEntity {
 
     @Column(name = "message", length = 2000)
     private String message;
+
+    @Column(name = "contact_email", length = 255)
+    private String contactEmail;
+
+    @Lob
+    @Column(name = "challenge_records_json")
+    private String challengeRecordsJson;
+
+    @Column(name = "order_location", length = 1024)
+    private String orderLocation;
+
+    @Lob
+    @Column(name = "authorization_urls_json")
+    private String authorizationUrlsJson;
+
+    @Column(name = "challenge_expires_at")
+    private OffsetDateTime challengeExpiresAt;
 
     @Column(name = "started_at")
     private OffsetDateTime startedAt;

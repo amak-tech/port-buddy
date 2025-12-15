@@ -10,6 +10,10 @@ package tech.amak.portbuddy.sslservice.domain;
 public enum CertificateJobStatus {
     PENDING,
     RUNNING,
+    WAITING_DNS_INSTRUCTIONS,
+    AWAITING_ADMIN_CONFIRMATION,
+    VERIFYING_DNS,
+    FINALIZING,
     SUCCEEDED,
     FAILED
 }

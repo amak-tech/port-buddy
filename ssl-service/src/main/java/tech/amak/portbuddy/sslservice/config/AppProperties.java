@@ -10,7 +10,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record AppProperties(
     Jwt jwt,
     Acme acme,
-    Storage storage
+    Storage storage,
+    Mail mail
 ) {
     public record Jwt(
         String issuer,
@@ -38,6 +39,13 @@ public record AppProperties(
 
     public record Storage(
         String certificatesDir
+    ) {
+    }
+
+    public record Mail(
+        boolean enabled,
+        String from,
+        String defaultTo
     ) {
     }
 }

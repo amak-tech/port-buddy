@@ -4,10 +4,13 @@
 
 package tech.amak.portbuddy.sslservice.service;
 
+import java.net.URL;
 import java.security.KeyPair;
 
 import org.shredzone.acme4j.Account;
 import org.shredzone.acme4j.AccountBuilder;
+import org.shredzone.acme4j.Login;
+import org.shredzone.acme4j.Order;
 import org.shredzone.acme4j.Session;
 import org.shredzone.acme4j.exception.AcmeException;
 import org.springframework.stereotype.Service;
@@ -60,5 +63,26 @@ public class AcmeClientService {
             builder.addContact("mailto:" + contactEmail);
         }
         return builder.create(session);
+    }
+
+    /**
+     * Binds an existing ACME order by its location URL using configured account location and the provided key.
+     *
+     * @param session       ACME session
+     * @param keyPair       ACME account key pair
+     * @param orderLocation order URL as string
+     * @return bound {@link Order}
+     * @throws AcmeException on ACME failures
+     */
+    public Order bindOrder(final Session session,
+                           final KeyPair keyPair,
+                           final String orderLocation) throws AcmeException {
+        try {
+            final var accountLoc = new URL(properties.acme().accountLocation());
+            final Login login = session.login(accountLoc, keyPair);
+            return login.bindOrder(new URL(orderLocation));
+        } catch (final Exception e) {
+            throw new AcmeException("Failed to bind order: " + e.getMessage(), e);
+        }
     }
 }
