@@ -1,0 +1,55 @@
+<!--
+  ~ Copyright (c) 2025 AMAK Inc. All rights reserved.
+  -->
+
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{email/base :: layout(~{::content})}">
+<th:block th:fragment="content">
+    <h1 class="title">Action Required: DNS Setup</h1>
+    <p class="muted">Please add the following DNS TXT records to proceed with SSL issuance for <strong th:text="${domain}">example.com</strong>.</p>
+
+    <div th:each="record : ${records}" class="card">
+        <div class="feat-title">DNS TXT Record</div>
+        <table role="presentation" width="100%" style="margin-top:8px;">
+            <tr>
+                <td style="padding-bottom: 8px;">
+                    <div class="muted" style="font-size:12px;">Type</div>
+                    <div class="code">TXT</div>
+                </td>
+            </tr>
+            <tr>
+                <td style="padding-bottom: 8px;">
+                    <div class="muted" style="font-size:12px;">Name</div>
+                    <div class="code" th:text="${record.name}">_acme-challenge.example.com</div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div class="muted" style="font-size:12px;">Value</div>
+                    <div class="code" th:text="${record.value}">challenge-value</div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div th:if="${expiresAt}" class="card" style="border-color: #f59e0b;">
+        <div class="feat-title" style="color: #f59e0b;">Challenge Expiration</div>
+        <p class="feat-desc">This challenge will expire at: <strong th:text="${#temporals.format(expiresAt, 'yyyy-MM-dd HH:mm:ss Z')}">2025-12-21</strong></p>
+    </div>
+
+    <p class="muted" style="margin-top: 18px;">
+        After creating the records and waiting for propagation, please confirm the setup in your dashboard or via CLI.
+    </p>
+
+    <div class="card">
+        <div class="feat-title">CLI Confirmation</div>
+        <code class="code" th:text="|port-buddy ssl confirm ${domain}|">port-buddy ssl confirm example.com</code>
+    </div>
+
+    <p style="margin-top: 18px;" class="muted">
+        Need help? Visit the <a class="link" th:href="|${webAppUrl}/install|" target="_blank" rel="noreferrer">Documentation</a>
+        for docs and examples.
+    </p>
+</th:block>
+</html>

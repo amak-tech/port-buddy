@@ -45,6 +45,7 @@ public class SecurityConfig {
                     "/api/auth/login",
                     "/api/auth/register").permitAll()
                 .requestMatchers("/api/auth/password-reset/**").permitAll()
+                .requestMatchers("/api/internal/**").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(apiTokenAuthFilter, BearerTokenAuthenticationFilter.class)
