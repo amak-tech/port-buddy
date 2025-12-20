@@ -45,7 +45,7 @@ public class AcmeAccountService {
         final var pathString = properties.acme().accountKeyPath();
         final Resource resource = resourceLoader.getResource(pathString);
         try (Reader reader = new InputStreamReader(resource.getInputStream())) {
-            try (var pemParser = new PEMParser(reader)) {
+            try (final var pemParser = new PEMParser(reader)) {
                 final var obj = pemParser.readObject();
                 final var converter = new JcaPEMKeyConverter();
                 if (obj instanceof PEMKeyPair pemKeyPair) {
@@ -57,9 +57,9 @@ public class AcmeAccountService {
                 final var privateDer = file.toPath();
                 final var publicDer = dir.toPath().resolve("account.pub");
                 if (Files.exists(privateDer) && Files.exists(publicDer)) {
-                    final var kf = KeyFactory.getInstance("RSA");
-                    final var priv = kf.generatePrivate(new PKCS8EncodedKeySpec(Files.readAllBytes(privateDer)));
-                    final var pub = kf.generatePublic(new X509EncodedKeySpec(Files.readAllBytes(publicDer)));
+                    final var factory = KeyFactory.getInstance("RSA");
+                    final var priv = factory.generatePrivate(new PKCS8EncodedKeySpec(Files.readAllBytes(privateDer)));
+                    final var pub = factory.generatePublic(new X509EncodedKeySpec(Files.readAllBytes(publicDer)));
                     return new KeyPair(pub, priv);
                 }
                 throw new IllegalStateException("Unsupported ACME account key format: " + obj);

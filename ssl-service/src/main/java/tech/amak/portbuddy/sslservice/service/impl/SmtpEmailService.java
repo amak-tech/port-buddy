@@ -9,6 +9,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.mail.SimpleMailMessage;
@@ -38,26 +39,19 @@ public class SmtpEmailService implements EmailService {
         final OffsetDateTime expiresAt
     ) {
         final var appMail = properties.mail();
-        final var recipient = job.getContactEmail() != null && !job.getContactEmail().isBlank()
+        final var recipient = StringUtils.isNotBlank(job.getContactEmail())
             ? job.getContactEmail()
             : appMail.defaultTo();
-
-        if (recipient == null || recipient.isBlank()) {
-            // No destination configured; quietly return to avoid throwing in critical path
-            return;
-        }
 
         final var subject = "Action required: Add DNS TXT records for " + job.getDomain();
         final var body = buildBody(job, records, expiresAt);
 
-        final var msg = new SimpleMailMessage();
-        if (appMail.from() != null && !appMail.from().isBlank()) {
-            msg.setFrom(appMail.from());
-        }
-        msg.setTo(recipient);
-        msg.setSubject(subject);
-        msg.setText(body);
-        mailSender.send(msg);
+        final var message = new SimpleMailMessage();
+        message.setFrom(appMail.from());
+        message.setTo(recipient);
+        message.setSubject(subject);
+        message.setText(body);
+        mailSender.send(message);
     }
 
     private String buildBody(
