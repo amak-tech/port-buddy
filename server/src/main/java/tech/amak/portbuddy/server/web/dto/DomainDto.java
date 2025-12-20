@@ -11,6 +11,8 @@ public record DomainDto(
     UUID id,
     String subdomain,
     String domain,
+    String customDomain,
+    boolean cnameVerified,
     boolean passcodeProtected,
     OffsetDateTime createdAt,
     OffsetDateTime updatedAt

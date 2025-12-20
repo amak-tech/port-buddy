@@ -4,6 +4,7 @@
 
 package tech.amak.portbuddy.sslservice.repo;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -36,4 +37,12 @@ public interface CertificateRepository extends JpaRepository<CertificateEntity, 
      * @return list of managed certificates
      */
     List<CertificateEntity> findAllByManagedTrue();
+
+    /**
+     * Finds all managed certificates that expire before the given date.
+     *
+     * @param dateTime expiration threshold
+     * @return list of expiring certificates
+     */
+    List<CertificateEntity> findAllByManagedTrueAndExpiresAtBefore(OffsetDateTime dateTime);
 }

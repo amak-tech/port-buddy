@@ -68,7 +68,7 @@ public class RenewalScheduler {
             if (needsRenewal) {
                 try {
                     log.info("Scheduling certificate job for {}", wildcardDomain);
-                    acmeCertificateService.submitJob(wildcardDomain, "renewal-scheduler");
+                    acmeCertificateService.submitJob(wildcardDomain, "renewal-scheduler", true);
                 } catch (final Exception e) {
                     log.warn("Failed to schedule job for {}: {}", wildcardDomain, e.getMessage());
                 }

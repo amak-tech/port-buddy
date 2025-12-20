@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,22 @@ public class JobsController {
 
     private final CertificateJobRepository jobRepository;
     private final AcmeCertificateService acmeCertificateService;
+
+    /**
+     * Submits a new certificate job.
+     *
+     * @param domain domain name
+     * @param requestedBy who requested the job
+     * @param managed whether the certificate should be managed (auto-renewed)
+     * @return created job entity
+     */
+    @PostMapping
+    public ResponseEntity<CertificateJobEntity> submitJob(
+        @RequestParam("domain") final String domain,
+        @RequestParam("requestedBy") final String requestedBy,
+        @RequestParam(value = "managed", defaultValue = "false") final boolean managed) {
+        return ResponseEntity.ok(acmeCertificateService.submitJob(domain, requestedBy, managed));
+    }
 
     /**
      * Returns job by id.

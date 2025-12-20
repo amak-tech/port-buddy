@@ -42,6 +42,12 @@ public class DomainEntity {
     @Column(name = "domain", nullable = false)
     private String domain;
 
+    @Column(name = "custom_domain")
+    private String customDomain;
+
+    @Column(name = "cname_verified", nullable = false)
+    private boolean cnameVerified = false;
+
     @Column(name = "passcode_hash")
     private String passcodeHash;
 

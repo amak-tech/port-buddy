@@ -72,10 +72,11 @@ public class AcmeCertificateService {
      *
      * @param domain      the domain to issue or renew certificate for
      * @param requestedBy username of requester
+     * @param managed     whether the certificate should be managed (auto-renewed)
      * @return persisted job entity
      */
     @Transactional
-    public CertificateJobEntity submitJob(final String domain, final String requestedBy) {
+    public CertificateJobEntity submitJob(final String domain, final String requestedBy, final boolean managed) {
         final var normalizedDomain = domain.toLowerCase();
 
         // Prevent duplicate jobs for the same domain when a job is already pending or running
@@ -88,6 +89,7 @@ public class AcmeCertificateService {
         final var job = new CertificateJobEntity();
         job.setDomain(normalizedDomain);
         job.setStatus(CertificateJobStatus.PENDING);
+        job.setManaged(managed);
         // If we have a managed certificate record, inherit contact email for notifications
         certificateRepository.findByDomainIgnoreCase(normalizedDomain)
             .ifPresent(entity -> job.setContactEmail(entity.getContactEmail()));
@@ -226,6 +228,7 @@ public class AcmeCertificateService {
             certificate = new CertificateEntity();
             certificate.setDomain(domain);
         }
+        certificate.setManaged(job.isManaged());
 
         // Try to extract validity from leaf certificate
         final var x509 = downloaded.getCertificate();
@@ -417,6 +420,8 @@ public class AcmeCertificateService {
                 certificate = new CertificateEntity();
                 certificate.setDomain(domain);
             }
+            certificate.setManaged(job.isManaged());
+
             final var x509 = downloaded.getCertificate();
             certificate.setStatus(CertificateStatus.ACTIVE);
             certificate.setIssuedAt(OffsetDateTime.ofInstant(x509.getNotBefore().toInstant(), UTC));

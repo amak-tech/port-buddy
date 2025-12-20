@@ -29,6 +29,7 @@ import tech.amak.portbuddy.server.db.repo.UserRepository;
 import tech.amak.portbuddy.server.service.DomainService;
 import tech.amak.portbuddy.server.web.dto.DomainDto;
 import tech.amak.portbuddy.server.web.dto.SetPasscodeRequest;
+import tech.amak.portbuddy.server.web.dto.UpdateCustomDomainRequest;
 import tech.amak.portbuddy.server.web.dto.UpdateDomainRequest;
 
 @RestController
@@ -115,6 +116,36 @@ public class DomainsController {
         domainService.clearPasscode(id, account);
     }
 
+    /**
+     * Updates the custom domain for the given domain.
+     *
+     * @param principal authenticated user token
+     * @param id domain id
+     * @param request update payload
+     * @return updated domain dto
+     */
+    @PutMapping("/{id}/custom-domain")
+    public DomainDto updateCustomDomain(final @AuthenticationPrincipal Jwt principal,
+                                        @PathVariable("id") final UUID id,
+                                        @RequestBody final UpdateCustomDomainRequest request) {
+        final var account = getAccount(principal);
+        return toDto(domainService.updateCustomDomain(id, account, request.customDomain()));
+    }
+
+    /**
+     * Triggers CNAME verification and SSL issuance for the custom domain.
+     *
+     * @param principal authenticated user token
+     * @param id domain id
+     * @return updated domain dto
+     */
+    @PostMapping("/{id}/verify-cname")
+    public DomainDto verifyCname(final @AuthenticationPrincipal Jwt principal,
+                                 @PathVariable("id") final UUID id) {
+        final var account = getAccount(principal);
+        return toDto(domainService.verifyCname(id, account));
+    }
+
     private AccountEntity getAccount(final Jwt jwt) {
         final var userId = UUID.fromString(jwt.getSubject());
         return userRepository.findById(userId)
@@ -127,6 +158,8 @@ public class DomainsController {
             domain.getId(),
             domain.getSubdomain(),
             domain.getDomain(),
+            domain.getCustomDomain(),
+            domain.isCnameVerified(),
             domain.getPasscodeHash() != null && !domain.getPasscodeHash().isBlank(),
             domain.getCreatedAt(),
             domain.getUpdatedAt()

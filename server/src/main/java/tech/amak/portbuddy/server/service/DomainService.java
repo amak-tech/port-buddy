@@ -10,12 +10,20 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
+import javax.naming.Context;
+import javax.naming.NamingException;
+import javax.naming.directory.Attribute;
+import javax.naming.directory.Attributes;
+import javax.naming.directory.DirContext;
+import javax.naming.directory.InitialDirContext;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import tech.amak.portbuddy.server.client.SslServiceClient;
 import tech.amak.portbuddy.server.config.AppProperties;
 import tech.amak.portbuddy.server.db.entity.AccountEntity;
 import tech.amak.portbuddy.server.db.entity.DomainEntity;
@@ -35,6 +43,7 @@ public class DomainService {
     private final AppProperties properties;
     private final SecureRandom random = new SecureRandom();
     private final PasswordEncoder passwordEncoder;
+    private final SslServiceClient sslServiceClient;
 
     @Transactional(readOnly = true)
     public List<DomainEntity> getDomains(final AccountEntity account) {
@@ -171,6 +180,87 @@ public class DomainService {
             .orElseThrow(() -> new RuntimeException("Domain not found"));
         domain.setPasscodeHash(null);
         domainRepository.save(domain);
+    }
+
+    /**
+     * Updates the custom domain for the given domain entity.
+     *
+     * @param id           domain id
+     * @param account      account entity
+     * @param customDomain custom domain name
+     * @return updated domain entity
+     */
+    @Transactional
+    public DomainEntity updateCustomDomain(final UUID id, final AccountEntity account, final String customDomain) {
+        final var domain = domainRepository.findByIdAndAccount(id, account)
+            .orElseThrow(() -> new RuntimeException("Domain not found"));
+
+        if (!Objects.equals(domain.getCustomDomain(), customDomain)) {
+            domain.setCustomDomain(customDomain);
+            domain.setCnameVerified(false);
+            return domainRepository.save(domain);
+        }
+        return domain;
+    }
+
+    /**
+     * Verifies that the custom domain has a CNAME record pointing to the Port Buddy subdomain.
+     * Once verified, it triggers SSL certificate issuance.
+     *
+     * @param id      domain id
+     * @param account account entity
+     * @return updated domain entity
+     */
+    @Transactional
+    public DomainEntity verifyCname(final UUID id, final AccountEntity account) {
+        final var domain = domainRepository.findByIdAndAccount(id, account)
+            .orElseThrow(() -> new RuntimeException("Domain not found"));
+
+        final var customDomain = domain.getCustomDomain();
+        if (customDomain == null || customDomain.isBlank()) {
+            throw new RuntimeException("Custom domain is not set");
+        }
+
+        final var expectedCname = domain.getSubdomain() + "." + domain.getDomain();
+        final var isVerified = checkCname(customDomain, expectedCname);
+
+        if (isVerified) {
+            domain.setCnameVerified(true);
+            domainRepository.save(domain);
+
+            // Trigger SSL issuance
+            try {
+                final String userEmail = account.getUsers().isEmpty() ? "support@portbuddy.dev" : account.getUsers().get(0).getEmail();
+                sslServiceClient.submitJob(customDomain, userEmail, true);
+            } catch (final Exception e) {
+                log.error("Failed to trigger SSL issuance for {}", customDomain, e);
+            }
+        } else {
+            throw new RuntimeException("CNAME verification failed. Please ensure " + customDomain
+                + " points to " + expectedCname);
+        }
+
+        return domain;
+    }
+
+    private boolean checkCname(final String domain, final String expectedTarget) {
+        try {
+            final var env = new java.util.Hashtable<String, String>();
+            env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.dns.DnsContextFactory");
+            final DirContext ictx = new InitialDirContext(env);
+            final Attributes attrs = ictx.getAttributes(domain, new String[] {"CNAME"});
+            final Attribute cnameAttr = attrs.get("CNAME");
+
+            if (cnameAttr != null) {
+                final String cname = (String) cnameAttr.get();
+                // Remove trailing dot if present
+                final String normalizedCname = cname.endsWith(".") ? cname.substring(0, cname.length() - 1) : cname;
+                return normalizedCname.equalsIgnoreCase(expectedTarget);
+            }
+        } catch (final NamingException e) {
+            log.debug("Failed to lookup CNAME for {}", domain, e);
+        }
+        return false;
     }
 
     /**

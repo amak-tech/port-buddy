@@ -63,6 +63,9 @@ public class CertificateJobEntity {
     @Column(name = "challenge_expires_at")
     private OffsetDateTime challengeExpiresAt;
 
+    @Column(name = "managed", nullable = false)
+    private boolean managed = false;
+
     @Column(name = "started_at")
     private OffsetDateTime startedAt;
 

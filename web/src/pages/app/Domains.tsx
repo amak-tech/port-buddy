@@ -9,6 +9,8 @@ interface Domain {
   id: string
   subdomain: string
   domain: string
+  customDomain: string | null
+  cnameVerified: boolean
   passcodeProtected: boolean
   createdAt: string
   updatedAt: string
@@ -24,6 +26,12 @@ export default function Domains() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
   const [creating, setCreating] = useState(false)
+
+  // Custom Domain state
+  const [customDomainDomainId, setCustomDomainDomainId] = useState<string | null>(null)
+  const [customDomainValue, setCustomDomainValue] = useState('')
+  const [customDomainSaving, setCustomDomainSaving] = useState(false)
+  const [verifyingCname, setVerifyingCname] = useState(false)
 
   // Passcode modal state
   const [passcodeDomainId, setPasscodeDomainId] = useState<string | null>(null)
@@ -112,7 +120,56 @@ export default function Domains() {
             title: 'Error', 
             message: err.message || 'Failed to delete domain' 
         })
+      } finally {
+          setDeleteId(null)
       }
+  }
+
+  const handleCustomDomainClick = (domain: Domain) => {
+    setCustomDomainDomainId(domain.id)
+    setCustomDomainValue(domain.customDomain || '')
+  }
+
+  const handleCustomDomainSave = async () => {
+    if (!customDomainDomainId) return
+    setCustomDomainSaving(true)
+    try {
+      const updated = await apiJson<Domain>(`/api/domains/${customDomainDomainId}/custom-domain`, {
+        method: 'PUT',
+        body: JSON.stringify({ customDomain: customDomainValue })
+      })
+      setDomains(domains.map(d => d.id === customDomainDomainId ? updated : d))
+      setCustomDomainDomainId(null)
+    } catch (err: any) {
+      setAlertState({
+        isOpen: true,
+        title: 'Error',
+        message: err.message || 'Failed to update custom domain'
+      })
+    } finally {
+      setCustomDomainSaving(false)
+    }
+  }
+
+  const handleVerifyCname = async (id: string) => {
+    setVerifyingCname(true)
+    try {
+      const updated = await apiJson<Domain>(`/api/domains/${id}/verify-cname`, { method: 'POST' })
+      setDomains(domains.map(d => d.id === id ? updated : d))
+      setAlertState({
+        isOpen: true,
+        title: 'Success',
+        message: 'CNAME verified successfully! SSL certificate issuance has been triggered.'
+      })
+    } catch (err: any) {
+      setAlertState({
+        isOpen: true,
+        title: 'Error',
+        message: err.message || 'CNAME verification failed'
+      })
+    } finally {
+      setVerifyingCname(false)
+    }
   }
 
   const openSetPasscode = (id: string) => {
@@ -224,6 +281,45 @@ export default function Domains() {
         </div>
       </Modal>
 
+      {/* Custom Domain Modal */}
+      <Modal
+        isOpen={!!customDomainDomainId}
+        onClose={() => setCustomDomainDomainId(null)}
+        title="Custom Domain"
+      >
+        <div className="space-y-4">
+          <div>
+            <p className="text-sm text-slate-400 mb-4">
+              Bind your own custom domain (e.g., <code className="text-indigo-400">app.mycompany.com</code>) to your Port Buddy subdomain.
+              Ensure you have a CNAME record pointing to your subdomain first.
+            </p>
+            <label className="block text-sm text-slate-300 mb-1">Custom Domain</label>
+            <input
+              type="text"
+              value={customDomainValue}
+              onChange={e => setCustomDomainValue(e.target.value)}
+              className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+              placeholder="e.g. app.mycompany.com"
+            />
+          </div>
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <button
+              onClick={() => setCustomDomainDomainId(null)}
+              className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleCustomDomainSave}
+              disabled={customDomainSaving}
+              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors disabled:opacity-50"
+            >
+              {customDomainSaving ? 'Saving...' : 'Save Custom Domain'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
       <div className="flex items-center justify-between mb-8">
         <div>
             <h2 className="text-2xl font-bold text-white">Domains</h2>
@@ -295,6 +391,38 @@ export default function Domains() {
                               <div className="text-sm text-slate-500 mt-1">
                                   Created on {new Date(domain.createdAt).toLocaleDateString()}
                               </div>
+                              {domain.customDomain && (
+                                <div className="mt-3 flex flex-col gap-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Custom Domain:</span>
+                                    <span className="text-sm text-indigo-400 font-mono">{domain.customDomain}</span>
+                                    {domain.cnameVerified ? (
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-400/10 text-green-400">
+                                        <CheckIcon className="w-3 h-3 mr-1" />
+                                        Verified & SSL Active
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-400/10 text-yellow-400">
+                                        Pending Verification
+                                      </span>
+                                    )}
+                                  </div>
+                                  {!domain.cnameVerified && (
+                                    <button
+                                      onClick={() => handleVerifyCname(domain.id)}
+                                      disabled={verifyingCname}
+                                      className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors disabled:opacity-50"
+                                    >
+                                      {verifyingCname ? (
+                                        <div className="w-3 h-3 border border-indigo-400/30 border-t-indigo-400 rounded-full animate-spin" />
+                                      ) : (
+                                        <CheckIcon className="w-3 h-3" />
+                                      )}
+                                      Verify CNAME & Issue SSL
+                                    </button>
+                                  )}
+                                </div>
+                              )}
                           </div>
                       </div>
                       
@@ -319,9 +447,16 @@ export default function Domains() {
                           ) : (
                               <>
                                   <button
+                                    onClick={() => handleCustomDomainClick(domain)}
+                                    className="p-2 text-slate-400 hover:text-indigo-400 hover:bg-indigo-400/10 rounded-lg transition-colors"
+                                    title="Custom Domain"
+                                  >
+                                    <GlobeAltIcon className="w-5 h-5" />
+                                  </button>
+                                  <button
                                       onClick={() => handleEditStart(domain)}
                                       className="p-2 text-slate-400 hover:text-indigo-400 hover:bg-indigo-400/10 rounded-lg transition-colors"
-                                      title="Edit"
+                                      title="Edit Subdomain"
                                   >
                                       <PencilIcon className="w-5 h-5" />
                                   </button>

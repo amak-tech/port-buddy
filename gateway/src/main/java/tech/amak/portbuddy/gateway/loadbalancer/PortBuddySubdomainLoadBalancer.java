@@ -54,15 +54,22 @@ public class PortBuddySubdomainLoadBalancer implements ReactorServiceInstanceLoa
 
     @Override
     public Mono<Response<ServiceInstance>> choose(final Request request) {
-        // Extract subdomain from host if present; otherwise delegate.
-        final var subdomain = extractSubdomain(request);
-        if (!StringUtils.hasText(subdomain)) {
+        // Extract subdomain or custom domain from host if present; otherwise delegate.
+        final var host = extractHost(request);
+        if (!StringUtils.hasText(host)) {
             return roundRobin.choose(request);
         }
 
         final var supplier = supplierProvider.getIfAvailable();
         if (supplier == null) {
             return Mono.just(new EmptyResponse());
+        }
+
+        final var isCustomDomain = isCustomDomain(host);
+        final var target = isCustomDomain ? host : extractSubdomain(host);
+
+        if (!StringUtils.hasText(target)) {
+            return roundRobin.choose(request);
         }
 
         return supplier.get().next().flatMap(instances -> {
@@ -72,27 +79,30 @@ public class PortBuddySubdomainLoadBalancer implements ReactorServiceInstanceLoa
 
             // Probe all instances concurrently; pick the first that returns 200 OK.
             final var probeTimeout = Duration.ofMillis(500);
-            return findOwningInstance(instances, subdomain, probeTimeout)
+            return findOwningInstance(instances, target, isCustomDomain, probeTimeout)
                 .map(DefaultResponse::new)
                 .switchIfEmpty(Mono.just(new DefaultResponse(instances.getFirst())));
         });
     }
 
     private Mono<ServiceInstance> findOwningInstance(final List<ServiceInstance> instances,
-                                                     final String subdomain,
+                                                     final String target,
+                                                     final boolean isCustomDomain,
                                                      final Duration timeout) {
         return Flux.fromIterable(instances)
-            .flatMap(instance -> checkInstance(instance, subdomain, timeout)
+            .flatMap(instance -> checkInstance(instance, target, isCustomDomain, timeout)
                 .onErrorResume(ex -> Mono.empty()), instances.size())
             .next();
     }
 
     private Mono<ServiceInstance> checkInstance(final ServiceInstance instance,
-                                                final String subdomain,
+                                                final String target,
+                                                final boolean isCustomDomain,
                                                 final Duration timeout) {
         final var scheme = instance.isSecure() ? "https" : "http";
-        final var uri = URI.create("%s://%s:%d/ingress/resolve/%s".formatted(
-            scheme, instance.getHost(), instance.getPort(), subdomain));
+        final var path = isCustomDomain ? "resolve-custom" : "resolve";
+        final var uri = URI.create("%s://%s:%d/ingress/%s/%s".formatted(
+            scheme, instance.getHost(), instance.getPort(), path, target));
         return webClient.get()
             .uri(uri)
             .exchangeToMono(resp -> resp.statusCode().is2xxSuccessful() ? Mono.just(instance) : Mono.empty())
@@ -100,7 +110,7 @@ public class PortBuddySubdomainLoadBalancer implements ReactorServiceInstanceLoa
             .onErrorResume(ex -> Mono.empty());
     }
 
-    private String extractSubdomain(final Request request) {
+    private String extractHost(final Request request) {
         if (!(request.getContext() instanceof RequestDataContext context)) {
             return null;
         }
@@ -114,11 +124,20 @@ public class PortBuddySubdomainLoadBalancer implements ReactorServiceInstanceLoa
             return null;
         }
         // Strip port if present
-        final var hostOnly = hostHeader.contains(":") ? hostHeader.substring(0, hostHeader.indexOf(':')) : hostHeader;
-        final var dotIdx = hostOnly.indexOf('.');
+        return hostHeader.contains(":") ? hostHeader.substring(0, hostHeader.indexOf(':')) : hostHeader;
+    }
+
+    private boolean isCustomDomain(final String host) {
+        // Simple logic: if it doesn't end with .portbuddy.dev (or whatever is configured), it's custom.
+        // In a real app, this should probably be more robust or use a property.
+        return !host.endsWith(".portbuddy.dev") && host.contains(".");
+    }
+
+    private String extractSubdomain(final String host) {
+        final var dotIdx = host.indexOf('.');
         if (dotIdx <= 0) {
             return null;
         }
-        return hostOnly.substring(0, dotIdx);
+        return host.substring(0, dotIdx);
     }
 }

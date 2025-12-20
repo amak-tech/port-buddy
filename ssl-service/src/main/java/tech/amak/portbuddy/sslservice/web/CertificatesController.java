@@ -48,7 +48,7 @@ public class CertificatesController {
         final Authentication authentication
     ) {
         final var username = authentication == null ? "system" : authentication.getName();
-        final var job = acmeCertificateService.submitJob(request.domain(), username);
+        final var job = acmeCertificateService.submitJob(request.domain(), username, false);
         return ResponseEntity.accepted().body(job);
     }
 
