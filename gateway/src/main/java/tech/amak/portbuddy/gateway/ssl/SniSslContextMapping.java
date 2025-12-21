@@ -22,11 +22,7 @@ public class SniSslContextMapping implements AsyncMapping<String, SslContext> {
         log.debug("SNI lookup for hostname: {}", hostname);
         try {
             final SslContext sslContext = sslProvider.getSslContext(hostname);
-            if (sslContext != null) {
-                return promise.setSuccess(sslContext);
-            } else {
-                return promise.setFailure(new RuntimeException("No SSL context found for " + hostname));
-            }
+            return promise.setSuccess(sslContext);
         } catch (final Exception e) {
             log.error("Error during SNI lookup for {}", hostname, e);
             return promise.setFailure(e);

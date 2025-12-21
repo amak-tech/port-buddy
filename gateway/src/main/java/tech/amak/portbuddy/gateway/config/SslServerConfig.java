@@ -13,8 +13,6 @@ import org.springframework.http.server.reactive.ReactorHttpHandlerAdapter;
 
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.ssl.SniHandler;
-import io.netty.handler.ssl.SslContextBuilder;
-import io.netty.handler.ssl.util.SelfSignedCertificate;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import reactor.netty.DisposableServer;
@@ -48,7 +46,7 @@ public class SslServerConfig {
     public NettyServerCustomizer sslCustomizer() {
         return server -> {
             if (properties.ssl() != null && properties.ssl().enabled()) {
-                return server.doOnConnection(connection -> 
+                return server.doOnConnection(connection ->
                     connection.addHandlerFirst(new SniHandler(new SniSslContextMapping(sslProvider))));
             }
             return server;
@@ -79,8 +77,8 @@ public class SslServerConfig {
                         // Remove port from host if present
                         final var hostWithoutPort = host.contains(":") ? host.substring(0, host.indexOf(":")) : host;
                         final var sslPort = properties.ssl().port();
-                        final var redirectUrl = "https://" + hostWithoutPort 
-                            + (sslPort == 443 ? "" : ":" + sslPort) + path;
+                        final var redirectUrl = "https://" + hostWithoutPort
+                                                + (sslPort == 443 ? "" : ":" + sslPort) + path;
 
                         response.status(HttpStatus.MOVED_PERMANENTLY.value());
                         response.header(HttpHeaderNames.LOCATION, redirectUrl);
