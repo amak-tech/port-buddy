@@ -5,6 +5,7 @@
 package tech.amak.portbuddy.gateway.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.core.io.Resource;
 
 @ConfigurationProperties(prefix = "app")
 public record AppProperties(
@@ -18,7 +19,8 @@ public record AppProperties(
 
     public record Ssl(
         int port,
-        boolean enabled
+        boolean enabled,
+        Certificate fallback
     ) {
         public Ssl {
             if (port == 0) {
@@ -27,6 +29,12 @@ public record AppProperties(
         }
     }
 
+    public record Certificate(
+        boolean enabled,
+        Resource keyCertChainFile,
+        Resource keyFile
+    ) {
+    }
 
     public record Jwt(
         String issuer,

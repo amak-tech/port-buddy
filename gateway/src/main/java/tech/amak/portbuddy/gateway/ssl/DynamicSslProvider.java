@@ -24,6 +24,7 @@ import tech.amak.portbuddy.gateway.dto.CertificateResponse;
 @Slf4j
 public class DynamicSslProvider {
 
+    private final AppProperties properties;
     private final SslServiceClient sslServiceClient;
     private final Cache<String, SslContext> sslContextCache;
     private final String baseDomain;
@@ -31,6 +32,7 @@ public class DynamicSslProvider {
 
     public DynamicSslProvider(final SslServiceClient sslServiceClient, final AppProperties properties) {
         this.sslServiceClient = sslServiceClient;
+        this.properties = properties;
         this.baseDomain = properties.domain();
         this.sslContextCache = Caffeine.newBuilder()
             .maximumSize(1000)
@@ -40,13 +42,36 @@ public class DynamicSslProvider {
     }
 
     private SslContext createFallbackSslContext() {
+        final var fallback = properties.ssl().fallback();
+
         try {
-            final var ssc = new SelfSignedCertificate();
-            return SslContextBuilder.forServer(ssc.certificate(), ssc.privateKey()).build();
+            if (fallback == null || !fallback.enabled()) {
+                log.info("Fallback certificate is disabled. Generating a temporary self-signed certificate.");
+                final var ssc = new SelfSignedCertificate();
+                return SslContextBuilder.forServer(ssc.certificate(), ssc.privateKey()).build();
+            }
+
+            log.info("Loading fallback certificate from: {} and {}",
+                fallback.keyCertChainFile(), fallback.keyFile());
+
+            try (var certStream = fallback.keyCertChainFile().getInputStream();
+                 var keyStream = fallback.keyFile().getInputStream()) {
+                return SslContextBuilder.forServer(certStream, keyStream).build();
+            }
         } catch (final Exception e) {
-            log.error("Failed to create fallback self-signed certificate", e);
-            return null;
+            log.error("Failed to create fallback SSL context", e);
+            try {
+                final var ssc = new SelfSignedCertificate();
+                return SslContextBuilder.forServer(ssc.certificate(), ssc.privateKey()).build();
+            } catch (final Exception ex) {
+                log.error("Failed to create even a temporary self-signed certificate", ex);
+                return null;
+            }
         }
+    }
+
+    public SslContext getFallbackSslContext() {
+        return fallbackSslContext;
     }
 
     /**

@@ -43,9 +43,9 @@ spring:
           discovery:
             locator:
               lower-case-service-id: true
-#          filter:
-#            preserve-host-header:
-#              enabled: true
+          #          filter:
+          #            preserve-host-header:
+          #              enabled: true
 
           routes:
             - id: acme_http01_route
@@ -140,6 +140,13 @@ app:
   ssl:
     port: 8443
     enabled: true
+    # brew install mkcert
+    # mkcert -install
+    # mkcert -key-file key.pem -cert-file cert.pem localhost 127.0.0.1 ::1
+    fallback:
+      enabled: true
+      key-cert-chain-file: ${SELF_SERT_CHAIN_FILE:}
+      key-file: ${SELF_SERT_KEY_FILE:}
   jwt:
     jwk-set-uri: ${app.url}/.well-known/jwks.json
     # Must match the issuer used by the Server when minting JWTs

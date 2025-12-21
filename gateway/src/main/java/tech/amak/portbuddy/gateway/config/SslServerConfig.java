@@ -4,9 +4,12 @@
 
 package tech.amak.portbuddy.gateway.config;
 
-import org.springframework.boot.web.embedded.netty.NettyServerCustomizer;
+import org.springframework.boot.web.embedded.netty.NettyReactiveWebServerFactory;
+import org.springframework.boot.web.server.WebServerFactoryCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.HttpHandler;
 import org.springframework.http.server.reactive.ReactorHttpHandlerAdapter;
@@ -15,12 +18,14 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.ssl.SniHandler;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import lombok.extern.slf4j.Slf4j;
 import reactor.netty.DisposableServer;
 import reactor.netty.http.server.HttpServer;
 import tech.amak.portbuddy.gateway.ssl.DynamicSslProvider;
 import tech.amak.portbuddy.gateway.ssl.SniSslContextMapping;
 
 @Configuration
+@Slf4j
 public class SslServerConfig {
 
     private final AppProperties properties;
@@ -31,6 +36,7 @@ public class SslServerConfig {
     public SslServerConfig(final AppProperties properties,
                            final DynamicSslProvider sslProvider,
                            final HttpHandler httpHandler) {
+        log.info("SslServerConfig initialized with properties: {}", properties);
         this.properties = properties;
         this.sslProvider = sslProvider;
         this.httpHandler = httpHandler;
@@ -43,23 +49,29 @@ public class SslServerConfig {
      * @return NettyServerCustomizer
      */
     @Bean
-    public NettyServerCustomizer sslCustomizer() {
-        return server -> {
-            if (properties.ssl() != null && properties.ssl().enabled()) {
-                return server.doOnConnection(connection ->
-                    connection.addHandlerFirst(new SniHandler(new SniSslContextMapping(sslProvider))));
+    @Order(Ordered.HIGHEST_PRECEDENCE)
+    public WebServerFactoryCustomizer<NettyReactiveWebServerFactory> sslCustomizer() {
+        return factory -> factory.addServerCustomizers(server -> {
+            if (properties.ssl().enabled()) {
+                server = server.secure(sslContextSpec ->
+                    sslContextSpec.sslContext(sslProvider.getFallbackSslContext()));
+
+                // Add SNI support at the connection level to complement the secure() configuration
+                server = server.doOnConnection(connection -> {
+                    connection.addHandlerFirst("sni-handler", new SniHandler(new SniSslContextMapping(sslProvider)));
+                });
             }
-            return server;
-        };
+            return server.httpRequestDecoder(spec -> spec.allowDuplicateContentLengths(true)
+                .maxInitialLineLength(65536)
+                .maxHeaderSize(65536)
+                .maxChunkSize(65536)
+                .validateHeaders(false));
+        });
     }
 
-    /**
-     * Starts an additional HTTP server when SSL is enabled.
-     * It handles ACME challenges and redirects other requests to HTTPS.
-     */
     @PostConstruct
     public void startHttpServer() {
-        if (properties.ssl() != null && properties.ssl().enabled()) {
+        if (properties.ssl().enabled()) {
             final var adapter = new ReactorHttpHandlerAdapter(httpHandler);
             this.httpServer = HttpServer.create()
                 .port(8080)
