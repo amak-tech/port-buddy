@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 8443
 
 eureka:
   client:
@@ -131,8 +131,8 @@ spring:
                 - PreserveHostHeader
 
 app:
-  domain: localhost:8080
-  scheme: http
+  domain: localhost:8443
+  scheme: https
   url: ${app.scheme}://${app.domain}
   server-error-page: ${app.url}/500
   spa-backend-enabled: true
