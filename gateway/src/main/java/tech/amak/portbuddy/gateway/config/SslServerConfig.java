@@ -18,6 +18,7 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.ssl.SniHandler;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.netty.DisposableServer;
 import reactor.netty.http.server.HttpServer;
@@ -26,21 +27,13 @@ import tech.amak.portbuddy.gateway.ssl.SniSslContextMapping;
 
 @Configuration
 @Slf4j
+@RequiredArgsConstructor
 public class SslServerConfig {
 
     private final AppProperties properties;
     private final DynamicSslProvider sslProvider;
     private final HttpHandler httpHandler;
     private DisposableServer httpServer;
-
-    public SslServerConfig(final AppProperties properties,
-                           final DynamicSslProvider sslProvider,
-                           final HttpHandler httpHandler) {
-        log.info("SslServerConfig initialized with properties: {}", properties);
-        this.properties = properties;
-        this.sslProvider = sslProvider;
-        this.httpHandler = httpHandler;
-    }
 
     /**
      * Customizes Netty server to support dynamic SSL termination via SNI.
@@ -69,6 +62,28 @@ public class SslServerConfig {
         });
     }
 
+    /**
+     * Starts an HTTP server to handle incoming requests. If SSL is enabled, the server redirects
+     * non-secure requests to the HTTPS endpoint. The server also handles requests to the ACME
+     * challenge endpoint for SSL certificate validation.
+     * Behavior details:
+     * - If SSL is enabled:
+     * - Requests to paths starting with "/.well-known/acme-challenge/" are processed directly by
+     * the {@code httpHandler} via the {@code ReactorHttpHandlerAdapter}.
+     * - Requests to other paths:
+     * - If the request does not include a "Host" header, a {@code 400 Bad Request} response
+     * is returned.
+     * - If the "Host" header is present, the server constructs a redirect URL based on the
+     * secure port provided in the SSL properties. Non-secure requests are redirected to
+     * their HTTPS equivalents with an appropriate {@code 301 Moved Permanently} response.
+     * Prerequisites:
+     * - The server requires SSL properties configuration to determine if SSL is enabled and to
+     * identify the secure port for redirections.
+     * - The {@code httpHandler} must be set up to process ACME challenge requests or other
+     * required application logic.
+     * This method is annotated with {@code @PostConstruct}, ensuring it is executed automatically
+     * during the initialization phase of the containing class.
+     */
     @PostConstruct
     public void startHttpServer() {
         if (properties.ssl().enabled()) {
@@ -101,6 +116,20 @@ public class SslServerConfig {
         }
     }
 
+    /**
+     * Stops the currently running HTTP server, if it is initialized.
+     * This method is invoked automatically when the containing class is being destroyed,
+     * as indicated by the {@code @PreDestroy} annotation. It ensures proper release of resources
+     * by shutting down the HTTP server. If no server instance is present, the method exits quietly.
+     * Behavior:
+     * - If the {@code httpServer} is non-null, it invokes {@code disposeNow()} to stop the server immediately.
+     * Prerequisites:
+     * - A valid {@code httpServer} instance must exist for this method to perform the shutdown process.
+     * If the instance is null, the method performs no action.
+     * Usage context:
+     * - Typically used in applications with lifecycle management to ensure clean shutdown
+     * and resource deallocation.
+     */
     @PreDestroy
     public void stopHttpServer() {
         if (this.httpServer != null) {

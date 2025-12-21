@@ -40,7 +40,7 @@ public class PublicWebSocketProxyHandler extends AbstractWebSocketHandler {
 
     @Override
     public void afterConnectionEstablished(final WebSocketSession browserSession) throws Exception {
-        var subdomain = extractSubdomain(browserSession);
+        final var subdomain = extractSubdomain(browserSession);
         if (subdomain == null) {
             log.debug("WS: missing/invalid host header");
             browserSession.close(CloseStatus.POLICY_VIOLATION);

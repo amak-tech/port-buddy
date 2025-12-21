@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-
 import javax.naming.Context;
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
@@ -230,14 +229,16 @@ public class DomainService {
 
             // Trigger SSL issuance
             try {
-                final String userEmail = account.getUsers().isEmpty() ? "support@portbuddy.dev" : account.getUsers().get(0).getEmail();
+                final String userEmail = account.getUsers().isEmpty()
+                    ? "support@portbuddy.dev"
+                    : account.getUsers().get(0).getEmail();
                 sslServiceClient.submitJob(customDomain, userEmail, true);
             } catch (final Exception e) {
                 log.error("Failed to trigger SSL issuance for {}", customDomain, e);
             }
         } else {
             throw new RuntimeException("CNAME verification failed. Please ensure " + customDomain
-                + " points to " + expectedCname);
+                                       + " points to " + expectedCname);
         }
 
         return domain;

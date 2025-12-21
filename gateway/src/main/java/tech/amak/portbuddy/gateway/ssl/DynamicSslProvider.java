@@ -30,6 +30,12 @@ public class DynamicSslProvider {
     private final String baseDomain;
     private final SslContext fallbackSslContext;
 
+    /**
+     * Constructs a new instance of the DynamicSslProvider.
+     *
+     * @param sslServiceClient an instance of SslServiceClient used to communicate with the SSL service
+     * @param properties       an instance of AppProperties containing configuration values
+     */
     public DynamicSslProvider(final SslServiceClient sslServiceClient, final AppProperties properties) {
         this.sslServiceClient = sslServiceClient;
         this.properties = properties;

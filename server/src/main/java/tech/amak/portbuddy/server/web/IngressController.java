@@ -82,6 +82,17 @@ public class IngressController {
         forwardViaTunnel(subdomain, request, response);
     }
 
+    /**
+     * Handles path-based custom domain ingress, mapping requests to the appropriate subdomain.
+     * This endpoint processes requests that use the custom domain format in their URL path.
+     *
+     * @param customDomain The custom domain identifier extracted from the request path. Used to
+     *                     locate a matching subdomain in the database.
+     * @param request      The incoming HTTP request to be forwarded to the matching subdomain's endpoint.
+     * @param response     The HTTP response object used to return output or error codes to the client.
+     * @throws IOException If an input or output error occurs during the request forwarding process
+     *                     or while setting the HTTP response.
+     */
     // Path-based custom domain ingress: http://server/_custom/{customDomain}/...
     @RequestMapping("/_custom/{customDomain}/**")
     @Transactional
@@ -96,6 +107,16 @@ public class IngressController {
         }
     }
 
+    /**
+     * Handles host-based ingress for subdomains and custom domains. This method processes HTTP requests
+     * by identifying the host from the request's "Host" header. If the host matches a known subdomain
+     * under the configured gateway domain or a registered custom domain, the request is forwarded to
+     * the appropriate subdomain via a tunnel.
+     *
+     * @param request  the HttpServletRequest object containing client request information.
+     * @param response the HttpServletResponse object for returning responses to the client.
+     * @throws IOException if an input or output error occurs while handling the request or generating a response.
+     */
     // Host-based ingress for subdomains and custom domains
     @RequestMapping("/**")
     @Transactional
@@ -110,7 +131,7 @@ public class IngressController {
         final var hostOnly = host.contains(":") ? host.substring(0, host.indexOf(':')) : host;
         final var gatewayDomain = properties.gateway().domain();
 
-        String subdomain;
+        final String subdomain;
         if (hostOnly.endsWith("." + gatewayDomain)) {
             subdomain = hostOnly.substring(0, hostOnly.length() - gatewayDomain.length() - 1);
         } else {
@@ -119,7 +140,8 @@ public class IngressController {
             if (domainOpt.isPresent()) {
                 subdomain = domainOpt.get().getSubdomain();
             } else {
-                // If it's the gateway domain itself or unknown, we might want to let it pass to other controllers (like SPA)
+                // If it's the gateway domain itself or unknown,
+                // we might want to let it pass to other controllers (like SPA)
                 // However, since this is a catch-all "/**", we need to be careful.
                 // Usually, other controllers have more specific paths.
                 // If it's not a subdomain or custom domain, we should probably ignore it here.
