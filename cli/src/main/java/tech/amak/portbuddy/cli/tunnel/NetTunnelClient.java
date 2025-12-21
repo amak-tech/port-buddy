@@ -37,6 +37,7 @@ import okhttp3.WebSocketListener;
 import okio.ByteString;
 import tech.amak.portbuddy.cli.config.ConfigurationService;
 import tech.amak.portbuddy.cli.ui.NetTrafficSink;
+import tech.amak.portbuddy.cli.utils.HttpUtils;
 import tech.amak.portbuddy.common.TunnelType;
 import tech.amak.portbuddy.common.tunnel.BinaryWsFrame;
 import tech.amak.portbuddy.common.tunnel.ControlMessage;
@@ -63,8 +64,8 @@ public class NetTunnelClient {
     private final String authToken; // Bearer token if available
     private final NetTrafficSink trafficSink;
 
-    private final OkHttpClient http = new OkHttpClient();
-    private final OkHttpClient rest = new OkHttpClient();
+    private final OkHttpClient http = HttpUtils.createClient();
+    private final OkHttpClient rest = HttpUtils.createClient();
     private WebSocket webSocket;
 
     private final Map<String, LocalTcp> locals = new ConcurrentHashMap<>();

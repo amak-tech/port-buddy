@@ -27,6 +27,7 @@ import tech.amak.portbuddy.cli.config.ConfigurationService;
 import tech.amak.portbuddy.cli.tunnel.HttpTunnelClient;
 import tech.amak.portbuddy.cli.tunnel.NetTunnelClient;
 import tech.amak.portbuddy.cli.ui.ConsoleUi;
+import tech.amak.portbuddy.cli.utils.HttpUtils;
 import tech.amak.portbuddy.common.ClientConfig;
 import tech.amak.portbuddy.common.TunnelType;
 import tech.amak.portbuddy.common.dto.ExposeRequest;
@@ -69,7 +70,7 @@ public class PortBuddy implements Callable<Integer> {
     )
     private final List<String> args = new ArrayList<>();
 
-    private final OkHttpClient http = new OkHttpClient();
+    private final OkHttpClient http = HttpUtils.createClient();
 
     static void main(final String[] args) {
         final var exit = new CommandLine(new PortBuddy()).execute(args);

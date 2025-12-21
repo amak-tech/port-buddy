@@ -92,6 +92,11 @@ public class ConfigurationService {
         return config.get();
     }
 
+    public boolean isDev() {
+        final var env = System.getenv(PORT_BUDDY_ENV);
+        return PORT_BUDDY_ENV_DEV.equalsIgnoreCase(env);
+    }
+
     /**
      * Saves the provided API token to a file located in the user's home directory
      * under the ".port-buddy" directory. If the directory or file does not exist,

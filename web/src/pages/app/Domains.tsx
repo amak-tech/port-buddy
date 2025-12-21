@@ -31,6 +31,7 @@ export default function Domains() {
   const [customDomainDomainId, setCustomDomainDomainId] = useState<string | null>(null)
   const [customDomainValue, setCustomDomainValue] = useState('')
   const [customDomainSaving, setCustomDomainSaving] = useState(false)
+  const [customDomainRemoving, setCustomDomainRemoving] = useState(false)
   const [verifyingCname, setVerifyingCname] = useState(false)
 
   // Passcode modal state
@@ -148,6 +149,26 @@ export default function Domains() {
       })
     } finally {
       setCustomDomainSaving(false)
+    }
+  }
+
+  const handleCustomDomainRemove = async () => {
+    if (!customDomainDomainId) return
+    setCustomDomainRemoving(true)
+    try {
+      await apiJson(`/api/domains/${customDomainDomainId}/custom-domain`, {
+        method: 'DELETE'
+      })
+      setDomains(domains.map(d => d.id === customDomainDomainId ? { ...d, customDomain: null, cnameVerified: false } : d))
+      setCustomDomainDomainId(null)
+    } catch (err: any) {
+      setAlertState({
+        isOpen: true,
+        title: 'Error',
+        message: err.message || 'Failed to remove custom domain'
+      })
+    } finally {
+      setCustomDomainRemoving(false)
     }
   }
 
@@ -302,20 +323,31 @@ export default function Domains() {
               placeholder="e.g. app.mycompany.com"
             />
           </div>
-          <div className="flex items-center justify-end gap-3 pt-2">
-            <button
-              onClick={() => setCustomDomainDomainId(null)}
-              className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleCustomDomainSave}
-              disabled={customDomainSaving}
-              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors disabled:opacity-50"
-            >
-              {customDomainSaving ? 'Saving...' : 'Save Custom Domain'}
-            </button>
+          <div className="flex items-center justify-between gap-3 pt-2">
+            {domains.find(d => d.id === customDomainDomainId)?.customDomain && (
+              <button
+                onClick={handleCustomDomainRemove}
+                disabled={customDomainSaving || customDomainRemoving}
+                className="px-4 py-2 text-sm font-medium text-red-400 hover:text-white hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {customDomainRemoving ? 'Removing...' : 'Remove Custom Domain'}
+              </button>
+            )}
+            <div className="ml-auto flex items-center gap-3">
+              <button
+                onClick={() => setCustomDomainDomainId(null)}
+                className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCustomDomainSave}
+                disabled={customDomainSaving || customDomainRemoving}
+                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {customDomainSaving ? 'Saving...' : 'Save Custom Domain'}
+              </button>
+            </div>
           </div>
         </div>
       </Modal>

@@ -24,6 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import tech.amak.portbuddy.server.client.SslServiceClient;
 import tech.amak.portbuddy.server.config.AppProperties;
 import tech.amak.portbuddy.server.db.entity.AccountEntity;
 import tech.amak.portbuddy.server.db.entity.DomainEntity;
@@ -40,6 +41,8 @@ class DomainServiceTest {
     private TunnelRepository tunnelRepository;
     @Mock
     private PasswordEncoder passwordEncoder;
+    @Mock
+    private SslServiceClient sslServiceClient;
 
     private DomainService domainService;
     private AccountEntity account;
@@ -63,7 +66,7 @@ class DomainServiceTest {
             new AppProperties.Cli("1.0"),
             portReservations);
 
-        domainService = new DomainService(domainRepository, tunnelRepository, appProps, passwordEncoder);
+        domainService = new DomainService(domainRepository, tunnelRepository, appProps, passwordEncoder, sslServiceClient);
         account = new AccountEntity();
         account.setId(UUID.randomUUID());
     }
@@ -142,5 +145,23 @@ class DomainServiceTest {
         domainService.deleteDomain(id, account);
 
         verify(domainRepository).delete(domain);
+    }
+
+    @Test
+    void deleteCustomDomain_Success() {
+        final var id = UUID.randomUUID();
+        final var domain = new DomainEntity();
+        domain.setId(id);
+        domain.setCustomDomain("custom.com");
+        domain.setCnameVerified(true);
+        domain.setAccount(account);
+
+        when(domainRepository.findByIdAndAccount(id, account)).thenReturn(Optional.of(domain));
+
+        domainService.deleteCustomDomain(id, account);
+
+        assertEquals(null, domain.getCustomDomain());
+        assertEquals(false, domain.isCnameVerified());
+        verify(domainRepository).save(domain);
     }
 }

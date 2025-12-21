@@ -133,6 +133,20 @@ public class DomainsController {
     }
 
     /**
+     * Deletes the custom domain from the given domain.
+     *
+     * @param principal authenticated user token
+     * @param id domain id
+     */
+    @DeleteMapping("/{id}/custom-domain")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteCustomDomain(final @AuthenticationPrincipal Jwt principal,
+                                   @PathVariable("id") final UUID id) {
+        final var account = getAccount(principal);
+        domainService.deleteCustomDomain(id, account);
+    }
+
+    /**
      * Triggers CNAME verification and SSL issuance for the custom domain.
      *
      * @param principal authenticated user token

@@ -35,6 +35,7 @@ import okhttp3.WebSocketListener;
 import okio.ByteString;
 import tech.amak.portbuddy.cli.config.ConfigurationService;
 import tech.amak.portbuddy.cli.ui.HttpLogSink;
+import tech.amak.portbuddy.cli.utils.HttpUtils;
 import tech.amak.portbuddy.common.tunnel.ControlMessage;
 import tech.amak.portbuddy.common.tunnel.HttpTunnelMessage;
 import tech.amak.portbuddy.common.tunnel.MessageEnvelope;
@@ -54,21 +55,40 @@ public class HttpTunnelClient {
     private final HttpLogSink httpLogSink;
 
     // OkHttp client used exclusively for the control WebSocket connection to the server
-    private final OkHttpClient http = new OkHttpClient.Builder()
-        .readTimeout(0, TimeUnit.MILLISECONDS) // keep-alive for WS
-        .pingInterval(15, TimeUnit.SECONDS) // send pings to keep intermediaries/proxies from dropping idle WS
-        .retryOnConnectionFailure(true)
-        .build();
+    private final OkHttpClient http = createHttpClient();
     // Separate OkHttp client for calling the local target service (avoid any interference with WS client)
-    private final OkHttpClient localHttp = new OkHttpClient.Builder()
-        .connectTimeout(10, TimeUnit.SECONDS)
-        .readTimeout(60, TimeUnit.SECONDS)
-        .writeTimeout(60, TimeUnit.SECONDS)
-        // Do not follow redirects automatically; they must be proxied back to the client
-        .followRedirects(false)
-        .followSslRedirects(false)
-        .retryOnConnectionFailure(true)
-        .build();
+    private final OkHttpClient localHttp = createLocalHttpClient();
+
+    private static OkHttpClient createHttpClient() {
+        final var builder = new OkHttpClient.Builder()
+            .readTimeout(0, TimeUnit.MILLISECONDS) // keep-alive for WS
+            .pingInterval(15, TimeUnit.SECONDS) // send pings to keep intermediaries/proxies from dropping idle WS
+            .retryOnConnectionFailure(true);
+
+        if (ConfigurationService.INSTANCE.isDev()) {
+            HttpUtils.configureInsecureSsl(builder);
+        }
+        return builder.build();
+    }
+
+    private static OkHttpClient createLocalHttpClient() {
+        final var builder = new OkHttpClient.Builder()
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
+            // Do not follow redirects automatically; they must be proxied back to the client
+            .followRedirects(false)
+            .followSslRedirects(false)
+            .retryOnConnectionFailure(true);
+
+        // For local services, we also want to allow insecure SSL in dev mode,
+        // or perhaps always, as developers often use self-signed certs locally.
+        if (ConfigurationService.INSTANCE.isDev()) {
+            HttpUtils.configureInsecureSsl(builder);
+        }
+
+        return builder.build();
+    }
 
     private WebSocket webSocket;
     private CountDownLatch closed = new CountDownLatch(1);

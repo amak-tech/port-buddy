@@ -203,6 +203,21 @@ public class DomainService {
     }
 
     /**
+     * Deletes the custom domain from the given domain entity.
+     *
+     * @param id      domain id
+     * @param account account entity
+     */
+    @Transactional
+    public void deleteCustomDomain(final UUID id, final AccountEntity account) {
+        final var domain = domainRepository.findByIdAndAccount(id, account)
+            .orElseThrow(() -> new RuntimeException("Domain not found"));
+        domain.setCustomDomain(null);
+        domain.setCnameVerified(false);
+        domainRepository.save(domain);
+    }
+
+    /**
      * Verifies that the custom domain has a CNAME record pointing to the Port Buddy subdomain.
      * Once verified, it triggers SSL certificate issuance.
      *
