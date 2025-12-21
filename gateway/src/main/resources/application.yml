@@ -92,6 +92,21 @@ spring:
                     regexp: /(?<remaining>.*)
                     replacement: /_/$\{subdomain}/$\{remaining}
 
+            # Route for custom domains
+            - id: custom_domain_ingress_route
+              order: 2
+              uri: lb://port-buddy-server
+              predicates:
+                - Host={customDomain}
+                # Exclude main domain and subdomains to avoid overlap
+                - Header=Host, ^(?!(.*\.${app.domain}|${app.domain})$).*
+              filters:
+                - PreserveHostHeader
+                - name: PortBuddyRewritePath
+                  args:
+                    regexp: /(?<remaining>.*)
+                    replacement: /_custom/$\{customDomain}/$\{remaining}
+
             - id: api_route
               order: 2
               uri: lb://port-buddy-server
@@ -122,6 +137,9 @@ app:
   server-error-page: ${app.url}/500
   spa-backend-enabled: true
   spa-fallback-enabled: false
+  ssl:
+    port: 8443
+    enabled: true
   jwt:
     jwk-set-uri: ${app.url}/.well-known/jwks.json
     # Must match the issuer used by the Server when minting JWTs

@@ -73,13 +73,27 @@ public class IngressController {
         HttpHeaders.CONTENT_LENGTH.toLowerCase()
     );
 
-    // Path-based fallback ingress for local/dev: http://server/_/{subdomain}/...
+    // HTTP route for subdomain ingress (non-WS traffic)
     @RequestMapping("/_/{subdomain}/**")
     @Transactional
     public void ingressPathBased(final @PathVariable("subdomain") String subdomain,
                                  final HttpServletRequest request,
                                  final HttpServletResponse response) throws IOException {
         forwardViaTunnel(subdomain, request, response);
+    }
+
+    // Path-based custom domain ingress: http://server/_custom/{customDomain}/...
+    @RequestMapping("/_custom/{customDomain}/**")
+    @Transactional
+    public void ingressCustomDomainPathBased(final @PathVariable("customDomain") String customDomain,
+                                             final HttpServletRequest request,
+                                             final HttpServletResponse response) throws IOException {
+        final var domainOpt = domainRepository.findByCustomDomain(customDomain);
+        if (domainOpt.isPresent()) {
+            forwardViaTunnel(domainOpt.get().getSubdomain(), request, response);
+        } else {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Custom domain not found");
+        }
     }
 
     // Host-based ingress for subdomains and custom domains

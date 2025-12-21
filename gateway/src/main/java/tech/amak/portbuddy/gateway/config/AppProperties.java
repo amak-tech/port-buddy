@@ -12,8 +12,20 @@ public record AppProperties(
     String scheme,
     String url,
     String serverErrorPage,
-    Jwt jwt
+    Jwt jwt,
+    Ssl ssl
 ) {
+
+    public record Ssl(
+        int port,
+        boolean enabled
+    ) {
+        public Ssl {
+            if (port == 0) {
+                port = 443;
+            }
+        }
+    }
 
 
     public record Jwt(
