@@ -23,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
 import tech.amak.portbuddy.server.config.AppProperties;
+import tech.amak.portbuddy.server.db.repo.DomainRepository;
 
 /**
  * Accepts public WebSocket connections from browsers for tunneled subdomains and bridges them
@@ -35,16 +36,27 @@ public class PublicWebSocketProxyHandler extends AbstractWebSocketHandler {
 
     private final TunnelRegistry registry;
     private final AppProperties properties;
+    private final DomainRepository domainRepository;
 
     @Override
     public void afterConnectionEstablished(final WebSocketSession browserSession) throws Exception {
-        final var subdomain = extractSubdomain(browserSession);
+        var subdomain = extractSubdomain(browserSession);
         if (subdomain == null) {
             log.debug("WS: missing/invalid host header");
             browserSession.close(CloseStatus.POLICY_VIOLATION);
             return;
         }
-        final var tunnel = registry.getBySubdomain(subdomain);
+
+        var tunnel = registry.getBySubdomain(subdomain);
+        if (tunnel == null) {
+            // It might be a custom domain, try to resolve it to a subdomain
+            final var domainOpt = domainRepository.findByCustomDomain(subdomain);
+            if (domainOpt.isPresent()) {
+                final var resolvedSubdomain = domainOpt.get().getSubdomain();
+                tunnel = registry.getBySubdomain(resolvedSubdomain);
+            }
+        }
+
         if (tunnel == null || !tunnel.isOpen()) {
             browserSession.close(CloseStatus.SERVICE_RESTARTED);
             return;

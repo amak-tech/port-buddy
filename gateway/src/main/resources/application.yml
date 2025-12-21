@@ -79,6 +79,24 @@ spring:
                     regexp: /(?<remaining>.*)
                     replacement: /_ws/$\{subdomain}/$\{remaining}
 
+            # WebSocket route for custom domains.
+            - id: custom_domain_ingress_ws_route
+              order: 0
+              uri: lb:ws://port-buddy-server
+              predicates:
+                - Host={customDomain}
+                # Route ONLY real websocket upgrade requests to the WS upstream.
+                - Header=Upgrade, (?i)websocket
+                - Method=GET
+                # Exclude main domain and subdomains to avoid overlap
+                - Header=Host, ^(?!(.*\.${app.domain}|${app.domain})$).*
+              filters:
+                - PreserveHostHeader
+                - name: PortBuddyRewritePath
+                  args:
+                    regexp: /(?<remaining>.*)
+                    replacement: /_ws/$\{customDomain}/$\{remaining}
+
             # HTTP route for subdomain ingress (non-WS traffic)
             - id: subdomain_ingress_route
               order: 1
