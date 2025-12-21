@@ -166,7 +166,7 @@ app:
       key-cert-chain-file: ${SELF_SERT_CHAIN_FILE:}
       key-file: ${SELF_SERT_KEY_FILE:}
   jwt:
-    jwk-set-uri: ${app.url}/.well-known/jwks.json
+    jwk-set-uri: lb://port-buddy-server/.well-known/jwks.json
     # Must match the issuer used by the Server when minting JWTs
     issuer: port-buddy
 
