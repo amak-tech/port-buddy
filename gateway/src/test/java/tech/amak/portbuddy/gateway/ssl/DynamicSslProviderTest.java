@@ -28,11 +28,16 @@ class DynamicSslProviderTest {
     @Mock
     private AppProperties properties;
 
+    @Mock
+    private AppProperties.Ssl sslProperties;
+
     private DynamicSslProvider sslProvider;
 
     @BeforeEach
     void setUp() {
         when(properties.domain()).thenReturn("portbuddy.dev");
+        when(properties.ssl()).thenReturn(sslProperties);
+        when(sslProperties.fallback()).thenReturn(null);
         sslProvider = new DynamicSslProvider(sslServiceClient, properties);
     }
 
