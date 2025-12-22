@@ -66,7 +66,12 @@ class DomainServiceTest {
             new AppProperties.Cli("1.0"),
             portReservations);
 
-        domainService = new DomainService(domainRepository, tunnelRepository, appProps, passwordEncoder, sslServiceClient);
+        domainService = new DomainService(
+            domainRepository,
+            tunnelRepository,
+            appProps,
+            passwordEncoder,
+            sslServiceClient);
         account = new AccountEntity();
         account.setId(UUID.randomUUID());
     }

@@ -5,6 +5,7 @@
 package tech.amak.portbuddy.cli.utils;
 
 import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
@@ -43,18 +44,18 @@ public class HttpUtils {
             final var trustAllCerts = new TrustManager[] {
                 new X509TrustManager() {
                     @Override
-                    public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType)
+                    public void checkClientTrusted(final X509Certificate[] chain, final String authType)
                         throws CertificateException {
                     }
 
                     @Override
-                    public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType)
+                    public void checkServerTrusted(final X509Certificate[] chain, final String authType)
                         throws CertificateException {
                     }
 
                     @Override
-                    public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                        return new java.security.cert.X509Certificate[] {};
+                    public X509Certificate[] getAcceptedIssuers() {
+                        return new X509Certificate[] {};
                     }
                 }
             };
