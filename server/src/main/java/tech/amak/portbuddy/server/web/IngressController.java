@@ -107,51 +107,6 @@ public class IngressController {
         }
     }
 
-    /**
-     * Handles host-based ingress for subdomains and custom domains. This method processes HTTP requests
-     * by identifying the host from the request's "Host" header. If the host matches a known subdomain
-     * under the configured gateway domain or a registered custom domain, the request is forwarded to
-     * the appropriate subdomain via a tunnel.
-     *
-     * @param request  the HttpServletRequest object containing client request information.
-     * @param response the HttpServletResponse object for returning responses to the client.
-     * @throws IOException if an input or output error occurs while handling the request or generating a response.
-     */
-    // Host-based ingress for subdomains and custom domains
-    @RequestMapping("/**")
-    @Transactional
-    public void ingressHostBased(final HttpServletRequest request,
-                                 final HttpServletResponse response) throws IOException {
-        final var host = request.getHeader(HttpHeaders.HOST);
-        if (StringUtils.isBlank(host)) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Missing Host header");
-            return;
-        }
-
-        final var hostOnly = host.contains(":") ? host.substring(0, host.indexOf(':')) : host;
-        final var gatewayDomain = properties.gateway().domain();
-
-        final String subdomain;
-        if (hostOnly.endsWith("." + gatewayDomain)) {
-            subdomain = hostOnly.substring(0, hostOnly.length() - gatewayDomain.length() - 1);
-        } else {
-            // Check if it's a registered custom domain
-            final var domainOpt = domainRepository.findByCustomDomain(hostOnly);
-            if (domainOpt.isPresent()) {
-                subdomain = domainOpt.get().getSubdomain();
-            } else {
-                // If it's the gateway domain itself or unknown,
-                // we might want to let it pass to other controllers (like SPA)
-                // However, since this is a catch-all "/**", we need to be careful.
-                // Usually, other controllers have more specific paths.
-                // If it's not a subdomain or custom domain, we should probably ignore it here.
-                return;
-            }
-        }
-
-        forwardViaTunnel(subdomain, request, response);
-    }
-
     private void forwardViaTunnel(final String subdomain,
                                   final HttpServletRequest request,
                                   final HttpServletResponse response) throws IOException {

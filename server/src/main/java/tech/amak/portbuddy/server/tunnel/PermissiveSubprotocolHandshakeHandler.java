@@ -6,6 +6,7 @@ package tech.amak.portbuddy.server.tunnel;
 
 import java.util.List;
 
+import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.server.support.DefaultHandshakeHandler;
 
 /**
@@ -16,14 +17,8 @@ import org.springframework.web.socket.server.support.DefaultHandshakeHandler;
  */
 public class PermissiveSubprotocolHandshakeHandler extends DefaultHandshakeHandler {
 
-    // Intentionally not annotating with @Override to avoid tight coupling to
-    // Spring's internal method signature across versions.
-    protected String determineNegotiatedSubprotocol(final List<String> requestedProtocols,
-                                                    final List<String> supportedProtocols) {
-        if (requestedProtocols != null && !requestedProtocols.isEmpty()) {
-            // Echo the first requested subprotocol
-            return requestedProtocols.get(0);
-        }
-        return null;
+    @Override
+    protected String selectProtocol(final List<String> requestedProtocols, final WebSocketHandler webSocketHandler) {
+        return requestedProtocols.stream().findFirst().orElse(null);
     }
 }

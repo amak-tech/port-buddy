@@ -193,7 +193,9 @@ logging:
   level:
     root: info
     reactor.netty.http.client: warn
+    io.netty.handler.codec.http.websocketx: warn
     org.springframework.cloud.gateway: warn
+    org.springframework.cloud.gateway.route.RouteDefinitionRouteLocator: warn
   file:
     name: log/app.log
   logback:
