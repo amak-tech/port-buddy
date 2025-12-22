@@ -55,6 +55,31 @@ spring:
                 - Path=/.well-known/acme-challenge/**
               filters:
                 - PreserveHostHeader
+
+            - id: api_ws_route
+              order: -2
+              uri: lb:ws://port-buddy-server
+              predicates:
+                - Path=/api/http-tunnel/**
+                - Header=Upgrade, (?i)websocket
+
+            - id: net_proxy_ws_route
+              order: -2
+              uri: lb:ws://net-proxy
+              predicates:
+                - Path=/api/net-tunnel/**
+                - Header=Upgrade, (?i)websocket
+
+            - id: api_route
+              order: 2
+              uri: lb://port-buddy-server
+              predicates:
+                - Path=/api/**, /oauth2/**, /login/oauth2/**, /.well-known/jwks.json
+                # Exclude tunnel paths explicitly to ensure no overlap even with Order.
+                # Since Path predicates are ANDed, we can't easily exclude here without custom predicates.
+                # However, placing it AFTER WebSocket routes with higher Order (larger value) is the standard.
+                # I will ensure Order is correctly spaced.
+
             - id: net_proxy_route
               order: 1
               uri: lb://net-proxy
@@ -124,12 +149,6 @@ spring:
                   args:
                     regexp: /(?<remaining>.*)
                     replacement: /_custom/$\{customDomain}/$\{remaining}
-
-            - id: api_route
-              order: 2
-              uri: lb://port-buddy-server
-              predicates:
-                - Path=/api/**, /oauth2/**, /login/oauth2/**, /.well-known/jwks.json
 
             - id: spa_fallback_route
               enabled: ${app.spa-fallback-enabled}

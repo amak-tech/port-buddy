@@ -1,2 +1,3 @@
-serverUrl: "https://localhost:8443"
+#serverUrl: "https://localhost:8443"
+serverUrl: https://localhost:8443
 logEnabled: false
