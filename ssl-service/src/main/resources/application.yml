@@ -36,7 +36,7 @@ management:
 app:
   jwt:
     issuer: port-buddy
-    jwkSetUri: lb://port-buddy-server/.well-known/jwks.json
+    jwk-set-uri: lb://port-buddy-server/.well-known/jwks.json
   acme:
     serverUrl: https://acme-v02.api.letsencrypt.org/directory
     accountKeyPath: file:config/acme/account.key

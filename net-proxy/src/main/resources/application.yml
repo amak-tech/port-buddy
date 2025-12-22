@@ -25,6 +25,9 @@ app:
     max-text-message-size: 100MB
     max-binary-message-size: 1GB
     session-idle-timeout: 10m
+  jwt:
+    jwk-set-uri: lb://port-buddy-server/.well-known/jwks.json
+    issuer: port-buddy
 
 logging:
   level:

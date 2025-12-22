@@ -4,6 +4,7 @@
 
 package tech.amak.portbuddy.sslservice.security;
 
+import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -18,6 +19,7 @@ import org.springframework.security.oauth2.jwt.JwtTimestampValidator;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.client.RestTemplate;
 
 import lombok.RequiredArgsConstructor;
 import tech.amak.portbuddy.sslservice.config.AppProperties;
@@ -28,6 +30,7 @@ import tech.amak.portbuddy.sslservice.config.AppProperties;
 public class SecurityConfig {
 
     private final AppProperties appProperties;
+    private final RestTemplate restTemplate;
 
     /**
      * Configures HTTP security for the SSL service.
@@ -57,6 +60,12 @@ public class SecurityConfig {
         return http.build();
     }
 
+    @Bean
+    @LoadBalanced
+    public RestTemplate loadBalancedRestTemplate() {
+        return new RestTemplate();
+    }
+
     /**
      * JWT decoder configured with remote JWK Set URI and issuer validation.
      *
@@ -64,7 +73,10 @@ public class SecurityConfig {
      */
     @Bean
     public JwtDecoder jwtDecoder() {
-        final var decoder = NimbusJwtDecoder.withJwkSetUri(appProperties.jwt().jwkSetUri()).build();
+        final var decoder = NimbusJwtDecoder
+            .withJwkSetUri(appProperties.jwt().jwkSetUri())
+            .restOperations(restTemplate)
+            .build();
         final var withIssuer = new JwtIssuerValidator(appProperties.jwt().issuer());
         decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
             new JwtTimestampValidator(), withIssuer

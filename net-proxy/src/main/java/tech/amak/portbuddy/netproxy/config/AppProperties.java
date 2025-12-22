@@ -12,13 +12,20 @@ import org.springframework.util.unit.DataSize;
 @ConfigurationProperties(prefix = "app")
 public record AppProperties(
     String publicHost,
-    WebSocket webSocket
+    WebSocket webSocket,
+    Jwt jwt
 ) {
 
     public record WebSocket(
         DataSize maxTextMessageSize,
         DataSize maxBinaryMessageSize,
         Duration sessionIdleTimeout
+    ) {
+    }
+
+    public record Jwt(
+        String issuer,
+        String jwkSetUri
     ) {
     }
 }
