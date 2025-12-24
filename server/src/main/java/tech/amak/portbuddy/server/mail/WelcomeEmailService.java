@@ -57,7 +57,9 @@ public class WelcomeEmailService {
             model.put("feature3Title", "Simple CLI");
             model.put("feature3Desc", "One command to expose a port. Auth with API token. Hobby plan is free.");
 
+            log.info("sending welcome emails to user {}", event.userId());
             emailService.sendTemplate(event.email(), "Welcome to Port Buddy", "email/welcome", model);
+            log.info("welcome emails to user {} is sent", event.userId());
         } catch (final Exception e) {
             log.warn("Failed to send welcome email: {}", e.getMessage());
         }

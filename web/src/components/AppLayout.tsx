@@ -11,6 +11,7 @@ import {
   LockClosedIcon,
   WalletIcon,
   PowerIcon,
+  ShieldCheckIcon,
 } from '@heroicons/react/24/outline'
 
 export default function AppLayout() {
@@ -40,6 +41,9 @@ export default function AppLayout() {
             <SideLink to="/app/ports" label="Port Reservations" Icon={LinkIcon} />
             <SideLink to="/app/billing" label="Billing" Icon={WalletIcon} />
             <SideLink to="/app/settings" label="Settings" Icon={Cog8ToothIcon} />
+            {user?.roles?.includes('ADMIN') && (
+              <SideLink to="/app/admin" label="Admin Panel" Icon={ShieldCheckIcon} />
+            )}
           </nav>
 
           {/* Bottom block (fixed at bottom) */}

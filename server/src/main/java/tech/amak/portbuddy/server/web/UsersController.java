@@ -6,6 +6,9 @@ package tech.amak.portbuddy.server.web;
 
 import static tech.amak.portbuddy.server.security.JwtService.resolveUserId;
 
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -50,6 +53,7 @@ public class UsersController {
         userDto.setFirstName(user.getFirstName());
         userDto.setLastName(user.getLastName());
         userDto.setAvatarUrl(user.getAvatarUrl());
+        userDto.setRoles(user.getRoles().stream().map(Enum::name).collect(Collectors.toSet()));
         details.setUser(userDto);
 
         final var accountDto = new AccountDto();
@@ -88,6 +92,7 @@ public class UsersController {
         userDto.setFirstName(user.getFirstName());
         userDto.setLastName(user.getLastName());
         userDto.setAvatarUrl(user.getAvatarUrl());
+        userDto.setRoles(user.getRoles().stream().map(Enum::name).collect(Collectors.toSet()));
         return userDto;
     }
 
@@ -146,6 +151,7 @@ public class UsersController {
         private String firstName;
         private String lastName;
         private String avatarUrl;
+        private Set<String> roles;
     }
 
     @Data

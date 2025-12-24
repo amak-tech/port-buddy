@@ -6,6 +6,7 @@ export type User = {
     email: string
     name?: string
     avatarUrl?: string
+    roles?: string[]
     plan?: 'basic' | 'individual' | 'professional'
 }
 
@@ -55,7 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         try {
             const details = await apiJson<{
-                user: { id: string, email: string, firstName?: string, lastName?: string, avatarUrl?: string }
+                user: { id: string, email: string, firstName?: string, lastName?: string, avatarUrl?: string, roles?: string[] }
                 account?: { plan?: string }
             }>('/api/users/me/details', undefined, { skipRedirectOn401: true })
 
@@ -69,6 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 email: details.user.email,
                 name,
                 avatarUrl: details.user.avatarUrl || undefined,
+                roles: details.user.roles,
                 // Keep plan optional; server plans may not match current union type
             }
             setUser(mapped)

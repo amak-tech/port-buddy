@@ -14,6 +14,7 @@ import Tokens from './pages/app/Tokens'
 import Domains from './pages/app/Domains'
 import Settings from './pages/app/Settings'
 import Ports from './pages/app/Ports'
+import AdminPanel from './pages/app/AdminPanel'
 import NotFound from './pages/NotFound'
 import ServerError from './pages/ServerError'
 import Passcode from './pages/Passcode'
@@ -118,6 +119,7 @@ export default function App() {
             <Route path="ports" element={<Ports/>} />
             <Route path="billing" element={<Billing/>} />
             <Route path="settings" element={<Settings/>} />
+            <Route path="admin" element={<ProtectedRoute role="ADMIN"><AdminPanel/></ProtectedRoute>} />
             {/* Unknown app routes redirect to dashboard */}
             <Route path="*" element={<Navigate to="/app" replace />} />
           </Route>
