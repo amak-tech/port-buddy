@@ -5,8 +5,10 @@
 package tech.amak.portbuddy.server.service.user;
 
 import java.time.Duration;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
@@ -18,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.server.db.entity.AccountEntity;
+import tech.amak.portbuddy.server.db.entity.Role;
 import tech.amak.portbuddy.server.db.entity.UserEntity;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
@@ -38,7 +41,7 @@ public class UserProvisioningService {
     private final ApplicationEventPublisher eventPublisher;
     private final PasswordResetService passwordResetService;
 
-    public record ProvisionedUser(UUID userId, UUID accountId) {
+    public record ProvisionedUser(UUID userId, UUID accountId, Set<Role> roles) {
     }
 
     /**
@@ -82,6 +85,7 @@ public class UserProvisioningService {
         user.setLastName(lastName);
         user.setAuthProvider("local");
         user.setExternalId(normalizedEmail);
+        user.setRoles(determineRoles(true));
         Optional.ofNullable(password)
             .filter(StringUtils::isNotBlank)
             .map(passwordEncoder::encode)
@@ -107,7 +111,7 @@ public class UserProvisioningService {
             user.getId(), account.getId(), user.getEmail(), user.getFirstName(), user.getLastName(), resetPasswordLink
         ));
 
-        return new ProvisionedUser(user.getId(), account.getId());
+        return new ProvisionedUser(user.getId(), account.getId(), user.getRoles());
     }
 
     /**
@@ -156,7 +160,7 @@ public class UserProvisioningService {
             if (changed) {
                 userRepository.save(user);
             }
-            return new ProvisionedUser(user.getId(), user.getAccount().getId());
+            return new ProvisionedUser(user.getId(), user.getAccount().getId(), user.getRoles());
         }
 
         // For new identities we must have a non-null email to create/merge a user
@@ -199,7 +203,7 @@ public class UserProvisioningService {
                 if (changed) {
                     userRepository.save(user);
                 }
-                return new ProvisionedUser(user.getId(), user.getAccount().getId());
+                return new ProvisionedUser(user.getId(), user.getAccount().getId(), user.getRoles());
             }
         }
 
@@ -219,6 +223,7 @@ public class UserProvisioningService {
         user.setAuthProvider(provider);
         user.setExternalId(externalId);
         user.setAvatarUrl(avatarUrl);
+        user.setRoles(determineRoles(true));
         userRepository.save(user);
 
         // Try to create an initial port reservation and domain for the account by this user
@@ -234,7 +239,7 @@ public class UserProvisioningService {
             user.getId(), account.getId(), user.getEmail(), user.getFirstName(), user.getLastName(), null
         ));
 
-        return new ProvisionedUser(user.getId(), account.getId());
+        return new ProvisionedUser(user.getId(), account.getId(), user.getRoles());
     }
 
     private static String defaultAccountName(final String firstName, final String lastName, final String email) {
@@ -256,5 +261,18 @@ public class UserProvisioningService {
         }
         final var trimmed = email.trim();
         return trimmed.isEmpty() ? null : trimmed.toLowerCase();
+    }
+
+    private Set<Role> determineRoles(final boolean isAccountOwner) {
+        final var roles = new HashSet<Role>();
+        if (userRepository.count() == 0) {
+            roles.add(Role.ADMIN);
+        }
+        if (isAccountOwner) {
+            roles.add(Role.ACCOUNT_ADMIN);
+        } else {
+            roles.add(Role.USER);
+        }
+        return roles;
     }
 }

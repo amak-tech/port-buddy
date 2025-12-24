@@ -95,7 +95,7 @@ public class Oauth2SuccessHandler implements AuthenticationSuccessHandler {
         claims.put("aid", provisioned.accountId().toString());
         claims.put("uid", provisioned.userId().toString());
 
-        final var token = jwtService.createToken(claims, provisioned.userId().toString());
+        final var token = jwtService.createToken(claims, provisioned.userId().toString(), provisioned.roles());
         final var redirectUrl = properties.gateway().url() + "/auth/callback?token=" + URLEncoder.encode(token, UTF_8);
         response.sendRedirect(redirectUrl);
     }

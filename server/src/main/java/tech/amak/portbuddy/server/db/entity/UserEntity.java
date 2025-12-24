@@ -5,10 +5,13 @@
 package tech.amak.portbuddy.server.db.entity;
 
 import java.time.OffsetDateTime;
+import java.util.Set;
 import java.util.UUID;
 
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -56,6 +59,10 @@ public class UserEntity {
 
     @Column(name = "password")
     private String password;
+
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "roles", nullable = false)
+    private Set<Role> roles;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false)

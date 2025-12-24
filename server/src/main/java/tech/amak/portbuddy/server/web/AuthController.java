@@ -165,7 +165,7 @@ public class AuthController {
         claims.put("aid", user.getAccount().getId().toString());
         claims.put("uid", user.getId().toString());
 
-        final var jwt = jwtService.createToken(claims, user.getId().toString());
+        final var jwt = jwtService.createToken(claims, user.getId().toString(), user.getRoles());
         return new TokenExchangeResponse(jwt, "Bearer");
     }
 

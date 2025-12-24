@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -25,6 +26,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import tech.amak.portbuddy.common.dto.auth.RegisterRequest;
 import tech.amak.portbuddy.server.config.AppProperties;
+import tech.amak.portbuddy.server.db.entity.Role;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
 import tech.amak.portbuddy.server.security.JwtService;
 import tech.amak.portbuddy.server.service.ApiTokenService;
@@ -71,7 +73,7 @@ class AuthControllerTest {
         final var apiKey = "test-api-key";
 
         when(userProvisioningService.createLocalUser(any(), any(), any()))
-            .thenReturn(new UserProvisioningService.ProvisionedUser(userId, accountId));
+            .thenReturn(new UserProvisioningService.ProvisionedUser(userId, accountId, Set.of(Role.ACCOUNT_ADMIN)));
 
         when(apiTokenService.createToken(accountId, userId, "prtb-client"))
             .thenReturn(new ApiTokenService.CreatedToken(UUID.randomUUID().toString(), apiKey));
