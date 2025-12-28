@@ -21,8 +21,8 @@ export default function Landing() {
     <div className="flex flex-col gap-24 pb-24">
       <Seo 
         title="Port Buddy - Expose Localhost to the Internet | Ngrok Alternative"
-        description="Securely expose your local web server, database, or TCP service to the internet. The best free ngrok alternative for developers. Supports HTTP & TCP tunneling."
-        keywords="ngrok alternative, localhost tunneling, expose port, port forwarding, reverse proxy, tcp proxy, local development, port buddy"
+        description="Securely expose your local web server, database, or TCP/UDP service to the internet. The best free ngrok alternative for developers. Supports HTTP, TCP & UDP tunneling."
+        keywords="ngrok alternative, localhost tunneling, expose port, port forwarding, reverse proxy, tcp proxy, udp proxy, local development, port buddy"
       />
       {/* Hero Section */}
       <section className="relative pt-20 md:pt-32 px-4">
@@ -44,7 +44,7 @@ export default function Landing() {
             </h1>
             
             <p className="text-xl text-slate-400 mb-10 leading-relaxed">
-              Expose your local web server, database, or any TCP service to the internet securely. 
+              Expose your local web server, database, or any TCP/UDP service to the internet securely. 
               No firewalls, no DNS configuration, just one command.
             </p>
             
@@ -135,8 +135,8 @@ export default function Landing() {
           />
           <FeatureCard 
             icon={<ServerIcon className="w-6 h-6 text-cyan-400" />}
-            title="TCP Tunnels"
-            description="Expose any TCP service. Databases (Postgres, MySQL), SSH, RDP, game servers, and more."
+            title="TCP & UDP Tunnels"
+            description="Expose any TCP or UDP service. Databases, SSH, RDP, game servers, IoT protocols, and more."
           />
           <FeatureCard 
             icon={<ShieldCheckIcon className="w-6 h-6 text-green-400" />}
@@ -305,10 +305,10 @@ export default function Landing() {
             name="Developer"
             price="$10"
             period="/mo"
-            description="For power users who need custom domains and TCP."
+            description="For power users who need custom domains and TCP/UDP."
             features={[
               'Everything in Hobby',
-              'TCP tunnels (Databases, SSH)',
+              'TCP & UDP tunnels',
               '10 static subdomains',
               '1 Custom Domain (BYO)',
               '10 concurrent tunnels',
