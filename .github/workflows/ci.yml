@@ -12,17 +12,10 @@ jobs:
     steps:
       - name: Set environment variables based on branch
         run: |
-          if [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
-            echo "ENV=prod" >> $GITHUB_ENV
-            echo "VITE_API_BASE=https://portbuddy.dev" >> $GITHUB_ENV
-            echo "VITE_CANONICAL=https://portbuddy.dev" >> $GITHUB_ENV
-            echo "VITE_OG_URL=https://portbuddy.dev" >> $GITHUB_ENV
-          else
-            echo "ENV=dev" >> $GITHUB_ENV
-            echo "VITE_API_BASE=http://localhost:8080" >> $GITHUB_ENV
-            echo "VITE_CANONICAL=http://localhost:8080" >> $GITHUB_ENV
-            echo "VITE_OG_URL=http://localhost:8080" >> $GITHUB_ENV
-          fi
+          echo "ENV=dev" >> $GITHUB_ENV
+          echo "VITE_API_BASE=http://localhost:8080" >> $GITHUB_ENV
+          echo "VITE_CANONICAL=http://localhost:8080" >> $GITHUB_ENV
+          echo "VITE_OG_URL=http://localhost:8080" >> $GITHUB_ENV
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -37,20 +30,6 @@ jobs:
       - name: Build with Maven
         run: ./mvnw clean package
 
-      - name: Upload build artifacts
-        if: github.ref == 'refs/heads/master'
-        uses: actions/upload-artifact@v5
-        with:
-          name: jars
-          retention-days: 1
-          path: |
-            server/target/*.jar
-            gateway/target/*.jar
-            eureka/target/*.jar
-            net-proxy/target/*.jar
-            cli/target/*.jar
-            ssl-service/target/*.jar
-
   deploy-backend:
     name: Build and Push Docker Images to YC CR
     needs: build
@@ -58,8 +37,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Set environment variables based on branch
+        run: |
+          echo "ENV=prod" >> $GITHUB_ENV
+          echo "VITE_API_BASE=https://portbuddy.dev" >> $GITHUB_ENV
+          echo "VITE_CANONICAL=https://portbuddy.dev" >> $GITHUB_ENV
+          echo "VITE_OG_URL=https://portbuddy.dev" >> $GITHUB_ENV
+
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build with Maven
+        run: ./mvnw clean package -DskipTests=true
 
       - name: Download build artifacts
         uses: actions/download-artifact@v4
@@ -133,10 +129,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
         with:
-          name: jars
+          java-version: '25'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build with Maven
+        run: ./mvnw clean package -DskipTests=true
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -158,15 +159,3 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: portbuddy/cli:latest
-
-  cleanup:
-    name: Cleanup
-    needs: build
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Delete artifacts
-        uses: geekyeggo/delete-artifact@v5
-        with:
-          name: jars
-          failOnError: false
