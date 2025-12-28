@@ -55,7 +55,7 @@ jobs:
           cache: 'maven'
 
       - name: Build with Maven
-        run: ./mvnw clean package -DskipTests=true
+        run: ./mvnw clean package -pl web -pl eureka -pl gateway -pl net-proxy -pl server -pl ssl-service -am -DskipTests
 
       - name: Download build artifacts
         uses: actions/download-artifact@v4
@@ -137,7 +137,7 @@ jobs:
           cache: 'maven'
 
       - name: Build with Maven
-        run: ./mvnw clean package -DskipTests=true
+        run: ./mvnw clean package -pl cli -am -DskipTests
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
