@@ -10,6 +10,7 @@ export default function Billing() {
   const { user, refresh } = useAuth()
   const [updating, setUpdating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [pendingExtra, setPendingExtra] = useState<number | null>(null)
 
   const plans: { key: 'pro' | 'team', name: string, price: string, period?: string, description: string, features: string[] }[] = [
     { 
@@ -48,26 +49,33 @@ export default function Billing() {
   const currentPlanKey = user?.plan || 'pro'
   const extraTunnels = user?.extraTunnels || 0
   const baseTunnels = user?.baseTunnels || 1
+  const effectiveExtra = pendingExtra !== null ? pendingExtra : extraTunnels
 
   const planPrice = currentPlanKey === 'team' ? 10 : 0
-  const extraCost = extraTunnels * 1
+  const extraCost = effectiveExtra * 1
   const totalMonthly = planPrice + extraCost
 
-  const updateTunnels = async (newExtra: number) => {
-    if (newExtra < 0) return
+  const handleUpdate = async () => {
+    if (pendingExtra === null || pendingExtra === extraTunnels) return
     setError(null)
     setUpdating(true)
     try {
       await apiJson('/api/users/me/account/tunnels', {
         method: 'PATCH',
-        body: JSON.stringify({ extraTunnels: newExtra })
+        body: JSON.stringify({ extraTunnels: pendingExtra })
       })
       await refresh()
+      setPendingExtra(null)
     } catch (e: any) {
       setError(e.message || 'Failed to update tunnels')
     } finally {
       setUpdating(false)
     }
+  }
+
+  const changePending = (newExtra: number) => {
+    if (newExtra < 0) return
+    setPendingExtra(newExtra)
   }
 
   const increment = currentPlanKey === 'team' ? 5 : 1
@@ -122,11 +130,11 @@ export default function Billing() {
                   <div className="flex justify-between items-center mb-4 border-b border-slate-700/50 pb-4">
                     <div>
                       <div className="text-sm font-medium text-slate-300">Total Tunnels</div>
-                      <div className="text-2xl font-bold text-white">{baseTunnels + extraTunnels}</div>
+                      <div className="text-2xl font-bold text-white">{baseTunnels + effectiveExtra}</div>
                     </div>
                     <div className="text-right">
                       <div className="text-xs text-slate-500 uppercase tracking-wider">Extra Tunnels</div>
-                      <div className="text-lg font-semibold text-indigo-400">+{extraTunnels} (${extraCost}/mo)</div>
+                      <div className="text-lg font-semibold text-indigo-400">+{effectiveExtra} (${extraCost}/mo)</div>
                     </div>
                   </div>
 
@@ -135,25 +143,44 @@ export default function Billing() {
                     <div className="text-xl font-bold text-white">${totalMonthly}<span className="text-sm font-normal text-slate-500">/mo</span></div>
                   </div>
                   
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4 mb-4">
                     <button
-                      onClick={() => updateTunnels(extraTunnels - increment)}
-                      disabled={updating || extraTunnels <= 0}
+                      onClick={() => changePending(effectiveExtra - increment)}
+                      disabled={updating || effectiveExtra <= 0}
                       className="p-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       <MinusIcon className="w-5 h-5" />
                     </button>
                     <div className="flex-1 text-center font-mono text-white">
-                      {updating ? 'Updating...' : `Add ${increment} more`}
+                      {`Add ${increment} more`}
                     </div>
                     <button
-                      onClick={() => updateTunnels(extraTunnels + increment)}
+                      onClick={() => changePending(effectiveExtra + increment)}
                       disabled={updating}
                       className="p-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       <PlusIcon className="w-5 h-5" />
                     </button>
                   </div>
+
+                  {pendingExtra !== null && pendingExtra !== extraTunnels && (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleUpdate}
+                        disabled={updating}
+                        className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-lg shadow-lg shadow-indigo-500/20 transition-all disabled:opacity-50"
+                      >
+                        {updating ? 'Updating...' : 'Update my subscription'}
+                      </button>
+                      <button
+                        onClick={() => setPendingExtra(null)}
+                        disabled={updating}
+                        className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm font-semibold rounded-lg transition-all disabled:opacity-50"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
                   {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
                 </div>
               )}
