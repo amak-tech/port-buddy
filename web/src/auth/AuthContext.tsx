@@ -8,6 +8,8 @@ export type User = {
     avatarUrl?: string
     roles?: string[]
     plan?: 'pro' | 'team'
+    extraTunnels?: number
+    baseTunnels?: number
 }
 
 type AuthState = {
@@ -57,7 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             const details = await apiJson<{
                 user: { id: string, email: string, firstName?: string, lastName?: string, avatarUrl?: string, roles?: string[] }
-                account?: { plan?: string }
+                account?: { plan?: string, extraTunnels?: number, baseTunnels?: number }
             }>('/api/users/me/details', undefined, { skipRedirectOn401: true })
 
             const firstName = details?.user?.firstName?.trim() || ''
@@ -71,7 +73,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 name,
                 avatarUrl: details.user.avatarUrl || undefined,
                 roles: details.user.roles,
-                // Keep plan optional; server plans may not match current union type
+                plan: details.account?.plan?.toLowerCase() as any,
+                extraTunnels: details.account?.extraTunnels,
+                baseTunnels: details.account?.baseTunnels,
             }
             setUser(mapped)
         } catch (e: any) {

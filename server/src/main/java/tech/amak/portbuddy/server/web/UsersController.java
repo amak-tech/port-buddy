@@ -57,11 +57,7 @@ public class UsersController {
         userDto.setRoles(user.getRoles().stream().map(Enum::name).collect(Collectors.toSet()));
         details.setUser(userDto);
 
-        final var accountDto = new AccountDto();
-        accountDto.setId(account.getId().toString());
-        accountDto.setName(account.getName());
-        accountDto.setPlan(account.getPlan());
-        details.setAccount(accountDto);
+        details.setAccount(toAccountDto(account));
 
         return details;
     }
@@ -118,10 +114,62 @@ public class UsersController {
         account.setName(name);
         accountRepository.save(account);
 
+        return toAccountDto(account);
+    }
+
+    /**
+     * Updates the number of extra tunnels for the account.
+     *
+     * @param jwt     principal.
+     * @param request request body.
+     * @return updated account details.
+     */
+    @PatchMapping(path = "/account/tunnels", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Transactional
+    public AccountDto updateExtraTunnels(@AuthenticationPrincipal final Jwt jwt,
+                                         @RequestBody final UpdateTunnelsRequest request) {
+        final var user = resolveUser(jwt);
+        final var account = user.getAccount();
+
+        final int currentExtra = account.getExtraTunnels();
+        final int requestedExtra = request.getExtraTunnels();
+
+        if (requestedExtra < 0) {
+            throw new IllegalArgumentException("Extra tunnels count cannot be negative");
+        }
+
+        final int diff = requestedExtra - currentExtra;
+        if (diff == 0) {
+            return toAccountDto(account);
+        }
+
+        final int increment = switch (account.getPlan()) {
+            case PRO -> 1;
+            case TEAM -> 5;
+        };
+
+        if (Math.abs(diff) % increment != 0) {
+            throw new IllegalArgumentException(
+                "For %s plan, tunnels must be changed by multiples of %d"
+                    .formatted(account.getPlan(), increment));
+        }
+
+        account.setExtraTunnels(requestedExtra);
+        accountRepository.save(account);
+
+        return toAccountDto(account);
+    }
+
+    private AccountDto toAccountDto(final tech.amak.portbuddy.server.db.entity.AccountEntity account) {
         final var dto = new AccountDto();
         dto.setId(account.getId().toString());
         dto.setName(account.getName());
         dto.setPlan(account.getPlan());
+        dto.setExtraTunnels(account.getExtraTunnels());
+        dto.setBaseTunnels(switch (account.getPlan()) {
+            case PRO -> 1;
+            case TEAM -> 10;
+        });
         return dto;
     }
 
@@ -160,6 +208,8 @@ public class UsersController {
         private String id;
         private String name;
         private Plan plan;
+        private int extraTunnels;
+        private int baseTunnels;
     }
 
     @Data
@@ -171,5 +221,10 @@ public class UsersController {
     @Data
     public static class UpdateAccountRequest {
         private String name;
+    }
+
+    @Data
+    public static class UpdateTunnelsRequest {
+        private int extraTunnels;
     }
 }

@@ -1,11 +1,15 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
 import { usePageTitle } from '../../components/PageHeader'
-import { CheckIcon, ArrowLeftIcon } from '@heroicons/react/24/outline'
+import { CheckIcon, ArrowLeftIcon, PlusIcon, MinusIcon } from '@heroicons/react/24/outline'
+import { apiJson } from '../../lib/api'
 
 export default function Billing() {
   usePageTitle('Billing')
-  const { user } = useAuth()
+  const { user, refresh } = useAuth()
+  const [updating, setUpdating] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const plans: { key: 'pro' | 'team', name: string, price: string, period?: string, description: string, features: string[] }[] = [
     { 
@@ -42,6 +46,31 @@ export default function Billing() {
   ]
 
   const currentPlanKey = user?.plan || 'pro'
+  const extraTunnels = user?.extraTunnels || 0
+  const baseTunnels = user?.baseTunnels || 1
+
+  const planPrice = currentPlanKey === 'team' ? 10 : 0
+  const extraCost = extraTunnels * 1
+  const totalMonthly = planPrice + extraCost
+
+  const updateTunnels = async (newExtra: number) => {
+    if (newExtra < 0) return
+    setError(null)
+    setUpdating(true)
+    try {
+      await apiJson('/api/users/me/account/tunnels', {
+        method: 'PATCH',
+        body: JSON.stringify({ extraTunnels: newExtra })
+      })
+      await refresh()
+    } catch (e: any) {
+      setError(e.message || 'Failed to update tunnels')
+    } finally {
+      setUpdating(false)
+    }
+  }
+
+  const increment = currentPlanKey === 'team' ? 5 : 1
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -60,7 +89,7 @@ export default function Billing() {
               key={p.key} 
               className={`relative flex flex-col p-8 rounded-2xl border transition-all duration-300 ${
                 isPopular 
-                  ? 'bg-slate-900/80 border-indigo-500 shadow-2xl shadow-indigo-500/10 transform lg:-translate-y-4 z-10' 
+                  ? 'bg-slate-900/80 border-indigo-500 shadow-2xl shadow-indigo-500/10' 
                   : 'bg-slate-900/40 border-slate-800 hover:border-slate-700'
               }`}
             >
@@ -87,6 +116,47 @@ export default function Billing() {
                   </li>
                 ))}
               </ul>
+
+              {isCurrent && (
+                <div className="mb-8 p-4 rounded-xl bg-slate-800/50 border border-slate-700">
+                  <div className="flex justify-between items-center mb-4 border-b border-slate-700/50 pb-4">
+                    <div>
+                      <div className="text-sm font-medium text-slate-300">Total Tunnels</div>
+                      <div className="text-2xl font-bold text-white">{baseTunnels + extraTunnels}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-slate-500 uppercase tracking-wider">Extra Tunnels</div>
+                      <div className="text-lg font-semibold text-indigo-400">+{extraTunnels} (${extraCost}/mo)</div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center mb-6">
+                    <div className="text-sm text-slate-400">Total Monthly</div>
+                    <div className="text-xl font-bold text-white">${totalMonthly}<span className="text-sm font-normal text-slate-500">/mo</span></div>
+                  </div>
+                  
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => updateTunnels(extraTunnels - increment)}
+                      disabled={updating || extraTunnels <= 0}
+                      className="p-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <MinusIcon className="w-5 h-5" />
+                    </button>
+                    <div className="flex-1 text-center font-mono text-white">
+                      {updating ? 'Updating...' : `Add ${increment} more`}
+                    </div>
+                    <button
+                      onClick={() => updateTunnels(extraTunnels + increment)}
+                      disabled={updating}
+                      className="p-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <PlusIcon className="w-5 h-5" />
+                    </button>
+                  </div>
+                  {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
+                </div>
+              )}
 
               <button 
                 className={`w-full py-3 rounded-lg font-semibold transition-all ${
