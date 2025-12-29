@@ -27,11 +27,12 @@ export default function Tunnels() {
   const [page, setPage] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
   const [loading, setLoading] = useState(false)
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
   const sentinelRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     if (!hasUser) return
-    void loadTunnels(0, false)
+    void loadTunnels(0, false).finally(() => setIsInitialLoad(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasUser])
 
@@ -111,8 +112,8 @@ export default function Tunnels() {
       </div>
 
       <div className="mt-2">
-        {loading && tunnels.length === 0 ? (
-          <div className="text-slate-400 text-sm">Loading tunnels...</div>
+        {isInitialLoad ? (
+          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-12 h-64 animate-pulse"></div>
         ) : tunnels.length === 0 ? (
           <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-12 text-center">
             <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-800 text-slate-400 mb-4">

@@ -170,7 +170,7 @@ export default function Billing() {
                         disabled={updating}
                         className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-lg shadow-lg shadow-indigo-500/20 transition-all disabled:opacity-50"
                       >
-                        {updating ? 'Updating...' : 'Update my subscription'}
+                        Update my subscription
                       </button>
                       <button
                         onClick={() => setPendingExtra(null)}

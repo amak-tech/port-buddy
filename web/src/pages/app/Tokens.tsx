@@ -19,6 +19,7 @@ export default function Tokens() {
   const hasUser = useMemo(() => !!user, [user])
   const [tokens, setTokens] = useState<TokenItem[]>([])
   const [loading, setLoading] = useState(false)
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
   const [newLabel, setNewLabel] = useState('cli')
   const [justCreatedToken, setJustCreatedToken] = useState<string | null>(null)
   
@@ -27,7 +28,7 @@ export default function Tokens() {
 
   useEffect(() => {
     if (!hasUser) return
-    void loadTokens()
+    void loadTokens().finally(() => setIsInitialLoad(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasUser])
 
@@ -140,8 +141,8 @@ export default function Tokens() {
       </div>
 
       <div className="space-y-4">
-        {loading && tokens.length === 0 ? (
-          <div className="text-slate-500 text-sm">Loading tokens...</div>
+        {isInitialLoad ? (
+          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 h-24 animate-pulse"></div>
         ) : tokens.length === 0 ? (
           <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-12 text-center">
             <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-800 text-slate-400 mb-4">

@@ -146,7 +146,7 @@ export default function Ports() {
         </div>
         <button
           onClick={() => void addReservation()}
-          disabled={creating}
+          disabled={creating || loading}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-60"
         >
           <PlusIcon className="h-5 w-5" /> Add Reservation
@@ -154,7 +154,11 @@ export default function Ports() {
       </div>
 
       {loading ? (
-        <div className="text-slate-400">Loading...</div>
+        <div className="space-y-4">
+          {[1, 2].map(i => (
+            <div key={i} className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 h-20 animate-pulse"></div>
+          ))}
+        </div>
       ) : items.length === 0 ? (
         <div className="border border-slate-800 rounded-xl p-10 text-center bg-slate-900/40">
           <div className="mx-auto w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center mb-4">

@@ -53,7 +53,17 @@ export default function ResetPassword() {
   }
 
   if (validToken === null) {
-      return <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white">Loading...</div>
+      return (
+        <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+          <Seo title="Loading | Port Buddy" />
+          <div className="absolute inset-0 bg-slate-950"></div>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-900/20 via-slate-900/0 to-slate-900/0 pointer-events-none" />
+          <div className="w-full max-w-md p-6 relative z-10">
+            <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-8 shadow-2xl backdrop-blur-sm h-64 animate-pulse">
+            </div>
+          </div>
+        </div>
+      )
   }
 
   if (!validToken) {
@@ -127,9 +137,9 @@ export default function ResetPassword() {
                 type="submit"
                 disabled={submitting}
                 className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 px-4 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/20"
-            >
-                {submitting ? 'Resetting...' : 'Set New Password'}
-            </button>
+              >
+                Set New Password
+              </button>
           </form>
 
           <div className="mt-8 pt-6 border-t border-slate-800 text-center">

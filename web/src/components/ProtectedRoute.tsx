@@ -8,8 +8,25 @@ export default function ProtectedRoute({ children, role }: { children: React.Rea
 
     if (loading) {
         return (
-            <div className="container py-16">
-                <div className="text-white/70">Loading...</div>
+            <div className="min-h-screen flex bg-slate-950">
+                {/* Sidebar shell */}
+                <aside className="fixed top-0 left-0 h-screen w-64 border-r border-slate-800 bg-slate-900">
+                    <div className="h-full flex flex-col">
+                        <div className="border-b border-slate-800 px-6 py-5">
+                            <div className="flex items-center gap-3 text-lg font-bold text-white/50">
+                                <span className="h-3 w-3 rounded-full bg-slate-700"></span>
+                                Port Buddy
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+                {/* Main shell */}
+                <section className="flex-1 ml-64 bg-slate-950 flex flex-col">
+                    <div className="h-16 border-b border-slate-800"></div>
+                    <div className="p-8 flex-1">
+                        <div className="max-w-4xl h-64 bg-slate-900/50 rounded-2xl animate-pulse"></div>
+                    </div>
+                </section>
             </div>
         )
     }

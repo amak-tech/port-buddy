@@ -372,7 +372,11 @@ export default function Domains() {
       </div>
 
       {loading ? (
-          <div className="text-center py-12 text-slate-400">Loading...</div>
+          <div className="grid gap-4">
+              {[1, 2].map(i => (
+                  <div key={i} className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 h-24 animate-pulse"></div>
+              ))}
+          </div>
       ) : error ? (
           <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-lg mb-6">
               {error}

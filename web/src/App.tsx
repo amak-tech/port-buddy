@@ -9,6 +9,9 @@ import Billing from './pages/app/Billing'
 import ProtectedRoute from './components/ProtectedRoute'
 import { useAuth } from './auth/AuthContext'
 import AppLayout from './components/AppLayout'
+import { useLoading } from './components/LoadingContext'
+import ProgressBar from './components/ProgressBar'
+import { setLoadingCallbacks } from './lib/api'
 import Tunnels from './pages/app/Tunnels'
 import Tokens from './pages/app/Tokens'
 import Domains from './pages/app/Domains'
@@ -42,13 +45,20 @@ function ScrollToHash() {
 
 export default function App() {
   const { user, logout } = useAuth()
+  const { startLoading, stopLoading } = useLoading()
   const [menuOpen, setMenuOpen] = useState(false)
   const location = useLocation()
+  
+  useEffect(() => {
+    setLoadingCallbacks(startLoading, stopLoading)
+  }, [startLoading, stopLoading])
+
   const isApp = location.pathname.startsWith('/app')
   const showHeader = !isApp && !['/login', '/forgot-password', '/reset-password'].includes(location.pathname)
 
   return (
     <div className="min-h-full flex flex-col bg-slate-950 text-slate-200">
+      <ProgressBar />
       {showHeader && (
       <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur fixed w-full top-0 z-50">
         <div className="container flex items-center justify-between py-4 relative">

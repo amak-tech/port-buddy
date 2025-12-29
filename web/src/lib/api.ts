@@ -1,6 +1,22 @@
 // Centralized API client that attaches Authorization: Bearer <JWT>
 // and avoids sending cookies. Works in dev and prod using VITE_API_BASE.
 
+let startLoadingCallback: (() => void) | null = null;
+let stopLoadingCallback: (() => void) | null = null;
+
+export function setLoadingCallbacks(start: () => void, stop: () => void) {
+    startLoadingCallback = start;
+    stopLoadingCallback = stop;
+}
+
+function startLoading() {
+    if (startLoadingCallback) startLoadingCallback();
+}
+
+function stopLoading() {
+    if (stopLoadingCallback) stopLoadingCallback();
+}
+
 export const API_BASE: string = (() => {
     const env = (import.meta as any).env?.VITE_API_BASE?.toString()
     if (env) return env
@@ -63,64 +79,74 @@ function withAuth(init?: RequestInit, skipToken: boolean = false): RequestInit {
 }
 
 export async function apiJson<T = any>(path: string, init?: RequestInit, options?: { skipRedirectOn401?: boolean, skipAuth?: boolean }): Promise<T> {
-    const res = await fetch(`${API_BASE}${path}`, withAuth({
-        headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
-        ...init,
-    }, options?.skipAuth))
-    if (res.status === 401) {
-        if (!options?.skipRedirectOn401) {
-            redirectToLogin(true)
+    startLoading()
+    try {
+        const res = await fetch(`${API_BASE}${path}`, withAuth({
+            headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
+            ...init,
+        }, options?.skipAuth))
+        if (res.status === 401) {
+            if (!options?.skipRedirectOn401) {
+                redirectToLogin(true)
+            }
+            // Throw to stop any further processing by callers
+            const err: any = new Error('Unauthorized')
+            err.status = 401
+            throw err
         }
-        // Throw to stop any further processing by callers
-        const err: any = new Error('Unauthorized')
-        err.status = 401
-        throw err
-    }
-    if (!res.ok) {
-        let errorMessage = `HTTP ${res.status}`
-        try {
-            const text = await res.text()
-            if (text) {
-                try {
-                    const data = JSON.parse(text)
-                    if (data && typeof data === 'object') {
-                        if (data.detail) {
-                            errorMessage = data.detail
-                        } else if (data.title) {
-                            errorMessage = data.title
-                        } else if (data.message) {
-                            errorMessage = data.message
+        if (!res.ok) {
+            let errorMessage = `HTTP ${res.status}`
+            try {
+                const text = await res.text()
+                if (text) {
+                    try {
+                        const data = JSON.parse(text)
+                        if (data && typeof data === 'object') {
+                            if (data.detail) {
+                                errorMessage = data.detail
+                            } else if (data.title) {
+                                errorMessage = data.title
+                            } else if (data.message) {
+                                errorMessage = data.message
+                            } else {
+                                errorMessage = text
+                            }
                         } else {
-                             errorMessage = text
+                            errorMessage = text
                         }
-                    } else {
+                    } catch {
                         errorMessage = text
                     }
-                } catch {
-                    errorMessage = text
                 }
+            } catch {
+                // ignore
             }
-        } catch {
-            // ignore
-        }
 
-        const err: any = new Error(errorMessage)
-        err.status = res.status
-        throw err
+            const err: any = new Error(errorMessage)
+            err.status = res.status
+            throw err
+        }
+        // 204 No Content has no body
+        if (res.status === 204) return undefined as unknown as T
+        return res.json() as Promise<T>
+    } finally {
+        stopLoading()
     }
-    // 204 No Content has no body
-    if (res.status === 204) return undefined as unknown as T
-    return res.json() as Promise<T>
 }
 
 export async function apiRaw(path: string, init?: RequestInit): Promise<Response> {
-    const res = await fetch(`${API_BASE}${path}`, withAuth(init))
-    if (res.status === 401) {
-        redirectToLogin(true)
-        // Throw to ensure callers do not proceed under unauthorized state
-        const err: any = new Error('Unauthorized')
-        err.status = 401
-        throw err
+    startLoading()
+    try {
+        const res = await fetch(`${API_BASE}${path}`, withAuth(init))
+        if (res.status === 401) {
+            redirectToLogin(true)
+            // Throw to ensure callers do not proceed under unauthorized state
+            const err: any = new Error('Unauthorized')
+            err.status = 401
+            throw err
+        }
+        return res
+    } finally {
+        stopLoading()
     }
-    return res
 }
