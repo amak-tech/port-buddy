@@ -55,7 +55,7 @@ public class WelcomeEmailService {
             model.put("feature2Desc",
                 "Give teammates access to databases or any TCP service with a temporary public port.");
             model.put("feature3Title", "Simple CLI");
-            model.put("feature3Desc", "One command to expose a port. Auth with API token. Hobby plan is free.");
+            model.put("feature3Desc", "One command to expose a port. Auth with API token. Pro plan is free.");
 
             log.info("sending welcome emails to user {}", event.userId());
             emailService.sendTemplate(event.email(), "Welcome to Port Buddy", "email/welcome", model);

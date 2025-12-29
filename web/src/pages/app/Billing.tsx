@@ -7,67 +7,53 @@ export default function Billing() {
   usePageTitle('Billing')
   const { user } = useAuth()
 
-  const plans: { key: 'basic' | 'individual' | 'professional', name: string, price: string, period?: string, description: string, features: string[] }[] = [
+  const plans: { key: 'pro' | 'team', name: string, price: string, period?: string, description: string, features: string[] }[] = [
     { 
-      key: 'basic', 
-      name: 'Hobby', 
+      key: 'pro', 
+      name: 'Pro', 
       price: '$0', 
-      description: 'Perfect for personal projects.',
+      description: 'Everything you need for personal exposure.',
       features: [
-        'HTTP/HTTPS tunnels',
-        '2 static subdomains',
-        'Request inspection',
-        '2 concurrent tunnels',
-        '1 hour tunnel lifetime'
+        'HTTP, TCP, UDP tunnels',
+        'SSL for HTTP tunnels',
+        'Static subdomains',
+        'Custom domains',
+        'Private tunnels',
+        'Web socket support',
+        '1 free tunnel at a time',
+        '$1/mo per extra tunnel'
       ] 
     },
     { 
-      key: 'individual', 
-      name: 'Developer', 
+      key: 'team', 
+      name: 'Team', 
       price: '$10', 
       period: '/mo',
-      description: 'For power users and pros.',
+      description: 'For teams and collaborative projects.',
       features: [
-        'Everything in Hobby',
-        'TCP tunnels',
-        '10 static subdomains',
-        '1 Custom Domain',
-        '10 concurrent tunnels',
-        'Unlimited tunnel lifetime'
-      ] 
-    },
-    { 
-      key: 'professional', 
-      name: 'Team', 
-      price: '$49', 
-      period: '/mo',
-      description: 'For teams and businesses.',
-      features: [
-        'Everything in Developer',
-        '5 Custom Domains',
-        'Unlimited static subdomains',
-        'Priority Support',
-        'SSO / SAML'
+        'Everything in Pro',
+        'Team members',
+        'SSO (Single Sign-On)',
+        'Priority support',
+        '10 free tunnels at a time',
+        '$1/mo per extra tunnel'
       ] 
     },
   ]
 
-  const currentPlanKey = user?.plan || 'basic'
+  const currentPlanKey = user?.plan || 'pro'
 
   return (
     <div className="max-w-6xl mx-auto">
-      <div className="mb-8">
+      <div className="mb-8 text-center lg:text-left">
         <h2 className="text-2xl font-bold text-white">Billing & Plans</h2>
         <p className="text-slate-400 mt-1">Choose the plan that fits your needs.</p>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-8">
+      <div className="grid lg:grid-cols-2 gap-8 max-w-4xl mx-auto lg:mx-0">
         {plans.map((p) => {
-           const isCurrent = p.key === currentPlanKey || (p.key === 'individual' && currentPlanKey === 'developer') // mapping 'developer' plan name if needed, assuming user.plan matches key
-           // Actually the backend likely returns 'basic', 'individual', 'professional' or similar.
-           // Let's assume the keys match what the backend returns or map them. 
-           // The previous file used 'basic', 'individual', 'professional'.
-           const isPopular = p.key === 'individual'
+           const isCurrent = p.key === currentPlanKey
+           const isPopular = p.key === 'team'
 
            return (
             <div 

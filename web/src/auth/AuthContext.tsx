@@ -7,7 +7,7 @@ export type User = {
     name?: string
     avatarUrl?: string
     roles?: string[]
-    plan?: 'basic' | 'individual' | 'professional'
+    plan?: 'pro' | 'team'
 }
 
 type AuthState = {

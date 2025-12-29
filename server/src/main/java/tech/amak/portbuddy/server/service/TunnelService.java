@@ -5,6 +5,7 @@
 package tech.amak.portbuddy.server.service;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.dto.ExposeRequest;
+import tech.amak.portbuddy.server.db.entity.AccountEntity;
 import tech.amak.portbuddy.server.db.entity.DomainEntity;
 import tech.amak.portbuddy.server.db.entity.PortReservationEntity;
 import tech.amak.portbuddy.server.db.entity.TunnelEntity;
@@ -25,13 +27,14 @@ import tech.amak.portbuddy.server.db.repo.TunnelRepository;
 @Slf4j
 public class TunnelService {
 
+    private static final List<TunnelStatus> ACTIVE_STATUSES = List.of(TunnelStatus.CONNECTED, TunnelStatus.PENDING);
     private final TunnelRepository tunnelRepository;
 
     /**
      * Creates a new HTTP tunnel using the database entity id as the tunnel id.
      * The record is saved with a 'PENDING' status and returned id is used as the tunnel identifier.
      *
-     * @param accountId The unique identifier of the account creating the tunnel.
+     * @param account   The account creating the tunnel.
      * @param userId    The unique identifier of the user creating the tunnel.
      * @param apiKeyId  The optional API key identifier associated with the tunnel.
      * @param request   The HTTP expose request containing details of the local HTTP service (scheme, host, port).
@@ -40,31 +43,50 @@ public class TunnelService {
      * @return the created tunnel id (same as entity id string)
      */
     @Transactional
-    public TunnelEntity createHttpTunnel(final UUID accountId,
+    public TunnelEntity createHttpTunnel(final AccountEntity account,
                                          final UUID userId,
                                          final String apiKeyId,
                                          final ExposeRequest request,
                                          final String publicUrl,
                                          final DomainEntity domain) {
-        return createTunnel(accountId, userId, apiKeyId, request, publicUrl, domain);
+        checkTunnelLimit(account);
+        return createTunnel(account.getId(), userId, apiKeyId, request, publicUrl, domain);
     }
 
     /**
      * Creates a pending TCP tunnel and returns its tunnel id (entity id).
      * Public host/port can be set later via {@link #updateTunnelPublicConnection(UUID, String, Integer)}.
      *
-     * @param accountId The unique identifier of the account creating the tunnel.
-     * @param userId    The unique identifier of the user creating the tunnel.
-     * @param apiKeyId  The optional API key identifier associated with the tunnel.
-     * @param request   The expose request containing details of the local service.
+     * @param account  The account creating the tunnel.
+     * @param userId   The unique identifier of the user creating the tunnel.
+     * @param apiKeyId The optional API key identifier associated with the tunnel.
+     * @param request  The expose request containing details of the local service.
      * @return the created tunnel id (same as entity id string)
      */
     @Transactional
-    public TunnelEntity createNetTunnel(final UUID accountId,
+    public TunnelEntity createNetTunnel(final AccountEntity account,
                                         final UUID userId,
                                         final String apiKeyId,
                                         final ExposeRequest request) {
-        return createTunnel(accountId, userId, apiKeyId, request, null, null);
+        checkTunnelLimit(account);
+        return createTunnel(account.getId(), userId, apiKeyId, request, null, null);
+    }
+
+    private void checkTunnelLimit(final AccountEntity account) {
+        final var currentTunnels = tunnelRepository.countByAccountIdAndStatusIn(account.getId(), ACTIVE_STATUSES);
+
+        final var plan = account.getPlan();
+        final int baseLimit = switch (plan) {
+            case PRO -> 1;
+            case TEAM -> 10;
+        };
+
+        final int totalLimit = baseLimit + account.getExtraTunnels();
+
+        if (currentTunnels >= totalLimit) {
+            throw new IllegalStateException(
+                "Tunnel limit reached for your plan (%d). Please upgrade or add more tunnels.".formatted(totalLimit));
+        }
     }
 
     private TunnelEntity createTunnel(final UUID accountId,

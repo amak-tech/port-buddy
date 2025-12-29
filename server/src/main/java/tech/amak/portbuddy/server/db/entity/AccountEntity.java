@@ -14,6 +14,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
@@ -21,6 +23,7 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import tech.amak.portbuddy.common.Plan;
 
 @Getter
 @Setter
@@ -36,8 +39,12 @@ public class AccountEntity {
     @Column(name = "name", nullable = false)
     private String name;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "plan", nullable = false)
-    private String plan;
+    private Plan plan;
+
+    @Column(name = "extra_tunnels", nullable = false)
+    private int extraTunnels = 0;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false)

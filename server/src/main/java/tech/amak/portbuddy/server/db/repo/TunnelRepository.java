@@ -5,6 +5,7 @@
 package tech.amak.portbuddy.server.db.repo;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -54,6 +55,8 @@ public interface TunnelRepository extends JpaRepository<TunnelEntity, UUID> {
         nativeQuery = true)
     Page<TunnelEntity> pageByAccountOrderByLastHeartbeatDescNullsLast(
         @Param("accountId") UUID accountId, Pageable pageable);
+
+    long countByAccountIdAndStatusIn(UUID accountId, List<TunnelStatus> statuses);
 
     /**
      * Closes tunnels that are in CONNECTED status but have stale or missing heartbeat.

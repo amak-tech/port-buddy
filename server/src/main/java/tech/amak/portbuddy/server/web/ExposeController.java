@@ -69,7 +69,7 @@ public class ExposeController {
 
         final var apiKeyId = extractApiKeyId(jwt);
         final var tunnel = tunnelService.createHttpTunnel(
-            account.getId(),
+            account,
             user.getId(),
             apiKeyId,
             request,
@@ -107,7 +107,7 @@ public class ExposeController {
 
         final var apiKeyId = extractApiKeyId(jwt);
         // Pre-create tunnel and use its DB id as tunnelId
-        final var tunnel = tunnelService.createNetTunnel(account.getId(), user.getId(), apiKeyId, request);
+        final var tunnel = tunnelService.createNetTunnel(account, user.getId(), apiKeyId, request);
         final var tunnelId = tunnel.getId();
 
         // Resolve or validate reservation according to rules

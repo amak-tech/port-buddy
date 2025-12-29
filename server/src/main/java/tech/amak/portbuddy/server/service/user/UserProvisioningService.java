@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import tech.amak.portbuddy.common.Plan;
 import tech.amak.portbuddy.server.db.entity.AccountEntity;
 import tech.amak.portbuddy.server.db.entity.Role;
 import tech.amak.portbuddy.server.db.entity.UserEntity;
@@ -74,7 +75,7 @@ public class UserProvisioningService {
         final var account = new AccountEntity();
         account.setId(UUID.randomUUID());
         account.setName(defaultAccountName(firstName, lastName, normalizedEmail));
-        account.setPlan("BASIC");
+        account.setPlan(Plan.PRO);
         accountRepository.save(account);
 
         final var user = new UserEntity();
@@ -116,7 +117,7 @@ public class UserProvisioningService {
 
     /**
      * Ensures a user and an owning account exist for the given identity. If the user does not exist,
-     * a new account (default plan BASIC) and user are created. If the user exists, profile fields are updated.
+     * a new account (default plan PRO) and user are created. If the user exists, profile fields are updated.
      *
      * @param provider   the OAuth2 provider registration id (e.g. google, github)
      * @param externalId the unique external identifier from the provider (subject/id)
@@ -211,7 +212,7 @@ public class UserProvisioningService {
         final var account = new AccountEntity();
         account.setId(UUID.randomUUID());
         account.setName(defaultAccountName(firstName, lastName, email));
-        account.setPlan("BASIC");
+        account.setPlan(Plan.PRO);
         accountRepository.save(account);
 
         final var user = new UserEntity();

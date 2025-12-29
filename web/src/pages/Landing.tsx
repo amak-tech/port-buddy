@@ -88,7 +88,7 @@ export default function Landing() {
                 </div>
                 <div className="flex gap-8 text-slate-300">
                   <span className="text-slate-500">Account</span>
-                  <span>anton@example.com (Developer)</span>
+                  <span>anton@example.com (Team)</span>
                 </div>
                 <div className="flex gap-8 text-slate-300">
                   <span className="text-slate-500">Region</span>
@@ -287,33 +287,34 @@ export default function Landing() {
         <h2 className="text-3xl md:text-4xl font-bold text-white text-center mb-16">Simple Pricing</h2>
         <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           <PriceCard 
-            name="Hobby"
+            name="Pro"
             price="$0"
-            description="Perfect for personal projects and quick tests."
+            description="Everything you need for personal exposure."
             features={[
-              'HTTP/HTTPS tunnels',
-              '2 static subdomains',
-              'Request inspection',
-              '2 concurrent tunnels',
-              '1 hour tunnel lifetime',
-              'Community support'
+              'HTTP, TCP, UDP tunnels',
+              'SSL for HTTP tunnels',
+              'Static subdomains',
+              'Custom domains',
+              'Private tunnels',
+              'Web socket support',
+              '1 free tunnel at a time',
+              '$1/mo per extra tunnel'
             ]}
             cta="Start for Free"
             ctaLink="/install"
           />
           <PriceCard 
-            name="Developer"
+            name="Team"
             price="$10"
             period="/mo"
-            description="For power users who need custom domains and TCP/UDP."
+            description="For teams and collaborative projects."
             features={[
-              'Everything in Hobby',
-              'TCP & UDP tunnels',
-              '10 static subdomains',
-              '1 Custom Domain (BYO)',
-              '10 concurrent tunnels',
-              'Unlimited tunnel lifetime',
-              'Priority support'
+              'Everything in Pro',
+              'Team members',
+              'SSO (Single Sign-On)',
+              'Priority support',
+              '10 free tunnels at a time',
+              '$1/mo per extra tunnel'
             ]}
             highlight
             cta="Start Trial"
