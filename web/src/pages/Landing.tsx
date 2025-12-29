@@ -317,7 +317,7 @@ export default function Landing() {
               '$1/mo per extra tunnel'
             ]}
             highlight
-            cta="Start Trial"
+            cta="Get Started"
             ctaLink="/login"
           />
         </div>

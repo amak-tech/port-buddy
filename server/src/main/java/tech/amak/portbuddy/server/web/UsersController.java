@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import tech.amak.portbuddy.common.Plan;
 import tech.amak.portbuddy.server.db.entity.UserEntity;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
@@ -158,7 +159,7 @@ public class UsersController {
     public static class AccountDto {
         private String id;
         private String name;
-        private String plan;
+        private Plan plan;
     }
 
     @Data
