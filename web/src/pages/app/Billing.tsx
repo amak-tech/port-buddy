@@ -38,7 +38,7 @@ export default function Billing() {
       features: [
         'Everything in Pro',
         'Team members',
-        'SSO (Single Sign-On)',
+        'SSO (Coming soon)',
         'Priority support',
         '10 free tunnels at a time',
         '$1/mo per extra tunnel'
