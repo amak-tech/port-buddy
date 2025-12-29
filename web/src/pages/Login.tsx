@@ -21,10 +21,25 @@ export default function Login() {
       const params = new URLSearchParams(location?.search || '')
       const fromQuery = params.get('from')
       const fromState = location?.state?.from?.pathname
-      const to = (fromQuery && typeof fromQuery === 'string') ? fromQuery : (fromState || '/app')
+      const fromStorage = localStorage.getItem('pb_login_from')
+      
+      const to = (fromQuery && typeof fromQuery === 'string') ? fromQuery : (fromState || fromStorage || '/app')
+      
+      // Clean up storage
+      localStorage.removeItem('pb_login_from')
+      
       navigate(to, { replace: true })
     }
   }, [user, loading, navigate, location])
+
+  const handleGoogleLogin = () => {
+    // Save current 'from' to localStorage because OAuth redirect will lose React state
+    const from = location?.state?.from?.pathname
+    if (from) {
+      localStorage.setItem('pb_login_from', from)
+    }
+    loginWithGoogle()
+  }
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -69,7 +84,7 @@ export default function Login() {
 
           <div className="space-y-4">
             <button 
-              onClick={() => loginWithGoogle()} 
+              onClick={handleGoogleLogin} 
               className="w-full flex items-center justify-center gap-3 bg-white hover:bg-slate-100 text-slate-900 font-medium py-3 px-4 rounded-lg transition-all transform hover:scale-[1.02] active:scale-[0.98]"
               aria-label="Sign in with Google"
             >
