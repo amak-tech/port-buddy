@@ -318,7 +318,7 @@ export default function Landing() {
             ]}
             highlight
             cta="Get Started"
-            ctaLink="/login"
+            ctaLink="/app/billing"
           />
         </div>
       </section>
