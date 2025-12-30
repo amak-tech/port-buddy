@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -30,6 +31,7 @@ public class PaymentController {
     private final StripeService stripeService;
     private final UserRepository userRepository;
 
+    @Transactional
     @PostMapping("/create-checkout-session")
     public SessionResponse createCheckoutSession(
             @AuthenticationPrincipal final Jwt jwt,
@@ -39,6 +41,7 @@ public class PaymentController {
         return new SessionResponse(url);
     }
 
+    @Transactional
     @PostMapping("/create-portal-session")
     public SessionResponse createPortalSession(@AuthenticationPrincipal final Jwt jwt) throws StripeException {
         final var user = resolveUser(jwt);

@@ -77,6 +77,7 @@ export default function Billing() {
   const planPrice = currentPlanKey === 'team' ? 10 : 0
   const extraCost = effectiveExtra * 1
   const totalMonthly = planPrice + extraCost
+  const increment = currentPlanKey === 'team' ? 5 : 1
 
   const getLimitForPlan = (planKey: string) => {
     return planKey === 'team' ? 10 : 1;
@@ -272,7 +273,7 @@ export default function Billing() {
                       <MinusIcon className="w-5 h-5" />
                     </button>
                     <div className="flex-1 text-center font-mono text-white">
-                      {`Add ${increment} more`}
+                      {effectiveExtra < extraTunnels ? `Remove ${increment}` : `Add ${increment}`}
                     </div>
                     <button
                       onClick={() => changePending(effectiveExtra + increment)}
