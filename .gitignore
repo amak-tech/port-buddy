@@ -44,3 +44,4 @@ dist
 ref
 pg_data
 log
+/checkstyle_report.txt

@@ -40,6 +40,12 @@ public class TeamController {
     private final UserRepository userRepository;
     private final AccountRepository accountRepository;
 
+    /**
+     * Returns a list of team members for the current user's account.
+     *
+     * @param jwt the JWT token
+     * @return the list of team members
+     */
     @GetMapping("/members")
     public List<MemberDto> getMembers(@AuthenticationPrincipal final Jwt jwt) {
         final var account = getAccount(jwt);
@@ -48,6 +54,12 @@ public class TeamController {
             .collect(Collectors.toList());
     }
 
+    /**
+     * Returns a list of pending invitations for the current user's account.
+     *
+     * @param jwt the JWT token
+     * @return the list of pending invitations
+     */
     @GetMapping("/invitations")
     public List<InvitationDto> getInvitations(@AuthenticationPrincipal final Jwt jwt) {
         final var account = getAccount(jwt);
@@ -56,6 +68,13 @@ public class TeamController {
             .collect(Collectors.toList());
     }
 
+    /**
+     * Invites a new member to the current user's account.
+     *
+     * @param jwt     the JWT token
+     * @param request the invite request
+     * @return the created invitation
+     */
     @PostMapping("/invitations")
     @PreAuthorize("hasRole('ACCOUNT_ADMIN')")
     public InvitationDto inviteMember(@AuthenticationPrincipal final Jwt jwt,

@@ -142,8 +142,8 @@ public class TunnelService {
     }
 
     private void closeExcessTunnels(final AccountEntity account, final int limit) {
-        final List<TunnelEntity> activeTunnels = tunnelRepository.findByAccountIdAndStatusInOrderByLastHeartbeatAtAscCreatedAtAsc(
-            account.getId(), ACTIVE_STATUSES);
+        final List<TunnelEntity> activeTunnels = tunnelRepository
+                .findByAccountIdAndStatusInOrderByLastHeartbeatAtAscCreatedAtAsc(account.getId(), ACTIVE_STATUSES);
 
         if (activeTunnels.size() > limit) {
             final int toClose = activeTunnels.size() - limit;

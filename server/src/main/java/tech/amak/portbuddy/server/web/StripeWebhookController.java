@@ -4,18 +4,9 @@
 
 package tech.amak.portbuddy.server.web;
 
-import com.stripe.exception.SignatureVerificationException;
-import com.stripe.model.Event;
-import com.stripe.model.Invoice;
-import com.stripe.model.Subscription;
-import com.stripe.model.checkout.Session;
-
 import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.UUID;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -26,6 +17,14 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.stripe.exception.SignatureVerificationException;
+import com.stripe.model.Event;
+import com.stripe.model.Invoice;
+import com.stripe.model.Subscription;
+import com.stripe.model.checkout.Session;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.Plan;
 import tech.amak.portbuddy.server.config.AppProperties;
 import tech.amak.portbuddy.server.db.entity.AccountEntity;
@@ -61,18 +60,18 @@ public class StripeWebhookController {
      */
     @PostMapping
     public ResponseEntity<String> handleStripeWebhook(
-            @RequestBody final String payload,
-            @RequestHeader("Stripe-Signature") final String sigHeader) {
+        @RequestBody final String payload,
+        @RequestHeader("Stripe-Signature") final String sigHeader) {
 
         if (sigHeader == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Missing signature");
         }
 
-        Event event;
+        final Event event;
 
         try {
             event = stripeWebhookService.constructEvent(payload, sigHeader, endpointSecret);
-        } catch (SignatureVerificationException e) {
+        } catch (final SignatureVerificationException e) {
             log.error("Invalid Stripe signature", e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid signature");
         }
@@ -111,17 +110,17 @@ public class StripeWebhookController {
             eventEntity.setProcessedAt(OffsetDateTime.now());
             stripeEventRepository.save(eventEntity);
             log.info("Successfully processed Stripe event: id={}, type={}",
-                    event.getId(), event.getType());
-        } catch (Exception e) {
+                event.getId(), event.getType());
+        } catch (final Exception e) {
             log.error("Error processing Stripe event: id={}, type={}",
-                    event.getId(), event.getType(), e);
+                event.getId(), event.getType(), e);
             eventEntity.setStatus("FAILED");
             eventEntity.setErrorMessage(e.getMessage());
             stripeEventRepository.save(eventEntity);
             // Return 200 to Stripe to avoid retries if we've successfully stored the failure
             // or 500 if we want Stripe to retry. Usually for processed failures 200 is better to avoid infinite loops.
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error processing webhook");
+                .body("Error processing webhook");
         }
 
         return ResponseEntity.ok("");
@@ -135,7 +134,7 @@ public class StripeWebhookController {
     private void handleCheckoutSessionCompleted(final Event event) {
         final var session = (Session) event.getDataObjectDeserializer().getObject().orElseThrow();
         log.info("Processing checkout.session.completed: sessionId={}, customerId={}",
-                session.getId(), session.getCustomer());
+            session.getId(), session.getCustomer());
 
         final var accountIdStr = session.getMetadata().get("accountId");
         if (accountIdStr == null) {
@@ -147,7 +146,7 @@ public class StripeWebhookController {
         final var planStr = session.getMetadata().get("plan");
 
         final var account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new RuntimeException("Account not found: " + accountId));
+            .orElseThrow(() -> new RuntimeException("Account not found: " + accountId));
 
         account.setStripeCustomerId(session.getCustomer());
         account.setStripeSubscriptionId(session.getSubscription());
@@ -158,7 +157,7 @@ public class StripeWebhookController {
         accountRepository.save(account);
         tunnelService.enforceTunnelLimit(account);
         log.info("Updated account {} with Stripe customer {} and subscription {}",
-                accountId, session.getCustomer(), session.getSubscription());
+            accountId, session.getCustomer(), session.getSubscription());
 
         sendSubscriptionSuccessEmail(account);
     }
@@ -177,11 +176,11 @@ public class StripeWebhookController {
                 case TEAM -> 10;
             };
             emailService.sendTemplate(user.getEmail(), "Welcome to " + plan + " - Port Buddy",
-                    "email/subscription-success", Map.of("name",
-                            user.getFirstName() != null ? user.getFirstName() : "there", "plan",
-                            plan.name(), "tunnelLimit", baseLimit, "extraTunnels",
-                            account.getExtraTunnels(), "portalUrl",
-                            properties.gateway().url() + "/app"));
+                "email/subscription-success", Map.of("name",
+                    user.getFirstName() != null ? user.getFirstName() : "there", "plan",
+                    plan.name(), "tunnelLimit", baseLimit, "extraTunnels",
+                    account.getExtraTunnels(), "portalUrl",
+                    properties.gateway().url() + "/app"));
         }
     }
 
@@ -194,7 +193,7 @@ public class StripeWebhookController {
         final var subscription = (Subscription) event.getDataObjectDeserializer().getObject().orElseThrow();
         final var customerId = subscription.getCustomer();
         log.info("Processing {}: subscriptionId={}, customerId={}, status={}",
-                event.getType(), subscription.getId(), customerId, subscription.getStatus());
+            event.getType(), subscription.getId(), customerId, subscription.getStatus());
 
         accountRepository.findByStripeCustomerId(customerId).ifPresentOrElse(account -> {
             final var oldPlan = account.getPlan();
@@ -231,16 +230,16 @@ public class StripeWebhookController {
                         case TEAM -> 10;
                     };
                     emailService.sendTemplate(user.getEmail(), "Plan Updated - Port Buddy",
-                            "email/plan-changed", Map.of("name",
-                                    user.getFirstName() != null ? user.getFirstName() : "there",
-                                    "plan", plan.name(), "tunnelLimit", baseLimit,
-                                    "extraTunnels", account.getExtraTunnels(), "portalUrl",
-                                    properties.gateway().url() + "/app"));
+                        "email/plan-changed", Map.of("name",
+                            user.getFirstName() != null ? user.getFirstName() : "there",
+                            "plan", plan.name(), "tunnelLimit", baseLimit,
+                            "extraTunnels", account.getExtraTunnels(), "portalUrl",
+                            properties.gateway().url() + "/app"));
                 } else if (isCanceled && !"canceled".equals(oldStatus)) {
                     emailService.sendTemplate(user.getEmail(), "Subscription Canceled - Port Buddy",
-                            "email/subscription-canceled", Map.of("name",
-                                    user.getFirstName() != null ? user.getFirstName() : "there",
-                                    "portalUrl", properties.gateway().url() + "/app/billing"));
+                        "email/subscription-canceled", Map.of("name",
+                            user.getFirstName() != null ? user.getFirstName() : "there",
+                            "portalUrl", properties.gateway().url() + "/app/billing"));
                 }
             }
         }, () -> log.warn("Account not found for Stripe customer {}", customerId));
@@ -255,7 +254,7 @@ public class StripeWebhookController {
         final var invoice = (Invoice) event.getDataObjectDeserializer().getObject().orElseThrow();
         final var customerId = invoice.getCustomer();
         log.warn("Processing invoice.payment_failed: invoiceId={}, customerId={}",
-                invoice.getId(), customerId);
+            invoice.getId(), customerId);
 
         accountRepository.findByStripeCustomerId(customerId).ifPresentOrElse(account -> {
             account.setSubscriptionStatus("past_due");
@@ -265,11 +264,11 @@ public class StripeWebhookController {
             if (user != null) {
                 log.info("Sending payment failed email to user: {}", user.getEmail());
                 emailService.sendTemplate(user.getEmail(), "Payment Failed - Port Buddy",
-                        "email/payment-failed", Map.of("name",
-                                user.getFirstName() != null ? user.getFirstName() : "there",
-                                "amount", String.format("%.2f %s", invoice.getAmountDue() / 100.0,
-                                        invoice.getCurrency().toUpperCase()),
-                                "portalUrl", properties.gateway().url() + "/app/billing"));
+                    "email/payment-failed", Map.of("name",
+                        user.getFirstName() != null ? user.getFirstName() : "there",
+                        "amount", String.format("%.2f %s", invoice.getAmountDue() / 100.0,
+                            invoice.getCurrency().toUpperCase()),
+                        "portalUrl", properties.gateway().url() + "/app/billing"));
             }
         }, () -> log.warn("Account not found for Stripe customer {}", customerId));
     }

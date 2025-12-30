@@ -27,6 +27,11 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.stripe.model.Event;
+import com.stripe.model.EventDataObjectDeserializer;
+import com.stripe.model.Invoice;
+import com.stripe.model.Subscription;
+
 import tech.amak.portbuddy.common.Plan;
 import tech.amak.portbuddy.server.config.AppProperties;
 import tech.amak.portbuddy.server.db.entity.AccountEntity;
@@ -38,17 +43,6 @@ import tech.amak.portbuddy.server.security.ApiTokenAuthFilter;
 import tech.amak.portbuddy.server.security.Oauth2SuccessHandler;
 import tech.amak.portbuddy.server.service.StripeWebhookService;
 import tech.amak.portbuddy.server.service.TunnelService;
-
-import com.stripe.model.Event;
-import com.stripe.model.EventDataDeserializer;
-import com.stripe.model.Invoice;
-import com.stripe.model.Subscription;
-import com.stripe.model.EventDataObjectDeserializer;
-import com.stripe.model.SubscriptionItemCollection;
-import com.stripe.model.SubscriptionItem;
-import com.stripe.model.Price;
-
-import java.util.Map;
 
 @WebMvcTest(StripeWebhookController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -84,7 +78,7 @@ class StripeWebhookControllerTest {
     @BeforeEach
     void setUp() {
         when(appProperties.gateway()).thenReturn(new AppProperties.Gateway(
-                "http://localhost:8080", "localhost", "http", "/404", "/passcode"
+            "http://localhost:8080", "localhost", "http", "/404", "/passcode"
         ));
     }
 
@@ -112,7 +106,7 @@ class StripeWebhookControllerTest {
         final var event = mock(Event.class);
         when(event.getId()).thenReturn("evt_123");
         when(event.getType()).thenReturn("invoice.payment_failed");
-        
+
         final var deserializer = mock(EventDataObjectDeserializer.class);
         when(deserializer.getObject()).thenReturn(Optional.of(invoice));
         when(event.getDataObjectDeserializer()).thenReturn(deserializer);
@@ -123,13 +117,13 @@ class StripeWebhookControllerTest {
                 .header("Stripe-Signature", "sig")
                 .content("{}")
                 .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk());
+            .andExpect(status().isOk());
 
         verify(emailService).sendTemplate(
-                eq("test@example.com"),
-                eq("Payment Failed - Port Buddy"),
-                eq("email/payment-failed"),
-                anyMap()
+            eq("test@example.com"),
+            eq("Payment Failed - Port Buddy"),
+            eq("email/payment-failed"),
+            anyMap()
         );
     }
 
@@ -168,13 +162,13 @@ class StripeWebhookControllerTest {
                 .header("Stripe-Signature", "sig")
                 .content("{}")
                 .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk());
+            .andExpect(status().isOk());
 
         verify(emailService).sendTemplate(
-                eq("test@example.com"),
-                eq("Subscription Canceled - Port Buddy"),
-                eq("email/subscription-canceled"),
-                anyMap()
+            eq("test@example.com"),
+            eq("Subscription Canceled - Port Buddy"),
+            eq("email/subscription-canceled"),
+            anyMap()
         );
     }
 }

@@ -14,7 +14,10 @@ import tech.amak.portbuddy.server.db.entity.AccountEntity;
 import tech.amak.portbuddy.server.db.entity.InvitationEntity;
 
 public interface InvitationRepository extends JpaRepository<InvitationEntity, UUID> {
+
     Optional<InvitationEntity> findByToken(String token);
+
     List<InvitationEntity> findAllByAccountAndAcceptedAtIsNull(AccountEntity account);
+
     Optional<InvitationEntity> findByAccountAndEmailAndAcceptedAtIsNull(AccountEntity account, String email);
 }

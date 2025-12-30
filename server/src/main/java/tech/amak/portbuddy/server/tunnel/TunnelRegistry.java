@@ -50,7 +50,8 @@ public class TunnelRegistry {
      * @return {@code true} to indicate successful registration
      */
     public boolean register(final TunnelEntity tunnelEntity, final WebSocketSession session) {
-        final var tunnel = register(tunnelEntity.getDomain().getSubdomain(), tunnelEntity.getId(), tunnelEntity.getAccountId());
+        final var tunnel = register(tunnelEntity.getDomain().getSubdomain(), tunnelEntity.getId(),
+                tunnelEntity.getAccountId());
         tunnel.setSession(session);
         log.info("Registered tunnel {} with session {}", tunnel.tunnelId(), session.getId());
         return true;

@@ -105,7 +105,8 @@ class TunnelServiceTest {
         final var exception = assertThrows(IllegalStateException.class, () -> tunnelService.createHttpTunnel(
             account, UUID.randomUUID(), null, createRequest(), "http://abc.pb.dev", new DomainEntity()));
         
-        assertEquals("Tunnel limit reached for your plan (1). Please upgrade or add more tunnels.", exception.getMessage());
+        assertEquals("Tunnel limit reached for your plan (1). Please upgrade or add more tunnels.",
+            exception.getMessage());
     }
 
     @Test
@@ -121,13 +122,15 @@ class TunnelServiceTest {
         t2.setId(UUID.randomUUID());
         t2.setStatus(TunnelStatus.CONNECTED);
 
-        when(tunnelRepository.findByAccountIdAndStatusInOrderByLastHeartbeatAtAscCreatedAtAsc(eq(account.getId()), any()))
+        when(tunnelRepository.findByAccountIdAndStatusInOrderByLastHeartbeatAtAscCreatedAtAsc(
+            eq(account.getId()), any()))
             .thenReturn(List.of(t1, t2));
 
         tunnelService.enforceTunnelLimit(account);
 
         assertEquals(TunnelStatus.CLOSED, t1.getStatus());
-        assertEquals(TunnelStatus.CONNECTED, t2.getStatus()); // t2 is the second one, so it remains connected if limit is 1
+        // t2 is the second one, so it remains connected if limit is 1
+        assertEquals(TunnelStatus.CONNECTED, t2.getStatus());
         verify(tunnelRepository, times(1)).save(t1);
         verify(tunnelRepository, times(0)).save(t2);
     }

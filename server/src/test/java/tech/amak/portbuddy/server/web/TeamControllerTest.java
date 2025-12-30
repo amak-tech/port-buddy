@@ -8,7 +8,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -16,7 +15,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.OffsetDateTime;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -25,10 +23,11 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -37,8 +36,6 @@ import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
-import org.springframework.core.MethodParameter;
-import org.springframework.security.oauth2.jwt.Jwt;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -98,8 +95,10 @@ public class TeamControllerTest {
                 }
 
                 @Override
-                public Object resolveArgument(final MethodParameter parameter, final ModelAndViewContainer mavContainer,
-                                              final NativeWebRequest webRequest, final WebDataBinderFactory binderFactory) {
+                public Object resolveArgument(final MethodParameter parameter,
+                                              final ModelAndViewContainer mavContainer,
+                                              final NativeWebRequest webRequest,
+                                              final WebDataBinderFactory binderFactory) {
                     return createJwt();
                 }
             })
@@ -127,7 +126,7 @@ public class TeamControllerTest {
         when(teamService.getMembers(any())).thenReturn(List.of(user));
 
         mockMvc.perform(get("/api/team/members")
-                .principal(new org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken(createJwt())))
+                .principal(new JwtAuthenticationToken(createJwt())))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$[0].email").value("admin@example.com"));
     }
@@ -149,7 +148,7 @@ public class TeamControllerTest {
         mockMvc.perform(post("/api/team/invitations")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request))
-                .principal(new org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken(createJwt())))
+                .principal(new JwtAuthenticationToken(createJwt())))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.email").value("new@example.com"));
     }
@@ -159,7 +158,7 @@ public class TeamControllerTest {
         final var invId = UUID.randomUUID();
 
         mockMvc.perform(delete("/api/team/invitations/" + invId)
-                .principal(new org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken(createJwt())))
+                .principal(new JwtAuthenticationToken(createJwt())))
             .andExpect(status().isOk());
 
         verify(teamService).cancelInvitation(any(), eq(invId));

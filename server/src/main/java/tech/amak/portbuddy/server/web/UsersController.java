@@ -20,17 +20,17 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.stripe.exception.StripeException;
+
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import tech.amak.portbuddy.common.Plan;
 import tech.amak.portbuddy.server.db.entity.UserEntity;
-import tech.amak.portbuddy.server.db.entity.TunnelStatus;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.TunnelRepository;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
 import tech.amak.portbuddy.server.service.StripeService;
 import tech.amak.portbuddy.server.service.TunnelService;
-import com.stripe.exception.StripeException;
 
 @RestController
 @RequestMapping(path = "/api/users/me", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -164,7 +164,8 @@ public class UsersController {
 
         if (requestedExtra > 0 && account.getStripeSubscriptionId() == null) {
             // If they don't have a subscription yet, we allow the PATCH to update the database
-            // but the frontend MUST then follow up with a checkout session to actually create the subscription in Stripe.
+            // but the frontend MUST then follow up with a checkout session to actually create the subscription
+            // in Stripe.
             account.setExtraTunnels(requestedExtra);
             accountRepository.save(account);
             return toAccountDto(account);

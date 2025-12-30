@@ -4,11 +4,11 @@
 
 package tech.amak.portbuddy.server.service;
 
+import org.springframework.stereotype.Service;
+
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.model.Event;
 import com.stripe.net.Webhook;
-
-import org.springframework.stereotype.Service;
 
 /**
  * Service for Stripe webhooks.
@@ -25,7 +25,7 @@ public class StripeWebhookService {
      * @throws SignatureVerificationException if signature is invalid
      */
     public Event constructEvent(final String payload, final String sigHeader, final String secret)
-            throws SignatureVerificationException {
+        throws SignatureVerificationException {
         return Webhook.constructEvent(payload, sigHeader, secret);
     }
 }
