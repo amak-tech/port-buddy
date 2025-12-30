@@ -33,8 +33,10 @@ public class PaymentCleanupService {
      * Checks for accounts that need tunnel freezing due to non-active subscription status.
      */
     @Scheduled(
-        fixedDelayString = "#{@appProperties.subscriptions().checkInterval().toMillis()}",
-        initialDelayString = "#{@appProperties.subscriptions().checkInterval().toMillis()}"
+        fixedDelayString =
+            "#{@'app-tech.amak.portbuddy.server.config.AppProperties'.subscriptions().checkInterval().toMillis()}",
+        initialDelayString =
+            "#{@'app-tech.amak.portbuddy.server.config.AppProperties'.subscriptions().checkInterval().toMillis()}"
     )
     @SchedulerLock(name = "paymentCleanupTask", lockAtMostFor = "PT10M", lockAtLeastFor = "PT1M")
     @Transactional
