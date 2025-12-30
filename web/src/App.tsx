@@ -6,6 +6,8 @@ import Login from './pages/Login'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import Billing from './pages/app/Billing'
+import BillingSuccess from './pages/app/BillingSuccess'
+import BillingCancel from './pages/app/BillingCancel'
 import ProtectedRoute from './components/ProtectedRoute'
 import { useAuth } from './auth/AuthContext'
 import AppLayout from './components/AppLayout'
@@ -128,6 +130,8 @@ export default function App() {
             <Route path="domains" element={<Domains/>} />
             <Route path="ports" element={<Ports/>} />
             <Route path="billing" element={<Billing/>} />
+            <Route path="billing/success" element={<BillingSuccess/>} />
+            <Route path="billing/cancel" element={<BillingCancel/>} />
             <Route path="settings" element={<Settings/>} />
             <Route path="admin" element={<ProtectedRoute role="ADMIN"><AdminPanel/></ProtectedRoute>} />
             {/* Unknown app routes redirect to dashboard */}

@@ -1,0 +1,37 @@
+<!--
+  ~ Copyright (c) 2025 AMAK Inc. All rights reserved.
+  -->
+
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{email/base :: layout(~{::content})}">
+<th:block th:fragment="content">
+    <h1 class="title">Subscription Successful!</h1>
+    <p class="muted">Hi <span th:text="${name}">there</span>,</p>
+
+    <p>
+        Thank you for subscribing to the <strong><span th:text="${plan}">Pro</span></strong> plan! Your account has been upgraded, and you now have access to all the features included in your new plan.
+    </p>
+
+    <div class="card">
+        <div class="feat-title">Your new limits:</div>
+        <ul>
+            <li><strong th:text="${tunnelLimit}">1</strong> active tunnels</li>
+            <li th:if="${extraTunnels > 0}"><strong th:text="${extraTunnels}">0</strong> extra tunnels</li>
+        </ul>
+    </div>
+
+    <p style="margin: 24px 0;">
+        <a class="btn" th:href="${portalUrl}" target="_blank" rel="noreferrer">Go to Dashboard</a>
+    </p>
+
+    <p class="muted">
+        If you have any questions about your subscription or need help getting started, just reply to this email.
+    </p>
+
+    <p class="muted" style="margin-top: 24px;">
+        Happy tunneling!<br/>
+        The Port Buddy Team
+    </p>
+</th:block>
+</html>

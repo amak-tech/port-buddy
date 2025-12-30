@@ -23,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
 import tech.amak.portbuddy.server.config.AppProperties;
+import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.DomainRepository;
 
 /**
@@ -37,6 +38,7 @@ public class PublicWebSocketProxyHandler extends AbstractWebSocketHandler {
     private final TunnelRegistry registry;
     private final AppProperties properties;
     private final DomainRepository domainRepository;
+    private final AccountRepository accountRepository;
 
     @Override
     public void afterConnectionEstablished(final WebSocketSession browserSession) throws Exception {
@@ -61,6 +63,19 @@ public class PublicWebSocketProxyHandler extends AbstractWebSocketHandler {
             browserSession.close(CloseStatus.SERVICE_RESTARTED);
             return;
         }
+
+        // Check subscription status
+        final var accountOpt = accountRepository.findById(tunnel.accountId());
+        if (accountOpt.isPresent()) {
+            final var status = accountOpt.get().getSubscriptionStatus();
+            if (status != null && !"active".equals(status)) {
+                log.warn("Blocked WS request to subdomain {} because subscription is not active (status: {})",
+                    subdomain, status);
+                browserSession.close(CloseStatus.POLICY_VIOLATION.withReason("Subscription inactive"));
+                return;
+            }
+        }
+
         final var connectionId = UUID.randomUUID().toString();
         registry.registerBrowserWs(tunnel.tunnelId(), connectionId, browserSession);
 

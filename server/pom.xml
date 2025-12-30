@@ -86,6 +86,11 @@
             <artifactId>common</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.stripe</groupId>
+            <artifactId>stripe-java</artifactId>
+            <version>31.1.0</version>
+        </dependency>
         <!-- ShedLock for cluster-safe scheduling -->
         <dependency>
             <groupId>net.javacrumbs.shedlock</groupId>

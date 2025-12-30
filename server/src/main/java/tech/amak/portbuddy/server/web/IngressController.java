@@ -39,6 +39,7 @@ import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.tunnel.HttpTunnelMessage;
 import tech.amak.portbuddy.server.config.AppProperties;
 import tech.amak.portbuddy.server.db.entity.DomainEntity;
+import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.DomainRepository;
 import tech.amak.portbuddy.server.service.TunnelService;
 import tech.amak.portbuddy.server.tunnel.TunnelRegistry;
@@ -56,6 +57,7 @@ public class IngressController {
     private final TunnelRegistry registry;
     private final AppProperties properties;
     private final DomainRepository domainRepository;
+    private final AccountRepository accountRepository;
     private final TunnelService tunnelService;
     private final PasswordEncoder passwordEncoder;
 
@@ -117,6 +119,19 @@ public class IngressController {
             response.setStatus(HttpServletResponse.SC_TEMPORARY_REDIRECT);
             response.setHeader(HttpHeaders.LOCATION, notFoundUrl);
             return;
+        }
+
+        // Check subscription status
+        final var accountOpt = accountRepository.findById(tunnel.accountId());
+        if (accountOpt.isPresent()) {
+            final var status = accountOpt.get().getSubscriptionStatus();
+            if (status != null && !"active".equals(status)) {
+                log.warn("Blocked request to subdomain {} because subscription is not active (status: {})",
+                    subdomain, status);
+                response.sendError(HttpServletResponse.SC_PAYMENT_REQUIRED,
+                    "Subscription is not active. Please check your billing information.");
+                return;
+            }
         }
 
         // Passcode protection check (query param, header, or cookie)

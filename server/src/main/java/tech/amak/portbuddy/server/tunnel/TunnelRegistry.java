@@ -50,7 +50,7 @@ public class TunnelRegistry {
      * @return {@code true} to indicate successful registration
      */
     public boolean register(final TunnelEntity tunnelEntity, final WebSocketSession session) {
-        final var tunnel = register(tunnelEntity.getDomain().getSubdomain(), tunnelEntity.getId());
+        final var tunnel = register(tunnelEntity.getDomain().getSubdomain(), tunnelEntity.getId(), tunnelEntity.getAccountId());
         tunnel.setSession(session);
         log.info("Registered tunnel {} with session {}", tunnel.tunnelId(), session.getId());
         return true;
@@ -62,10 +62,11 @@ public class TunnelRegistry {
      *
      * @param subdomain the subdomain associated with the tunnel
      * @param tunnelId  the unique identifier for the tunnel
+     * @param accountId the account identifier for the tunnel
      * @return the created Tunnel instance
      */
-    private Tunnel register(final String subdomain, final UUID tunnelId) {
-        final var tunnel = new Tunnel(tunnelId);
+    private Tunnel register(final String subdomain, final UUID tunnelId, final UUID accountId) {
+        final var tunnel = new Tunnel(tunnelId, accountId);
         bySubdomain.put(subdomain, tunnel);
         byTunnelId.put(tunnelId, tunnel);
         return tunnel;
@@ -252,6 +253,7 @@ public class TunnelRegistry {
     public static class Tunnel {
 
         private final UUID tunnelId;
+        private final UUID accountId;
 
         @Setter
         private volatile WebSocketSession session;
@@ -263,6 +265,10 @@ public class TunnelRegistry {
 
         public UUID tunnelId() {
             return tunnelId;
+        }
+
+        public UUID accountId() {
+            return accountId;
         }
 
         public WebSocketSession session() {

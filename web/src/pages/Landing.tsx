@@ -15,6 +15,7 @@ import {
 } from '@heroicons/react/24/outline'
 import React from 'react'
 import Seo from '../components/Seo'
+import PlanComparison from '../components/PlanComparison'
 
 export default function Landing() {
   return (
@@ -321,6 +322,8 @@ export default function Landing() {
             ctaLink="/app/billing"
           />
         </div>
+
+        <PlanComparison />
       </section>
 
       {/* Final CTA */}

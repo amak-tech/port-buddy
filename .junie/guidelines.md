@@ -23,25 +23,26 @@ To authenticate CLI client, user should generate API token in his account and th
 
 Resources provided to user are limited based on a subscription plan. 
 There are two subscription plans:
-* Hobby
-* Developer
+* Pro
+* Team
 
-`Hobby` plan includes:
-* HTTP traffic
-* 2 static subdomains
-* HTTP requests logging
-* Number of concurrent tunnels: 2
-* Tunnel lifetime: 1 hour
-* Cost: $0
+`Pro` plan includes ($0 per month):
+* HTTP, TCP, UDP tunnels
+* SSL for HTTP tunnels
+* Static subdomains
+* Custom domains
+* Private tunnels
+* Web socket support
+* 1 free tunnel at a time
+* $1/mo per extra tunnel
 
-`Developer` plan includes:
-* Everything in the Hobby plan
-* TCP and UDP traffic 
-* Number of concurrent tunnels: 10
-* Tunnel lifetime: unlimited
-* 10 static subdomains
-* 1 custom domain
-* Cost: $10
+`Team` plan includes ($10 per month):
+* Everything in Pro
+* Team members
+* SSO (Coming soon)
+* Priority support
+* 10 free tunnels at a time
+* $1/mo per extra tunnel
 
 
 ## Technical details: 

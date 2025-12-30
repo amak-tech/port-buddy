@@ -1,16 +1,37 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
 import { usePageTitle } from '../../components/PageHeader'
 import { CheckIcon, ArrowLeftIcon, PlusIcon, MinusIcon } from '@heroicons/react/24/outline'
 import { apiJson } from '../../lib/api'
+import PlanComparison from '../../components/PlanComparison'
 
 export default function Billing() {
   usePageTitle('Billing')
   const { user, refresh } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [updating, setUpdating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
   const [pendingExtra, setPendingExtra] = useState<number | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (searchParams.get('success')) {
+      setSuccess(true)
+      refresh()
+      // Remove query param
+      const newParams = new URLSearchParams(searchParams)
+      newParams.delete('success')
+      setSearchParams(newParams, { replace: true })
+    }
+    if (searchParams.get('canceled')) {
+      setError('Payment was canceled.')
+      const newParams = new URLSearchParams(searchParams)
+      newParams.delete('canceled')
+      setSearchParams(newParams, { replace: true })
+    }
+  }, [searchParams, refresh, setSearchParams])
 
   const plans: { key: 'pro' | 'team', name: string, price: string, period?: string, description: string, features: string[] }[] = [
     { 
@@ -49,16 +70,56 @@ export default function Billing() {
   const currentPlanKey = user?.plan || 'pro'
   const extraTunnels = user?.extraTunnels || 0
   const baseTunnels = user?.baseTunnels || 1
+  const activeTunnels = user?.activeTunnels || 0
+  const subscriptionStatus = user?.subscriptionStatus
   const effectiveExtra = pendingExtra !== null ? pendingExtra : extraTunnels
 
   const planPrice = currentPlanKey === 'team' ? 10 : 0
   const extraCost = effectiveExtra * 1
   const totalMonthly = planPrice + extraCost
 
+  const getLimitForPlan = (planKey: string) => {
+    return planKey === 'team' ? 10 : 1;
+  };
+
   const handleUpdate = async () => {
     if (pendingExtra === null || pendingExtra === extraTunnels) return
+
+    const newLimit = baseTunnels + pendingExtra;
+    if (pendingExtra < extraTunnels && activeTunnels > newLimit) {
+      if (!window.confirm(`Reducing extra tunnels will lower your total limit to ${newLimit}. You currently have ${activeTunnels} active tunnels. Excess tunnels will be automatically closed. Do you want to proceed?`)) {
+        return;
+      }
+    }
+
+    // If user has no subscription and is adding extra tunnels, we must use checkout session
+    if (pendingExtra > 0 && !user?.subscriptionStatus) {
+      setError(null)
+      setLoading(true)
+      try {
+        // First update the local extra tunnels count so it's included in checkout
+        await apiJson('/api/users/me/account/tunnels', {
+          method: 'PATCH',
+          body: JSON.stringify({ extraTunnels: pendingExtra })
+        })
+        
+        // Then redirect to checkout
+        const { url } = await apiJson('/api/payments/create-checkout-session', {
+          method: 'POST',
+          body: JSON.stringify({ plan: currentPlanKey.toUpperCase() })
+        })
+        window.location.href = url
+        return
+      } catch (e: any) {
+        setError(e.message || 'Failed to initiate checkout')
+        setLoading(false)
+        return
+      }
+    }
+
     setError(null)
     setUpdating(true)
+    setLoading(true)
     try {
       await apiJson('/api/users/me/account/tunnels', {
         method: 'PATCH',
@@ -66,10 +127,12 @@ export default function Billing() {
       })
       await refresh()
       setPendingExtra(null)
+      setSuccess(true)
     } catch (e: any) {
       setError(e.message || 'Failed to update tunnels')
     } finally {
       setUpdating(false)
+      setLoading(false)
     }
   }
 
@@ -78,14 +141,71 @@ export default function Billing() {
     setPendingExtra(newExtra)
   }
 
-  const increment = currentPlanKey === 'team' ? 5 : 1
+  const handleUpgrade = async (planKey: string) => {
+    const isDowngrade = currentPlanKey === 'team' && planKey === 'pro';
+    const newLimit = getLimitForPlan(planKey) + extraTunnels;
+    
+    if (isDowngrade && activeTunnels > newLimit) {
+      if (!window.confirm(`Downgrading to PRO will reduce your tunnel limit to ${newLimit}. You currently have ${activeTunnels} active tunnels. Excess tunnels will be automatically closed. Do you want to proceed?`)) {
+        return;
+      }
+    }
+
+    setError(null)
+    setLoading(true)
+    try {
+      const { url } = await apiJson('/api/payments/create-checkout-session', {
+        method: 'POST',
+        body: JSON.stringify({ plan: planKey.toUpperCase() })
+      })
+      window.location.href = url
+    } catch (e: any) {
+      setError(e.message || 'Failed to initiate checkout')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleManageBilling = async () => {
+    setError(null)
+    setLoading(true)
+    try {
+      const { url } = await apiJson('/api/payments/create-portal-session', {
+        method: 'POST'
+      })
+      window.location.href = url
+    } catch (e: any) {
+      setError(e.message || 'Failed to initiate portal session')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="max-w-6xl mx-auto">
-      <div className="mb-8 text-center lg:text-left">
-        <h2 className="text-2xl font-bold text-white">Billing & Plans</h2>
-        <p className="text-slate-400 mt-1">Choose the plan that fits your needs.</p>
+      <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-white">Billing & Plans</h2>
+          <p className="text-slate-400 mt-1">Choose the plan that fits your needs.</p>
+        </div>
+        {subscriptionStatus && (
+          <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 px-4 py-2 rounded-xl">
+            <span className="text-sm text-slate-400">Subscription Status:</span>
+            <span className={`text-sm font-bold uppercase tracking-wider ${
+              subscriptionStatus === 'active' ? 'text-green-400' : 
+              subscriptionStatus === 'past_due' ? 'text-yellow-400' : 'text-red-400'
+            }`}>
+              {subscriptionStatus.replace('_', ' ')}
+            </span>
+          </div>
+        )}
       </div>
+
+      {success && (
+        <div className="mb-8 p-4 bg-green-900/30 border border-green-500/50 rounded-xl text-green-400 text-center">
+          Success! Your subscription has been updated.
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-2 gap-8 max-w-4xl mx-auto lg:mx-0">
         {plans.map((p) => {
@@ -186,20 +306,34 @@ export default function Billing() {
               )}
 
               <button 
+                onClick={() => handleUpgrade(p.key)}
                 className={`w-full py-3 rounded-lg font-semibold transition-all ${
                   isCurrent
                     ? 'bg-slate-800 text-slate-400 cursor-default border border-slate-700'
                     : isPopular
                     ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/25'
                     : 'bg-slate-800 hover:bg-slate-700 text-white border border-slate-700'
-                }`}
-                disabled={isCurrent}
+                } disabled:opacity-50`}
+                disabled={isCurrent || loading}
               >
-                {isCurrent ? 'Current Plan' : 'Upgrade'}
+                {isCurrent ? 'Current Plan' : (currentPlanKey === 'team' && p.key === 'pro' ? 'Downgrade' : 'Upgrade')}
               </button>
             </div>
           )
         })}
+      </div>
+
+      <div className="mt-8 flex flex-col items-center">
+        {user?.stripeCustomerId && (
+          <button
+            onClick={handleManageBilling}
+            disabled={loading}
+            className="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold rounded-lg border border-slate-700 transition-all disabled:opacity-50"
+          >
+            Manage Billing & Subscriptions
+          </button>
+        )}
+        {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
       </div>
 
       <div className="mt-12 text-center">
@@ -211,6 +345,8 @@ export default function Billing() {
           Back to dashboard
         </Link>
       </div>
+
+      <PlanComparison />
     </div>
   )
 }

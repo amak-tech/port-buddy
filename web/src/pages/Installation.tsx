@@ -107,6 +107,20 @@ export default function Installation() {
             </div>
           </div>
 
+          <div className="mt-12 grid md:grid-cols-2 gap-6">
+            <PlanLimitCard 
+              plan="Pro"
+              limit="1 free tunnel"
+              description="Perfect for individual developers. $1/mo for each additional concurrent tunnel."
+              isPro
+            />
+            <PlanLimitCard 
+              plan="Team"
+              limit="10 free tunnels"
+              description="Built for teams and power users. $1/mo for each additional concurrent tunnel."
+            />
+          </div>
+
           <div className="mt-12 grid md:grid-cols-3 gap-6">
             <InfoCard 
               title="Auto-Updates" 
@@ -188,6 +202,24 @@ function InfoCard({ title, description }: { title: string, description: string }
         <ComputerDesktopIcon className="w-5 h-5 text-indigo-500" />
         {title}
       </h4>
+      <p className="text-slate-400 text-sm leading-relaxed">
+        {description}
+      </p>
+    </div>
+  )
+}
+
+function PlanLimitCard({ plan, limit, description, isPro }: { plan: string, limit: string, description: string, isPro?: boolean }) {
+  return (
+    <div className={`relative p-6 rounded-2xl border ${isPro ? 'border-indigo-500/30 bg-indigo-500/5' : 'border-slate-800 bg-slate-900/30'}`}>
+      <div className="flex justify-between items-start mb-4">
+        <div>
+          <h4 className="text-lg font-bold text-white mb-1">{plan} Plan</h4>
+          <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+            {limit}
+          </div>
+        </div>
+      </div>
       <p className="text-slate-400 text-sm leading-relaxed">
         {description}
       </p>

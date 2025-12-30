@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
+import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.DomainRepository;
 import tech.amak.portbuddy.server.tunnel.TunnelRegistry;
 
@@ -29,6 +30,7 @@ public class IngressResolveController {
 
     private final TunnelRegistry registry;
     private final DomainRepository domainRepository;
+    private final AccountRepository accountRepository;
 
     /**
      * Checks if the given subdomain is owned by an active tunnel.
@@ -39,7 +41,7 @@ public class IngressResolveController {
     @GetMapping("/resolve/{subdomain}")
     public ResponseEntity<Void> resolveOwner(final @PathVariable("subdomain") String subdomain) {
         final var tunnel = registry.getBySubdomain(subdomain);
-        if (tunnel != null && tunnel.isOpen()) {
+        if (tunnel != null && tunnel.isOpen() && isSubscriptionActive(tunnel)) {
             return ResponseEntity.ok().build();
         }
         return ResponseEntity.notFound().build();
@@ -56,11 +58,20 @@ public class IngressResolveController {
         return domainRepository.findByCustomDomain(domain)
             .map(domainEntity -> {
                 final var tunnel = registry.getBySubdomain(domainEntity.getSubdomain());
-                if (tunnel != null && tunnel.isOpen()) {
+                if (tunnel != null && tunnel.isOpen() && isSubscriptionActive(tunnel)) {
                     return ResponseEntity.ok().<Void>build();
                 }
                 return ResponseEntity.notFound().<Void>build();
             })
             .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    private boolean isSubscriptionActive(final TunnelRegistry.Tunnel tunnel) {
+        return accountRepository.findById(tunnel.accountId())
+            .map(account -> {
+                final var status = account.getSubscriptionStatus();
+                return status == null || "active".equals(status);
+            })
+            .orElse(false);
     }
 }

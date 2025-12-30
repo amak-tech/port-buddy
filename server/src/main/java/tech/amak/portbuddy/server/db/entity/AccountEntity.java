@@ -46,6 +46,15 @@ public class AccountEntity {
     @Column(name = "extra_tunnels", nullable = false)
     private int extraTunnels = 0;
 
+    @Column(name = "stripe_customer_id")
+    private String stripeCustomerId;
+
+    @Column(name = "stripe_subscription_id")
+    private String stripeSubscriptionId;
+
+    @Column(name = "subscription_status")
+    private String subscriptionStatus;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;

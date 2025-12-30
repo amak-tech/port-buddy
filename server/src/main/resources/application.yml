@@ -27,6 +27,9 @@ app:
   tunnels:
     heartbeat-timeout: 2m
     check-interval: 30s
+  subscriptions:
+    grace-period: 3d
+    check-interval: 1h
 
   jwt:
     issuer: port-buddy
@@ -45,6 +48,14 @@ app:
 
   cli:
     min-version: 1.0
+
+stripe:
+  api-key: ${STRIPE_API_KEY:sk_test_51P...}
+  webhook-secret: ${STRIPE_WEBHOOK_SECRET:whsec_...}
+  price-ids:
+    pro: ${STRIPE_PRICE_PRO:price_...}
+    team: ${STRIPE_PRICE_TEAM:price_...}
+    extra-tunnel: ${STRIPE_PRICE_EXTRA_TUNNEL:price_...}
 
 spring:
   mvc:

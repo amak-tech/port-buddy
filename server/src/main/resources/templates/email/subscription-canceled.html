@@ -1,0 +1,32 @@
+<!--
+  ~ Copyright (c) 2025 AMAK Inc. All rights reserved.
+  -->
+
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{email/base :: layout(~{::content})}">
+<th:block th:fragment="content">
+    <h1 class="title">Subscription Canceled</h1>
+    <p class="muted">Hi <span th:text="${name}">there</span>,</p>
+
+    <p>
+        Your Port Buddy subscription has been canceled. We're sorry to see you go!
+    </p>
+
+    <p>
+        Your account has been reverted to the <strong>Free</strong> plan. Any tunnels exceeding the free limit have been stopped.
+    </p>
+
+    <p>
+        If this was a mistake, or if you change your mind, you can re-subscribe at any time from your billing portal.
+    </p>
+
+    <p style="margin: 24px 0;">
+        <a class="btn" th:href="${portalUrl}" target="_blank" rel="noreferrer">Go to Billing Portal</a>
+    </p>
+
+    <p class="muted" style="margin-top: 24px;">
+        Thank you for using Port Buddy. If you have any feedback on how we can improve, please let us know!
+    </p>
+</th:block>
+</html>

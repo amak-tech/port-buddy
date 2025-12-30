@@ -18,8 +18,15 @@ public record AppProperties(
     Jwt jwt,
     Mail mail,
     Cli cli,
-    PortReservations portReservations
+    PortReservations portReservations,
+    Subscriptions subscriptions
 ) {
+    public record Subscriptions(
+        Duration gracePeriod,
+        Duration checkInterval
+    ) {
+    }
+
     public record Gateway(
         String url,
         String domain,

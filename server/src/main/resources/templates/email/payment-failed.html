@@ -1,0 +1,32 @@
+<!--
+  ~ Copyright (c) 2025 AMAK Inc. All rights reserved.
+  -->
+
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{email/base :: layout(~{::content})}">
+<th:block th:fragment="content">
+    <h1 class="title">Action Required: Payment Failed</h1>
+    <p class="muted">Hi <span th:text="${name}">there</span>,</p>
+
+    <p>
+        We were unable to process your recent payment of <strong th:text="${amount}">$10.00 USD</strong> for your Port Buddy subscription.
+    </p>
+
+    <p>
+        To keep your tunnels active and prevent any service interruptions, please update your payment information as soon as possible.
+    </p>
+
+    <p style="margin: 24px 0;">
+        <a class="btn" th:href="${portalUrl}" target="_blank" rel="noreferrer">Update Payment Method</a>
+    </p>
+
+    <p class="muted">
+        If you've already updated your payment details, you can ignore this email. We will automatically attempt to charge your card again in a few days.
+    </p>
+
+    <p class="muted" style="margin-top: 24px;">
+        Need help? Reply to this email or visit our <a class="link" th:href="${portalUrl}">Billing page</a>.
+    </p>
+</th:block>
+</html>

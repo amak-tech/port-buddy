@@ -44,7 +44,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST,
                     "/api/auth/token-exchange",
                     "/api/auth/login",
-                    "/api/auth/register").permitAll()
+                    "/api/auth/register",
+                    "/api/webhooks/stripe").permitAll()
                 .requestMatchers("/api/auth/password-reset/**").permitAll()
                 .requestMatchers("/api/internal/**").permitAll()
                 .anyRequest().authenticated()

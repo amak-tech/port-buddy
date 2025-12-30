@@ -24,8 +24,13 @@ import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import tech.amak.portbuddy.common.Plan;
 import tech.amak.portbuddy.server.db.entity.UserEntity;
+import tech.amak.portbuddy.server.db.entity.TunnelStatus;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
+import tech.amak.portbuddy.server.db.repo.TunnelRepository;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
+import tech.amak.portbuddy.server.service.StripeService;
+import tech.amak.portbuddy.server.service.TunnelService;
+import com.stripe.exception.StripeException;
 
 @RestController
 @RequestMapping(path = "/api/users/me", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -34,6 +39,9 @@ public class UsersController {
 
     private final UserRepository userRepository;
     private final AccountRepository accountRepository;
+    private final TunnelRepository tunnelRepository;
+    private final StripeService stripeService;
+    private final TunnelService tunnelService;
 
     /**
      * User details endpoint.
@@ -127,7 +135,7 @@ public class UsersController {
     @PatchMapping(path = "/account/tunnels", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Transactional
     public AccountDto updateExtraTunnels(@AuthenticationPrincipal final Jwt jwt,
-                                         @RequestBody final UpdateTunnelsRequest request) {
+                                         @RequestBody final UpdateTunnelsRequest request) throws StripeException {
         final var user = resolveUser(jwt);
         final var account = user.getAccount();
 
@@ -154,8 +162,19 @@ public class UsersController {
                     .formatted(account.getPlan(), increment));
         }
 
+        if (requestedExtra > 0 && account.getStripeSubscriptionId() == null) {
+            // If they don't have a subscription yet, we allow the PATCH to update the database
+            // but the frontend MUST then follow up with a checkout session to actually create the subscription in Stripe.
+            account.setExtraTunnels(requestedExtra);
+            accountRepository.save(account);
+            return toAccountDto(account);
+        }
+
+        stripeService.updateExtraTunnels(account, requestedExtra);
+
         account.setExtraTunnels(requestedExtra);
         accountRepository.save(account);
+        tunnelService.enforceTunnelLimit(account);
 
         return toAccountDto(account);
     }
@@ -166,10 +185,14 @@ public class UsersController {
         dto.setName(account.getName());
         dto.setPlan(account.getPlan());
         dto.setExtraTunnels(account.getExtraTunnels());
+        dto.setSubscriptionStatus(account.getSubscriptionStatus());
         dto.setBaseTunnels(switch (account.getPlan()) {
             case PRO -> 1;
             case TEAM -> 10;
         });
+        dto.setActiveTunnels((int) tunnelRepository.countByAccountIdAndStatusIn(
+            account.getId(), TunnelService.ACTIVE_STATUSES));
+        dto.setStripeCustomerId(account.getStripeCustomerId());
         return dto;
     }
 
@@ -210,6 +233,9 @@ public class UsersController {
         private Plan plan;
         private int extraTunnels;
         private int baseTunnels;
+        private int activeTunnels;
+        private String subscriptionStatus;
+        private String stripeCustomerId;
     }
 
     @Data

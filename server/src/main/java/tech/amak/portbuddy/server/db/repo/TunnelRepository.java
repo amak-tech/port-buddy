@@ -58,6 +58,9 @@ public interface TunnelRepository extends JpaRepository<TunnelEntity, UUID> {
 
     long countByAccountIdAndStatusIn(UUID accountId, List<TunnelStatus> statuses);
 
+    List<TunnelEntity> findByAccountIdAndStatusInOrderByLastHeartbeatAtAscCreatedAtAsc(
+        UUID accountId, List<TunnelStatus> statuses);
+
     /**
      * Closes tunnels that are in CONNECTED status but have stale or missing heartbeat.
      * Uses native SQL to also update the updated_at timestamp.
