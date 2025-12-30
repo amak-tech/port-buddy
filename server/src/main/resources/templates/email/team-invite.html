@@ -1,0 +1,28 @@
+<!--
+  ~ Copyright (c) 2025 AMAK Inc. All rights reserved.
+  -->
+
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{email/base :: layout(~{::content})}">
+<th:block th:fragment="content">
+    <h1 class="title">You've been invited!</h1>
+    <p class="muted">
+        <span th:text="${inviterName}">Some User</span> has invited you to join their team
+        <strong th:text="${accountName}">Account Name</strong> on Port Buddy.
+    </p>
+
+    <p>
+        By joining this team, you'll be able to share the team's tunnel limits and collaborate with other members.
+    </p>
+
+    <p style="margin: 24px 0;">
+        <a class="btn" th:href="${inviteUrl}" target="_blank" rel="noreferrer">Accept Invitation</a>
+    </p>
+
+    <p class="muted" style="font-size: 12px;">
+        If you weren't expecting this invitation, you can safely ignore this email.
+        This invitation will expire in 7 days.
+    </p>
+</th:block>
+</html>

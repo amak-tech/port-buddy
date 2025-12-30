@@ -2,6 +2,7 @@ import { Link, Navigate, Outlet, Route, Routes, useLocation } from 'react-router
 import { useEffect, useState } from 'react'
 import Landing from './pages/Landing'
 import Installation from './pages/Installation'
+import AcceptInvite from './pages/AcceptInvite'
 import Login from './pages/Login'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
@@ -18,6 +19,7 @@ import Tunnels from './pages/app/Tunnels'
 import Tokens from './pages/app/Tokens'
 import Domains from './pages/app/Domains'
 import Settings from './pages/app/Settings'
+import Team from './pages/app/Team'
 import Ports from './pages/app/Ports'
 import AdminPanel from './pages/app/AdminPanel'
 import NotFound from './pages/NotFound'
@@ -122,6 +124,7 @@ export default function App() {
           <Route path="/forgot-password" element={<ForgotPassword/>} />
           <Route path="/reset-password" element={<ResetPassword/>} />
           <Route path="/auth/callback" element={<Login/>} />
+          <Route path="/accept-invite" element={<AcceptInvite/>} />
           <Route path="/passcode" element={<Passcode/>} />
           {/* App area with sidebar layout */}
           <Route path="/app" element={<ProtectedRoute><AppLayout/></ProtectedRoute>}>
@@ -129,6 +132,7 @@ export default function App() {
             <Route path="tokens" element={<Tokens/>} />
             <Route path="domains" element={<Domains/>} />
             <Route path="ports" element={<Ports/>} />
+            <Route path="team" element={<Team/>} />
             <Route path="billing" element={<Billing/>} />
             <Route path="billing/success" element={<BillingSuccess/>} />
             <Route path="billing/cancel" element={<BillingCancel/>} />

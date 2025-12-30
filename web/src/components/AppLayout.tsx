@@ -10,6 +10,7 @@ import {
   LinkIcon,
   LockClosedIcon,
   WalletIcon,
+  UserGroupIcon,
   PowerIcon,
   ShieldCheckIcon,
 } from '@heroicons/react/24/outline'
@@ -39,6 +40,7 @@ export default function AppLayout() {
             <SideLink to="/app/tokens" label="Access Tokens" Icon={LockClosedIcon} />
             <SideLink to="/app/domains" label="Domains" Icon={GlobeAltIcon} />
             <SideLink to="/app/ports" label="Port Reservations" Icon={LinkIcon} />
+            <SideLink to="/app/team" label="Team" Icon={UserGroupIcon} />
             <SideLink to="/app/billing" label="Billing" Icon={WalletIcon} />
             <SideLink to="/app/settings" label="Settings" Icon={Cog8ToothIcon} />
             {user?.roles?.includes('ADMIN') && (

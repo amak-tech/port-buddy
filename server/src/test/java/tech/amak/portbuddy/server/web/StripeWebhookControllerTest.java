@@ -34,6 +34,8 @@ import tech.amak.portbuddy.server.db.entity.UserEntity;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.StripeEventRepository;
 import tech.amak.portbuddy.server.mail.EmailService;
+import tech.amak.portbuddy.server.security.ApiTokenAuthFilter;
+import tech.amak.portbuddy.server.security.Oauth2SuccessHandler;
 import tech.amak.portbuddy.server.service.StripeWebhookService;
 import tech.amak.portbuddy.server.service.TunnelService;
 
@@ -69,6 +71,12 @@ class StripeWebhookControllerTest {
 
     @MockitoBean
     private StripeWebhookService stripeWebhookService;
+
+    @MockitoBean
+    private ApiTokenAuthFilter apiTokenAuthFilter;
+
+    @MockitoBean
+    private Oauth2SuccessHandler oauth2SuccessHandler;
 
     @MockitoBean
     private AppProperties appProperties;
