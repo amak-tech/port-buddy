@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.Plan;
+import tech.amak.portbuddy.server.config.AppProperties;
 import tech.amak.portbuddy.server.db.entity.AccountEntity;
 import tech.amak.portbuddy.server.db.entity.InvitationEntity;
 import tech.amak.portbuddy.server.db.entity.Role;
@@ -35,6 +36,7 @@ public class TeamService {
     private final InvitationRepository invitationRepository;
     private final UserRepository userRepository;
     private final EmailService emailService;
+    private final AppProperties properties;
 
     /**
      * Returns all members of the team.
@@ -179,7 +181,7 @@ public class TeamService {
         final var model = Map.<String, Object>of(
             "inviterName", invitation.getInvitedBy().getEmail(),
             "accountName", invitation.getAccount().getName(),
-            "inviteUrl", "https://portbuddy.dev/accept-invite?token=" + invitation.getToken()
+            "inviteUrl", properties.gateway().url() + "/accept-invite?token=" + invitation.getToken()
         );
 
         emailService.sendTemplate(invitation.getEmail(),
