@@ -9,9 +9,11 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import lombok.Builder;
@@ -29,11 +32,13 @@ import tech.amak.portbuddy.server.db.entity.InvitationEntity;
 import tech.amak.portbuddy.server.db.entity.UserEntity;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
+import tech.amak.portbuddy.server.security.Oauth2SuccessHandler;
 import tech.amak.portbuddy.server.service.TeamService;
 
 @RestController
 @RequestMapping("/api/team")
 @RequiredArgsConstructor
+@Transactional
 public class TeamController {
 
     private final TeamService teamService;
@@ -87,6 +92,7 @@ public class TeamController {
 
     @DeleteMapping("/invitations/{id}")
     @PreAuthorize("hasRole('ACCOUNT_ADMIN')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void cancelInvitation(@AuthenticationPrincipal final Jwt jwt,
                                  @PathVariable("id") final UUID id) {
         final var account = getAccount(jwt);
@@ -94,6 +100,7 @@ public class TeamController {
     }
 
     @PostMapping("/accept")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void acceptInvitation(@AuthenticationPrincipal final Jwt jwt,
                                  @RequestParam("token") final String token) {
         final var user = getUser(jwt);
@@ -101,7 +108,11 @@ public class TeamController {
     }
 
     private AccountEntity getAccount(final Jwt jwt) {
-        final var accountId = UUID.fromString(jwt.getClaimAsString("accountId"));
+        final var accountIdClaim = jwt.getClaimAsString(Oauth2SuccessHandler.ACCOUNT_ID_CLAIM);
+        if (accountIdClaim == null) {
+            throw new IllegalArgumentException("Account ID claim is missing.");
+        }
+        final var accountId = UUID.fromString(accountIdClaim);
         return accountRepository.findById(accountId)
             .orElseThrow(() -> new IllegalArgumentException("Account not found."));
     }

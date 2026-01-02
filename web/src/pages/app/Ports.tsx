@@ -137,7 +137,7 @@ export default function Ports() {
   return (
     <div>
       <AlertModal isOpen={alertState.isOpen} title={alertState.title} message={alertState.message} onClose={() => setAlertState({ ...alertState, isOpen: false })} />
-      <ConfirmModal isOpen={!!deleteId} title="Delete Port Reservation" message="Are you sure you want to delete this reservation?" onCancel={() => setDeleteId(null)} onConfirm={() => void confirmDelete()} />
+      <ConfirmModal isOpen={!!deleteId} title="Delete Port Reservation" message="Are you sure you want to delete this reservation?" onClose={() => setDeleteId(null)} onConfirm={() => void confirmDelete()} />
 
       <div className="flex items-center justify-between mb-6">
         <div>

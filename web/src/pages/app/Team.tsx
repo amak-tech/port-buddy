@@ -7,6 +7,7 @@ import { apiJson } from '../../lib/api'
 import { useAuth } from '../../auth/AuthContext'
 import { usePageTitle } from '../../components/PageHeader'
 import { UserGroupIcon, UserPlusIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { AlertModal, ConfirmModal } from '../../components/Modal'
 
 type Member = {
   id: string
@@ -37,7 +38,13 @@ export default function Team() {
   const [inviting, setInviting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const isTeamPlan = user?.plan === 'TEAM'
+  // Dialogs
+  const [alertState, setAlertState] = useState<{ isOpen: boolean, title: string, message: string }>({
+    isOpen: false, title: '', message: ''
+  })
+  const [cancelId, setCancelId] = useState<string | null>(null)
+
+  const isTeamPlan = user?.plan === 'team'
   const isAccountAdmin = user?.roles?.includes('ACCOUNT_ADMIN')
 
   useEffect(() => {
@@ -84,14 +91,19 @@ export default function Team() {
     }
   }
 
-  async function handleCancelInvitation(id: string) {
-    if (!window.confirm('Are you sure you want to cancel this invitation?')) return
+  async function confirmCancelInvitation() {
+    if (!cancelId) return
     
     try {
-      await apiJson(`/api/team/invitations/${id}`, { method: 'DELETE' })
+      await apiJson(`/api/team/invitations/${cancelId}`, { method: 'DELETE' })
+      setCancelId(null)
       void loadData()
-    } catch (err) {
-      console.error('Failed to cancel invitation', err)
+    } catch (err: any) {
+      setAlertState({ 
+        isOpen: true, 
+        title: 'Error', 
+        message: err.message || 'Failed to cancel invitation' 
+      })
     }
   }
 
@@ -114,6 +126,21 @@ export default function Team() {
 
   return (
     <div className="max-w-6xl space-y-8">
+      <AlertModal 
+        isOpen={alertState.isOpen} 
+        title={alertState.title} 
+        message={alertState.message} 
+        onClose={() => setAlertState({ ...alertState, isOpen: false })} 
+      />
+      <ConfirmModal 
+        isOpen={!!cancelId} 
+        title="Cancel Invitation" 
+        message="Are you sure you want to cancel this invitation?" 
+        onClose={() => setCancelId(null)} 
+        onConfirm={() => void confirmCancelInvitation()}
+        isDangerous={true}
+      />
+      
       {/* Invite Section */}
       {isAccountAdmin && (
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
@@ -229,7 +256,7 @@ export default function Team() {
                     <td className="px-6 py-4 text-right">
                       {isAccountAdmin && (
                         <button
-                          onClick={() => handleCancelInvitation(i.id)}
+                          onClick={() => setCancelId(i.id)}
                           className="text-slate-500 hover:text-red-400 p-1 rounded-lg transition-colors"
                           title="Cancel invitation"
                         >

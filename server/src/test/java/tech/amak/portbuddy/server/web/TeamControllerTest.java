@@ -88,6 +88,7 @@ public class TeamControllerTest {
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(teamController)
+            .setControllerAdvice(new tech.amak.portbuddy.server.web.advice.GlobalExceptionHandler())
             .setCustomArgumentResolvers(new HandlerMethodArgumentResolver() {
                 @Override
                 public boolean supportsParameter(final MethodParameter parameter) {
@@ -99,6 +100,10 @@ public class TeamControllerTest {
                                               final ModelAndViewContainer mavContainer,
                                               final NativeWebRequest webRequest,
                                               final WebDataBinderFactory binderFactory) {
+                    final var principal = webRequest.getUserPrincipal();
+                    if (principal instanceof JwtAuthenticationToken jwtToken) {
+                        return jwtToken.getToken();
+                    }
                     return createJwt();
                 }
             })
@@ -159,16 +164,28 @@ public class TeamControllerTest {
 
         mockMvc.perform(delete("/api/team/invitations/" + invId)
                 .principal(new JwtAuthenticationToken(createJwt())))
-            .andExpect(status().isOk());
+            .andExpect(status().isNoContent());
 
         verify(teamService).cancelInvitation(any(), eq(invId));
+    }
+
+    @Test
+    void getMembers_ShouldThrowException_WhenAccountIdClaimIsMissing() throws Exception {
+        final var jwtWithoutAccountId = org.springframework.security.oauth2.jwt.Jwt.withTokenValue("token")
+            .header("alg", "none")
+            .subject(userId.toString())
+            .build();
+
+        mockMvc.perform(get("/api/team/members")
+                .principal(new JwtAuthenticationToken(jwtWithoutAccountId)))
+            .andExpect(status().isBadRequest());
     }
 
     private org.springframework.security.oauth2.jwt.Jwt createJwt() {
         return org.springframework.security.oauth2.jwt.Jwt.withTokenValue("token")
             .header("alg", "none")
             .subject(userId.toString())
-            .claim("accountId", accountId.toString())
+            .claim("aid", accountId.toString())
             .claim("roles", List.of("ACCOUNT_ADMIN", "USER"))
             .build();
     }

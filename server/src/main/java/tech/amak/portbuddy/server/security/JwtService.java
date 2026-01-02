@@ -68,7 +68,7 @@ public class JwtService {
             claims.forEach(builder::claim);
         }
         if (roles != null && !roles.isEmpty()) {
-            builder.claim("roles", roles.stream().map(Enum::name).collect(Collectors.toSet()));
+            builder.claim(Oauth2SuccessHandler.ROLES_CLAIM, roles.stream().map(Enum::name).collect(Collectors.toSet()));
         }
         final var header = JwsHeader.with(SignatureAlgorithm.RS256)
             .type(TOKEN_TYPE)

@@ -29,6 +29,18 @@ import tech.amak.portbuddy.server.service.user.UserProvisioningService;
 @RequiredArgsConstructor
 public class Oauth2SuccessHandler implements AuthenticationSuccessHandler {
 
+    public static final String EMAIL_CLAIM = "email";
+    public static final String NAME_CLAIM = "name";
+    public static final String PICTURE_CLAIM = "picture";
+    public static final String FIRST_NAME_CLAIM = "given_name";
+    public static final String LAST_NAME_CLAIM = "family_name";
+    public static final String ACCOUNT_ID_CLAIM = "aid";
+    public static final String USER_ID_CLAIM = "uid";
+    public static final String SUBJECT_CLAIM = "sub";
+    public static final String ID_CLAIM = "id";
+    public static final String ROLES_CLAIM = "roles";
+    private static final String UNKNOWN = "unknown";
+
     private final JwtService jwtService;
     private final AppProperties properties;
     private final UserProvisioningService userProvisioningService;
@@ -39,7 +51,7 @@ public class Oauth2SuccessHandler implements AuthenticationSuccessHandler {
                                         final Authentication authentication)
         throws IOException {
         final var provider = resolveProvider(authentication);
-        var externalId = "unknown";
+        var externalId = UNKNOWN;
         var email = (String) null;
         var name = (String) null;
         var picture = (String) null;
@@ -51,18 +63,18 @@ public class Oauth2SuccessHandler implements AuthenticationSuccessHandler {
             externalId = oidc.getSubject();
             email = oidc.getEmail();
             name = oidc.getFullName();
-            picture = (String) oidc.getClaims().getOrDefault("picture", null);
-            firstName = (String) oidc.getClaims().getOrDefault("given_name", null);
-            lastName = (String) oidc.getClaims().getOrDefault("family_name", null);
+            picture = (String) oidc.getClaims().getOrDefault(PICTURE_CLAIM, null);
+            firstName = (String) oidc.getClaims().getOrDefault(FIRST_NAME_CLAIM, null);
+            lastName = (String) oidc.getClaims().getOrDefault(LAST_NAME_CLAIM, null);
         } else if (principal instanceof OAuth2User oauth2) {
             final var attrs = oauth2.getAttributes();
-            externalId = String.valueOf(attrs.getOrDefault("sub", attrs.getOrDefault("id", "unknown")));
-            email = asNullableString(attrs, "email");
-            name = asNullableString(attrs, "name");
-            picture = asNullableString(attrs, "picture");
-            if (attrs.containsKey("given_name") || attrs.containsKey("family_name")) {
-                firstName = asNullableString(attrs, "given_name");
-                lastName = asNullableString(attrs, "family_name");
+            externalId = String.valueOf(attrs.getOrDefault(SUBJECT_CLAIM, attrs.getOrDefault(ID_CLAIM, UNKNOWN)));
+            email = asNullableString(attrs, EMAIL_CLAIM);
+            name = asNullableString(attrs, NAME_CLAIM);
+            picture = asNullableString(attrs, PICTURE_CLAIM);
+            if (attrs.containsKey(FIRST_NAME_CLAIM) || attrs.containsKey(LAST_NAME_CLAIM)) {
+                firstName = asNullableString(attrs, FIRST_NAME_CLAIM);
+                lastName = asNullableString(attrs, LAST_NAME_CLAIM);
             }
         }
 
@@ -84,16 +96,16 @@ public class Oauth2SuccessHandler implements AuthenticationSuccessHandler {
 
         final var claims = new HashMap<String, Object>();
         if (email != null) {
-            claims.put("email", email);
+            claims.put(EMAIL_CLAIM, email);
         }
         if (name != null) {
-            claims.put("name", name);
+            claims.put(NAME_CLAIM, name);
         }
         if (picture != null) {
-            claims.put("picture", picture);
+            claims.put(PICTURE_CLAIM, picture);
         }
-        claims.put("aid", provisioned.accountId().toString());
-        claims.put("uid", provisioned.userId().toString());
+        claims.put(ACCOUNT_ID_CLAIM, provisioned.accountId().toString());
+        claims.put(USER_ID_CLAIM, provisioned.userId().toString());
 
         final var token = jwtService.createToken(claims, provisioned.userId().toString(), provisioned.roles());
         final var redirectUrl = properties.gateway().url() + "/auth/callback?token=" + URLEncoder.encode(token, UTF_8);
