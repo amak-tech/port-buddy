@@ -10,6 +10,7 @@ import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -54,6 +55,7 @@ public class StripeWebhookController {
      * @param sigHeader Stripe-Signature header
      * @return response entity
      */
+    @Transactional
     @PostMapping
     public ResponseEntity<String> handleStripeWebhook(
         @RequestBody final String payload,
@@ -84,6 +86,7 @@ public class StripeWebhookController {
         eventEntity.setType(event.getType());
         eventEntity.setPayload(payload);
         eventEntity.setStatus("PROCESSING");
+        eventEntity.setCreatedAt(OffsetDateTime.now());
         stripeEventRepository.save(eventEntity);
 
         try {
