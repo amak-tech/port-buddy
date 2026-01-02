@@ -261,10 +261,11 @@ public class UsersController {
         dto.setPlan(account.getPlan());
         dto.setExtraTunnels(account.getExtraTunnels());
         dto.setSubscriptionStatus(account.getSubscriptionStatus());
-        dto.setBaseTunnels(switch (account.getPlan()) {
+        final var baseTunnels = switch (account.getPlan()) {
             case PRO -> 1;
             case TEAM -> 10;
-        });
+        };
+        dto.setBaseTunnels(baseTunnels);
         dto.setActiveTunnels((int) tunnelRepository.countByAccountIdAndStatusIn(
             account.getId(), TunnelService.ACTIVE_STATUSES));
         dto.setStripeCustomerId(account.getStripeCustomerId());
