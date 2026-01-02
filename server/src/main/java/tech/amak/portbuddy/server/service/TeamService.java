@@ -20,10 +20,13 @@ import tech.amak.portbuddy.server.config.AppProperties;
 import tech.amak.portbuddy.server.db.entity.AccountEntity;
 import tech.amak.portbuddy.server.db.entity.InvitationEntity;
 import tech.amak.portbuddy.server.db.entity.Role;
+import tech.amak.portbuddy.server.db.entity.UserAccountEntity;
 import tech.amak.portbuddy.server.db.entity.UserEntity;
 import tech.amak.portbuddy.server.db.repo.InvitationRepository;
+import tech.amak.portbuddy.server.db.repo.UserAccountRepository;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
 import tech.amak.portbuddy.server.mail.EmailService;
+import tech.amak.portbuddy.server.service.user.UserProvisioningService;
 
 /**
  * Service for managing team members and invitations.
@@ -35,6 +38,7 @@ public class TeamService {
 
     private final InvitationRepository invitationRepository;
     private final UserRepository userRepository;
+    private final UserAccountRepository userAccountRepository;
     private final EmailService emailService;
     private final AppProperties properties;
 
@@ -75,7 +79,7 @@ public class TeamService {
         }
 
         userRepository.findByEmailIgnoreCase(email).ifPresent(user -> {
-            if (user.getAccount().getId().equals(account.getId())) {
+            if (userAccountRepository.findByUserIdAndAccountId(user.getId(), account.getId()).isPresent()) {
                 throw new IllegalStateException("User is already a member of this team.");
             }
         });
@@ -107,24 +111,15 @@ public class TeamService {
      */
     @Transactional
     public void removeMember(final AccountEntity account, final UUID userId) {
-        final var user = userRepository.findById(userId)
-            .orElseThrow(() -> new IllegalArgumentException("User not found."));
+        final var userAccount = userAccountRepository.findByUserIdAndAccountId(userId, account.getId())
+            .orElseThrow(() -> new IllegalArgumentException("User does not belong to this account."));
 
-        if (!user.getAccount().getId().equals(account.getId())) {
-            throw new IllegalArgumentException("User does not belong to this account.");
-        }
-
-        if (user.getRoles().contains(Role.ACCOUNT_ADMIN)) {
+        if (userAccount.getRoles().contains(Role.ACCOUNT_ADMIN)) {
              // In a real app we might want to check if they are the ONLY admin
              // For now, let's assume we can remove any admin but they can't remove themselves easily from UI
         }
 
-        // We don't delete the user, we should probably move them to their own free account
-        // or just delete if they don't have any data.
-        // For simplicity in this task, let's just detach them and give them a new account or something.
-        // Actually, detaching is tricky due to NOT NULL account_id.
-        // Let's just throw for now if we try to remove the last admin or if it's not implemented yet.
-        throw new UnsupportedOperationException("Removing members is not fully implemented yet.");
+        userAccountRepository.delete(userAccount);
     }
 
     /**
@@ -164,17 +159,36 @@ public class TeamService {
             throw new IllegalStateException("Invitation has expired.");
         }
 
-        // Update user's account
-        user.setAccount(invitation.getAccount());
-        final var roles = new HashSet<>(user.getRoles());
-        roles.add(Role.USER);
-        user.setRoles(roles);
-        userRepository.save(user);
+        // Add user to the account
+        final var userAccountId = invitation.getAccount().getId();
+        final var userAccount = userAccountRepository.findByUserIdAndAccountId(user.getId(), userAccountId)
+            .orElseGet(() -> new UserAccountEntity(user, invitation.getAccount(), new HashSet<>(List.of(Role.USER))));
+        
+        userAccount.setLastUsedAt(OffsetDateTime.now());
+        userAccountRepository.save(userAccount);
 
         invitation.setAcceptedAt(OffsetDateTime.now());
         invitationRepository.save(invitation);
 
         log.info("User {} accepted invitation to account {}", user.getId(), invitation.getAccount().getId());
+    }
+
+    /**
+     * Switches the current account for the user.
+     *
+     * @param userId    the user id.
+     * @param accountId the account id to switch to.
+     * @return provisioned user information with the new account.
+     */
+    @Transactional
+    public UserProvisioningService.ProvisionedUser switchAccount(final UUID userId, final UUID accountId) {
+        final var userAccount = userAccountRepository.findByUserIdAndAccountId(userId, accountId)
+            .orElseThrow(() -> new IllegalArgumentException("User does not belong to this account."));
+
+        userAccount.setLastUsedAt(OffsetDateTime.now());
+        userAccountRepository.save(userAccount);
+
+        return new UserProvisioningService.ProvisionedUser(userId, accountId, userAccount.getRoles());
     }
 
     private void sendInvitationEmail(final InvitationEntity invitation) {

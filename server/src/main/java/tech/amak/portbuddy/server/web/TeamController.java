@@ -31,6 +31,7 @@ import tech.amak.portbuddy.server.db.entity.AccountEntity;
 import tech.amak.portbuddy.server.db.entity.InvitationEntity;
 import tech.amak.portbuddy.server.db.entity.UserEntity;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
+import tech.amak.portbuddy.server.db.repo.UserAccountRepository;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
 import tech.amak.portbuddy.server.security.Oauth2SuccessHandler;
 import tech.amak.portbuddy.server.service.TeamService;
@@ -44,6 +45,7 @@ public class TeamController {
     private final TeamService teamService;
     private final UserRepository userRepository;
     private final AccountRepository accountRepository;
+    private final UserAccountRepository userAccountRepository;
 
     /**
      * Returns a list of team members for the current user's account.
@@ -55,7 +57,7 @@ public class TeamController {
     public List<MemberDto> getMembers(@AuthenticationPrincipal final Jwt jwt) {
         final var account = getAccount(jwt);
         return teamService.getMembers(account).stream()
-            .map(this::toMemberDto)
+            .map(member -> toMemberDto(member, account))
             .collect(Collectors.toList());
     }
 
@@ -123,14 +125,16 @@ public class TeamController {
             .orElseThrow(() -> new IllegalArgumentException("User not found."));
     }
 
-    private MemberDto toMemberDto(final UserEntity user) {
+    private MemberDto toMemberDto(final UserEntity user, final AccountEntity account) {
+        final var userAccount = userAccountRepository.findByUserIdAndAccountId(user.getId(), account.getId())
+            .orElseThrow(() -> new IllegalArgumentException("User does not belong to this account."));
         return MemberDto.builder()
             .id(user.getId())
             .email(user.getEmail())
             .firstName(user.getFirstName())
             .lastName(user.getLastName())
             .avatarUrl(user.getAvatarUrl())
-            .roles(user.getRoles().stream().map(Enum::name).collect(Collectors.toSet()))
+            .roles(userAccount.getRoles().stream().map(Enum::name).collect(Collectors.toSet()))
             .joinedAt(user.getCreatedAt())
             .build();
     }

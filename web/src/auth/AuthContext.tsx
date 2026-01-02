@@ -19,6 +19,7 @@ type AuthState = {
     loginWithEmail: (email: string, pass: string) => Promise<void>
     logout: () => Promise<void>
     refresh: () => Promise<void>
+    switchAccount: (accountId: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined)
@@ -126,7 +127,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         window.location.assign('/')
     }, [])
 
-    const value = useMemo<AuthState>(() => ({ user, loading, loginWithGoogle, loginWithEmail, logout, refresh }), [user, loading, loginWithGoogle, loginWithEmail, logout, refresh])
+    const switchAccount = useCallback(async (accountId: string) => {
+        try {
+            const res = await apiJson<{ token: string }>(`/api/users/me/accounts/${accountId}/switch`, {
+                method: 'POST'
+            })
+            localStorage.setItem('pb_token', res.token)
+            await refresh()
+        } catch (e) {
+            console.error('Failed to switch account', e)
+            throw e
+        }
+    }, [refresh])
+
+    const value = useMemo<AuthState>(() => ({ 
+        user, 
+        loading, 
+        loginWithGoogle, 
+        loginWithEmail, 
+        logout, 
+        refresh,
+        switchAccount
+    }), [user, loading, loginWithGoogle, loginWithEmail, logout, refresh, switchAccount])
 
     return (
         <AuthContext.Provider value={value}>

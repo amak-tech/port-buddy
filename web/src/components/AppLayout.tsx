@@ -1,10 +1,12 @@
 import { Link, NavLink, Outlet } from 'react-router-dom'
-import type { ComponentType, SVGProps } from 'react'
+import { ComponentType, SVGProps, useEffect, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { PageHeaderProvider, usePageHeader } from './PageHeader'
+import { apiJson } from '../lib/api'
 import {
   AcademicCapIcon,
   ArrowsRightLeftIcon,
+  ChevronUpDownIcon,
   Cog8ToothIcon,
   GlobeAltIcon,
   LinkIcon,
@@ -15,8 +17,24 @@ import {
   ShieldCheckIcon,
 } from '@heroicons/react/24/outline'
 
+type UserAccount = {
+  accountId: string
+  accountName: string
+  plan: string
+  roles: string[]
+  lastUsedAt: string
+}
+
 export default function AppLayout() {
-  const { user, logout } = useAuth()
+  const { user, logout, switchAccount } = useAuth()
+  const [accounts, setAccounts] = useState<UserAccount[]>([])
+  const [showAccountSwitcher, setShowAccountSwitcher] = useState(false)
+
+  useEffect(() => {
+    if (user) {
+      void apiJson<UserAccount[]>('/api/users/me/accounts').then(setAccounts)
+    }
+  }, [user])
 
   return (
     <div className="min-h-screen flex bg-slate-950">
@@ -32,6 +50,39 @@ export default function AppLayout() {
               </span>
               Port Buddy
             </Link>
+          </div>
+
+          {/* Account Switcher */}
+          <div className="px-4 py-4 border-b border-slate-800 relative">
+            <button
+              onClick={() => setShowAccountSwitcher(!showAccountSwitcher)}
+              className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-slate-800/50 hover:bg-slate-800 text-white transition-colors border border-slate-700/50"
+            >
+              <div className="flex flex-col items-start min-w-0">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Account</span>
+                <span className="text-sm font-medium truncate w-full text-left">
+                  {user?.accountName || accounts.find(a => a.lastUsedAt)?.accountName || 'Select Account'}
+                </span>
+              </div>
+              <ChevronUpDownIcon className="h-5 w-5 text-slate-400 shrink-0" />
+            </button>
+
+            {showAccountSwitcher && (
+              <div className="absolute top-full left-4 right-4 mt-1 z-50 bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden py-1">
+                {accounts.map(account => (
+                  <button
+                    key={account.accountId}
+                    onClick={() => {
+                      void switchAccount(account.accountId)
+                      setShowAccountSwitcher(false)
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+                  >
+                    {account.accountName}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Nav list (scrollable middle) */}

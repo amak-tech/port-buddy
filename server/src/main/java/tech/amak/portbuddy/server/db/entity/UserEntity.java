@@ -9,18 +9,13 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.hibernate.type.SqlTypes;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -37,9 +32,8 @@ public class UserEntity {
     @Column(name = "id", nullable = false)
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "account_id", nullable = false)
-    private AccountEntity account;
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<UserAccountEntity> accounts;
 
     @Column(name = "email", nullable = false, length = 320)
     private String email;
@@ -62,10 +56,6 @@ public class UserEntity {
     @Column(name = "password")
     private String password;
 
-    @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.ARRAY)
-    @Column(name = "roles", nullable = false)
-    private Set<Role> roles;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false)
@@ -74,4 +64,34 @@ public class UserEntity {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
+
+    /**
+     * Helper method to get the account of the user.
+     * Since a user can have multiple accounts, this returns the first one in the set.
+     * This is primarily used for backward compatibility in controllers.
+     *
+     * @return the first associated AccountEntity.
+     * @throws IllegalStateException if the user has no accounts.
+     */
+    public AccountEntity getAccount() {
+        if (accounts == null || accounts.isEmpty()) {
+            throw new IllegalStateException("User has no accounts");
+        }
+        return accounts.iterator().next().getAccount();
+    }
+
+    /**
+     * Helper method to get the roles of the user.
+     * Since a user can have multiple accounts, this returns roles from the first account in the set.
+     * This is primarily used for backward compatibility in controllers.
+     *
+     * @return a set of roles.
+     * @throws IllegalStateException if the user has no accounts.
+     */
+    public Set<Role> getRoles() {
+        if (accounts == null || accounts.isEmpty()) {
+            throw new IllegalStateException("User has no accounts");
+        }
+        return accounts.iterator().next().getRoles();
+    }
 }

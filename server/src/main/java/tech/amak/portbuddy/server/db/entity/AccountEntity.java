@@ -64,5 +64,5 @@ public class AccountEntity {
     private OffsetDateTime updatedAt;
 
     @OneToMany(mappedBy = "account", fetch = FetchType.LAZY)
-    private List<UserEntity> users = new ArrayList<>();
+    private List<UserAccountEntity> users = new ArrayList<>();
 }
