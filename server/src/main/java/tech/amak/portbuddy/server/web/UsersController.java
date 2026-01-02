@@ -32,6 +32,7 @@ import com.stripe.exception.StripeException;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import tech.amak.portbuddy.common.Plan;
+import tech.amak.portbuddy.server.config.AppProperties;
 import tech.amak.portbuddy.server.db.entity.UserAccountEntity;
 import tech.amak.portbuddy.server.db.entity.UserEntity;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
@@ -57,6 +58,7 @@ public class UsersController {
     private final UserAccountRepository userAccountRepository;
     private final TeamService teamService;
     private final JwtService jwtService;
+    private final AppProperties properties;
 
     /**
      * User details endpoint.
@@ -169,10 +171,7 @@ public class UsersController {
             return toAccountDto(account);
         }
 
-        final int increment = switch (account.getPlan()) {
-            case PRO -> 1;
-            case TEAM -> 5;
-        };
+        final int increment = properties.subscriptions().tunnels().increment().get(account.getPlan());
 
         if (Math.abs(diff) % increment != 0) {
             throw new IllegalArgumentException(
@@ -261,11 +260,7 @@ public class UsersController {
         dto.setPlan(account.getPlan());
         dto.setExtraTunnels(account.getExtraTunnels());
         dto.setSubscriptionStatus(account.getSubscriptionStatus());
-        final var baseTunnels = switch (account.getPlan()) {
-            case PRO -> 1;
-            case TEAM -> 10;
-        };
-        dto.setBaseTunnels(baseTunnels);
+        dto.setBaseTunnels(properties.subscriptions().tunnels().base().get(account.getPlan()));
         dto.setActiveTunnels((int) tunnelRepository.countByAccountIdAndStatusIn(
             account.getId(), TunnelService.ACTIVE_STATUSES));
         dto.setStripeCustomerId(account.getStripeCustomerId());

@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.Plan;
 import tech.amak.portbuddy.common.dto.ExposeRequest;
+import tech.amak.portbuddy.server.config.AppProperties;
 import tech.amak.portbuddy.server.db.entity.AccountEntity;
 import tech.amak.portbuddy.server.db.entity.DomainEntity;
 import tech.amak.portbuddy.server.db.entity.PortReservationEntity;
@@ -30,8 +31,10 @@ import tech.amak.portbuddy.server.db.repo.TunnelRepository;
 public class TunnelService {
 
     public static final List<TunnelStatus> ACTIVE_STATUSES = List.of(TunnelStatus.CONNECTED, TunnelStatus.PENDING);
+
     private final TunnelRepository tunnelRepository;
     private final AccountRepository accountRepository;
+    private final AppProperties properties;
 
     /**
      * Creates a new HTTP tunnel using the database entity id as the tunnel id.
@@ -112,10 +115,9 @@ public class TunnelService {
      */
     public int calculateTunnelLimit(final AccountEntity account) {
         final var plan = account.getPlan();
-        final int baseLimit = switch (plan) {
-            case PRO -> 1;
-            case TEAM -> 10;
-        };
+
+        final var baseLimit = properties.subscriptions().tunnels().base().get(plan);
+
         return baseLimit + account.getExtraTunnels();
     }
 
@@ -143,7 +145,7 @@ public class TunnelService {
 
     private void closeExcessTunnels(final AccountEntity account, final int limit) {
         final List<TunnelEntity> activeTunnels = tunnelRepository
-                .findByAccountIdAndStatusInOrderByLastHeartbeatAtAscCreatedAtAsc(account.getId(), ACTIVE_STATUSES);
+            .findByAccountIdAndStatusInOrderByLastHeartbeatAtAscCreatedAtAsc(account.getId(), ACTIVE_STATUSES);
 
         if (activeTunnels.size() > limit) {
             final int toClose = activeTunnels.size() - limit;

@@ -6,7 +6,6 @@ package tech.amak.portbuddy.server.service;
 
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.stripe.Stripe;
@@ -20,35 +19,20 @@ import com.stripe.param.billingportal.SessionCreateParams;
 import com.stripe.param.checkout.SessionCreateParams.LineItem;
 import com.stripe.param.checkout.SessionCreateParams.Mode;
 
-import jakarta.annotation.PostConstruct;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.Plan;
+import tech.amak.portbuddy.server.config.AppProperties;
 import tech.amak.portbuddy.server.db.entity.AccountEntity;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class StripeService {
 
-    @Value("${stripe.api-key}")
-    private String apiKey;
+    private final AppProperties properties;
 
-    @Value("${stripe.price-ids.pro}")
-    private String proPriceId;
-
-    @Value("${stripe.price-ids.team}")
-    private String teamPriceId;
-
-    @Value("${stripe.price-ids.extra-tunnel}")
-    private String extraTunnelPriceId;
-
-    @Value("${app.gateway.url}")
-    private String baseUrl;
-
-    @PostConstruct
-    public void init() {
-        Stripe.apiKey = apiKey;
+    public StripeService(final AppProperties properties) {
+        this.properties = properties;
+        Stripe.apiKey = properties.stripe().apiKey();
     }
 
     /**
@@ -62,17 +46,18 @@ public class StripeService {
     public String createCheckoutSession(final AccountEntity account, final Plan plan) throws StripeException {
         log.info("Creating checkout session for account: {}, plan: {}", account.getId(), plan);
         final var customerId = getOrCreateCustomer(account);
+        final var stripeProperties = properties.stripe();
 
         final var priceId = switch (plan) {
-            case PRO -> proPriceId;
-            case TEAM -> teamPriceId;
+            case PRO -> stripeProperties.priceIds().pro();
+            case TEAM -> stripeProperties.priceIds().team();
         };
 
         final var paramsBuilder = com.stripe.param.checkout.SessionCreateParams.builder()
             .setCustomer(customerId)
             .setMode(Mode.SUBSCRIPTION)
-            .setSuccessUrl(baseUrl + "/app/billing?success=true")
-            .setCancelUrl(baseUrl + "/app/billing?canceled=true")
+            .setSuccessUrl(properties.gateway().url() + "/app/billing?success=true")
+            .setCancelUrl(properties.gateway().url() + "/app/billing?canceled=true")
             .addLineItem(LineItem.builder()
                 .setPrice(priceId)
                 .setQuantity(1L)
@@ -83,7 +68,7 @@ public class StripeService {
         // If the account already has extra tunnels recorded, include them in the checkout session
         if (account.getExtraTunnels() > 0) {
             paramsBuilder.addLineItem(LineItem.builder()
-                .setPrice(extraTunnelPriceId)
+                .setPrice(stripeProperties.priceIds().extraTunnel())
                 .setQuantity((long) account.getExtraTunnels())
                 .build());
         }
@@ -105,7 +90,7 @@ public class StripeService {
             account.getStripeCustomerId());
         final var params = SessionCreateParams.builder()
             .setCustomer(account.getStripeCustomerId())
-            .setReturnUrl(baseUrl + "/app/billing")
+            .setReturnUrl(properties.gateway().url() + "/app/billing")
             .build();
 
         final var session = com.stripe.model.billingportal.Session.create(params);
@@ -128,6 +113,7 @@ public class StripeService {
         }
 
         final var subscription = Subscription.retrieve(account.getStripeSubscriptionId());
+        final var extraTunnelPriceId = properties.stripe().priceIds().extraTunnel();
         final var subscriptionItemId = subscription.getItems().getData().stream()
             .filter(item -> item.getPrice().getId().equals(extraTunnelPriceId))
             .map(com.stripe.model.SubscriptionItem::getId)

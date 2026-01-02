@@ -8,7 +8,6 @@ import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -41,9 +40,6 @@ import tech.amak.portbuddy.server.service.TunnelService;
 @RequiredArgsConstructor
 public class StripeWebhookController {
 
-    @Value("${stripe.webhook-secret}")
-    private String endpointSecret;
-
     private final AccountRepository accountRepository;
     private final StripeEventRepository stripeEventRepository;
     private final EmailService emailService;
@@ -70,7 +66,7 @@ public class StripeWebhookController {
         final Event event;
 
         try {
-            event = stripeWebhookService.constructEvent(payload, sigHeader, endpointSecret);
+            event = stripeWebhookService.constructEvent(payload, sigHeader, properties.stripe().webhookSecret());
         } catch (final SignatureVerificationException e) {
             log.error("Invalid Stripe signature", e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid signature");
@@ -171,10 +167,8 @@ public class StripeWebhookController {
         final var user = account.getUsers().stream().findFirst().orElse(null);
         if (user != null) {
             final var plan = account.getPlan();
-            final int baseLimit = switch (plan) {
-                case PRO -> 1;
-                case TEAM -> 10;
-            };
+            final var baseLimit = properties.subscriptions().tunnels().base().get(plan);
+
             emailService.sendTemplate(user.getEmail(), "Welcome to " + plan + " - Port Buddy",
                 "email/subscription-success", Map.of("name",
                     user.getFirstName() != null ? user.getFirstName() : "there", "plan",
@@ -225,10 +219,7 @@ public class StripeWebhookController {
             if (user != null) {
                 if (planChanged || (isNowActive && !wasActive)) {
                     final var plan = account.getPlan();
-                    final int baseLimit = switch (plan) {
-                        case PRO -> 1;
-                        case TEAM -> 10;
-                    };
+                    final var baseLimit = properties.subscriptions().tunnels().base().get(plan);
                     emailService.sendTemplate(user.getEmail(), "Plan Updated - Port Buddy",
                         "email/plan-changed", Map.of("name",
                             user.getFirstName() != null ? user.getFirstName() : "there",
