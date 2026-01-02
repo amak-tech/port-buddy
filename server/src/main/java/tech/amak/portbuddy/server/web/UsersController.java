@@ -14,6 +14,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.transaction.annotation.Transactional;
@@ -124,6 +125,7 @@ public class UsersController {
      * @return updated account name.
      */
     @PatchMapping(path = "/account", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasAnyRole('ACCOUNT_ADMIN', 'ADMIN')")
     @Transactional
     public AccountDto updateAccount(@AuthenticationPrincipal final Jwt jwt,
                                     @RequestBody final UpdateAccountRequest request) {
@@ -148,6 +150,7 @@ public class UsersController {
      * @return updated account details.
      */
     @PostMapping("/account/tunnels")
+    @PreAuthorize("hasAnyRole('ACCOUNT_ADMIN', 'ADMIN')")
     @Transactional
     public AccountDto updateExtraTunnels(@AuthenticationPrincipal final Jwt jwt,
                                          @RequestBody final UpdateTunnelsRequest request) throws StripeException {

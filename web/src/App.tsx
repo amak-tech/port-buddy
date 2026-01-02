@@ -21,6 +21,7 @@ import Domains from './pages/app/Domains'
 import Settings from './pages/app/Settings'
 import Team from './pages/app/Team'
 import Ports from './pages/app/Ports'
+import Profile from './pages/app/Profile'
 import AdminPanel from './pages/app/AdminPanel'
 import NotFound from './pages/NotFound'
 import ServerError from './pages/ServerError'
@@ -136,13 +137,13 @@ export default function App() {
             <Route path="billing" element={<ProtectedRoute role="ACCOUNT_ADMIN"><Billing/></ProtectedRoute>} />
             <Route path="billing/success" element={<BillingSuccess/>} />
             <Route path="billing/cancel" element={<BillingCancel/>} />
-            <Route path="settings" element={<Settings/>} />
+            <Route path="settings" element={<ProtectedRoute role="ACCOUNT_ADMIN"><Settings/></ProtectedRoute>} />
+            <Route path="profile" element={<Profile/>} />
             <Route path="admin" element={<ProtectedRoute role="ADMIN"><AdminPanel/></ProtectedRoute>} />
             {/* Unknown app routes redirect to dashboard */}
             <Route path="*" element={<Navigate to="/app" replace />} />
           </Route>
           {/* Backward-compat for old links */}
-          <Route path="/app/profile" element={<Navigate to="/app/settings" replace />} />
           <Route path="/app/subscription" element={<Navigate to="/app/billing" replace />} />
           {/* Global 404 */}
           <Route path="/500" element={<ServerError/>} />

@@ -100,7 +100,9 @@ export default function AppLayout() {
             {(user?.roles?.includes('ACCOUNT_ADMIN')) && (
               <SideLink to="/app/billing" label="Billing" Icon={WalletIcon} />
             )}
-            <SideLink to="/app/settings" label="Settings" Icon={Cog8ToothIcon} />
+            {user?.roles?.includes('ACCOUNT_ADMIN') && (
+              <SideLink to="/app/settings" label="Settings" Icon={Cog8ToothIcon} />
+            )}
             {user?.roles?.includes('ADMIN') && (
               <SideLink to="/app/admin" label="Admin Panel" Icon={ShieldCheckIcon} />
             )}
@@ -115,7 +117,7 @@ export default function AppLayout() {
               </a>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0">
+              <Link to="/app/profile" className="flex items-center gap-3 min-w-0 hover:opacity-80 transition-opacity">
                 {user?.avatarUrl ? (
                   <img src={user.avatarUrl} alt="avatar" className="w-9 h-9 rounded-full border border-slate-700" />
                 ) : (
@@ -127,7 +129,7 @@ export default function AppLayout() {
                   <div className="text-sm font-medium text-white truncate">{user?.name || user?.email || 'Unknown user'}</div>
                   <div className="text-slate-500 text-xs truncate">{user?.email}</div>
                 </div>
-              </div>
+              </Link>
               <button
                 type="button"
                 aria-label="Logout"

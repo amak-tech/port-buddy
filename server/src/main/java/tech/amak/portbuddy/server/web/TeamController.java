@@ -67,6 +67,7 @@ public class TeamController {
      * @return the list of pending invitations
      */
     @GetMapping("/invitations")
+    @PreAuthorize("hasAnyRole('ACCOUNT_ADMIN', 'ADMIN')")
     public List<InvitationDto> getInvitations(@AuthenticationPrincipal final Jwt jwt) {
         final var account = getAccount(jwt);
         return teamService.getPendingInvitations(account).stream()

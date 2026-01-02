@@ -143,6 +143,23 @@ public class TeamControllerTest {
     }
 
     @Test
+    void getInvitations_ShouldReturnList() throws Exception {
+        final var invitation = new InvitationEntity();
+        invitation.setId(UUID.randomUUID());
+        invitation.setEmail("invited@example.com");
+        invitation.setInvitedBy(user);
+        invitation.setCreatedAt(OffsetDateTime.now());
+        invitation.setExpiresAt(OffsetDateTime.now().plusDays(7));
+
+        when(teamService.getPendingInvitations(any())).thenReturn(List.of(invitation));
+
+        mockMvc.perform(get("/api/team/invitations")
+                .principal(new JwtAuthenticationToken(createJwt())))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].email").value("invited@example.com"));
+    }
+
+    @Test
     void inviteMember_ShouldCreateInvitation() throws Exception {
         final var invitation = new InvitationEntity();
         invitation.setId(UUID.randomUUID());

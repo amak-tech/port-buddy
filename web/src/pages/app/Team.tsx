@@ -59,12 +59,13 @@ export default function Team() {
   async function loadData() {
     setLoading(true)
     try {
-      const [m, i] = await Promise.all([
+      const promises: [Promise<Member[]>, Promise<Invitation[]> | null] = [
         apiJson<Member[]>('/api/team/members'),
-        apiJson<Invitation[]>('/api/team/invitations')
-      ])
+        isAccountAdmin ? apiJson<Invitation[]>('/api/team/invitations') : Promise.resolve([])
+      ]
+      const [m, i] = await Promise.all(promises)
       setMembers(m)
-      setInvitations(i)
+      if (i) setInvitations(i)
     } catch (err) {
       console.error('Failed to load team data', err)
     } finally {
@@ -285,7 +286,7 @@ export default function Team() {
       </div>
 
       {/* Pending Invitations */}
-      {invitations.length > 0 && (
+      {isAccountAdmin && invitations.length > 0 && (
         <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-800 bg-slate-900/50">
             <h3 className="text-lg font-bold text-white">Pending Invitations</h3>
