@@ -64,34 +64,4 @@ public class UserEntity {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
-
-    /**
-     * Helper method to get the account of the user.
-     * Since a user can have multiple accounts, this returns the first one in the set.
-     * This is primarily used for backward compatibility in controllers.
-     *
-     * @return the first associated AccountEntity.
-     * @throws IllegalStateException if the user has no accounts.
-     */
-    public AccountEntity getAccount() {
-        if (accounts == null || accounts.isEmpty()) {
-            throw new IllegalStateException("User has no accounts");
-        }
-        return accounts.iterator().next().getAccount();
-    }
-
-    /**
-     * Helper method to get the roles of the user.
-     * Since a user can have multiple accounts, this returns roles from the first account in the set.
-     * This is primarily used for backward compatibility in controllers.
-     *
-     * @return a set of roles.
-     * @throws IllegalStateException if the user has no accounts.
-     */
-    public Set<Role> getRoles() {
-        if (accounts == null || accounts.isEmpty()) {
-            throw new IllegalStateException("User has no accounts");
-        }
-        return accounts.iterator().next().getRoles();
-    }
 }

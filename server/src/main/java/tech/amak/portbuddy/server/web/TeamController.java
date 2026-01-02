@@ -33,7 +33,6 @@ import tech.amak.portbuddy.server.db.entity.UserEntity;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.UserAccountRepository;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
-import tech.amak.portbuddy.server.security.Oauth2SuccessHandler;
 import tech.amak.portbuddy.server.service.TeamService;
 
 @RestController
@@ -110,11 +109,7 @@ public class TeamController {
     }
 
     private AccountEntity getAccount(final Jwt jwt) {
-        final var accountIdClaim = jwt.getClaimAsString(Oauth2SuccessHandler.ACCOUNT_ID_CLAIM);
-        if (accountIdClaim == null) {
-            throw new IllegalArgumentException("Account ID claim is missing.");
-        }
-        final var accountId = UUID.fromString(accountIdClaim);
+        final var accountId = tech.amak.portbuddy.server.security.JwtService.resolveAccountId(jwt);
         return accountRepository.findById(accountId)
             .orElseThrow(() -> new IllegalArgumentException("Account not found."));
     }

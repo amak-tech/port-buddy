@@ -27,6 +27,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import tech.amak.portbuddy.common.dto.auth.RegisterRequest;
 import tech.amak.portbuddy.server.config.AppProperties;
 import tech.amak.portbuddy.server.db.entity.Role;
+import tech.amak.portbuddy.server.db.repo.UserAccountRepository;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
 import tech.amak.portbuddy.server.security.JwtService;
 import tech.amak.portbuddy.server.service.ApiTokenService;
@@ -64,6 +65,9 @@ class AuthControllerTest {
 
     @MockitoBean
     private AppProperties appProperties;
+
+    @MockitoBean
+    private UserAccountRepository userAccountRepository;
 
     @Test
     void register_shouldReturnApiKey() throws Exception {

@@ -161,9 +161,14 @@ public class DomainsController {
     }
 
     private AccountEntity getAccount(final Jwt jwt) {
+        final var accountId = tech.amak.portbuddy.server.security.JwtService.resolveAccountId(jwt);
         final var userId = UUID.fromString(jwt.getSubject());
         return userRepository.findById(userId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"))
+            .getAccounts().stream()
+            .filter(ua -> ua.getAccount().getId().equals(accountId))
+            .findFirst()
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Account not found"))
             .getAccount();
     }
 

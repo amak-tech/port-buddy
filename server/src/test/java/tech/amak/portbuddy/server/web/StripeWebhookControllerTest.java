@@ -35,6 +35,7 @@ import com.stripe.model.Subscription;
 import tech.amak.portbuddy.common.Plan;
 import tech.amak.portbuddy.server.config.AppProperties;
 import tech.amak.portbuddy.server.db.entity.AccountEntity;
+import tech.amak.portbuddy.server.db.entity.UserAccountEntity;
 import tech.amak.portbuddy.server.db.entity.UserEntity;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.StripeEventRepository;
@@ -91,9 +92,11 @@ class StripeWebhookControllerTest {
         account.setPlan(Plan.PRO);
 
         final var user = new UserEntity();
+        user.setId(UUID.randomUUID());
         user.setEmail("test@example.com");
         user.setFirstName("Test");
-        account.setUsers(List.of(user));
+        final var userAccount = new UserAccountEntity(user, account, java.util.Set.of());
+        account.setUsers(List.of(userAccount));
 
         when(accountRepository.findByStripeCustomerId(customerId)).thenReturn(Optional.of(account));
         when(stripeEventRepository.existsById(anyString())).thenReturn(false);
@@ -137,9 +140,11 @@ class StripeWebhookControllerTest {
         account.setSubscriptionStatus("active");
 
         final var user = new UserEntity();
+        user.setId(UUID.randomUUID());
         user.setEmail("test@example.com");
         user.setFirstName("Test");
-        account.setUsers(List.of(user));
+        final var userAccount = new UserAccountEntity(user, account, java.util.Set.of());
+        account.setUsers(List.of(userAccount));
 
         when(accountRepository.findByStripeCustomerId(customerId)).thenReturn(Optional.of(account));
         when(stripeEventRepository.existsById(anyString())).thenReturn(false);

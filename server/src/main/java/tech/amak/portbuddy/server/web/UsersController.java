@@ -8,7 +8,6 @@ import static tech.amak.portbuddy.server.security.JwtService.resolveUserId;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -201,6 +200,7 @@ public class UsersController {
      * @param jwt the JWT token.
      * @return the list of accounts.
      */
+    @Transactional
     @GetMapping("/accounts")
     public List<UserAccountDto> getAccounts(@AuthenticationPrincipal final Jwt jwt) {
         final var userId = resolveUserId(jwt);
@@ -222,6 +222,7 @@ public class UsersController {
      * @param accountId the account id to switch to.
      * @return a new JWT token.
      */
+    @Transactional
     @PostMapping("/accounts/{id}/switch")
     public Map<String, String> switchAccount(@AuthenticationPrincipal final Jwt jwt,
                                              @PathVariable("id") final UUID accountId) {
@@ -273,11 +274,7 @@ public class UsersController {
 
     private UserAccountEntity resolveUserAccount(final Jwt jwt) {
         final var userId = resolveUserId(jwt);
-        final var accountIdClaim = jwt.getClaimAsString(Oauth2SuccessHandler.ACCOUNT_ID_CLAIM);
-        if (accountIdClaim == null) {
-            throw new IllegalArgumentException("Account ID claim is missing.");
-        }
-        final var accountId = UUID.fromString(accountIdClaim);
+        final var accountId = JwtService.resolveAccountId(jwt);
         return userAccountRepository.findByUserIdAndAccountId(userId, accountId)
             .orElseThrow(() -> new IllegalArgumentException("User does not belong to this account."));
     }

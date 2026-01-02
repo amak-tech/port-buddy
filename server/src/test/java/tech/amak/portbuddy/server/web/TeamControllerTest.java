@@ -42,8 +42,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import tech.amak.portbuddy.server.db.entity.AccountEntity;
 import tech.amak.portbuddy.server.db.entity.InvitationEntity;
 import tech.amak.portbuddy.server.db.entity.Role;
+import tech.amak.portbuddy.server.db.entity.UserAccountEntity;
 import tech.amak.portbuddy.server.db.entity.UserEntity;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
+import tech.amak.portbuddy.server.db.repo.UserAccountRepository;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
 import tech.amak.portbuddy.server.security.ApiTokenAuthFilter;
 import tech.amak.portbuddy.server.security.JwtService;
@@ -85,6 +87,9 @@ public class TeamControllerTest {
     private AccountEntity account;
     private UserEntity user;
 
+    @MockitoBean
+    private UserAccountRepository userAccountRepository;
+
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(teamController)
@@ -119,8 +124,6 @@ public class TeamControllerTest {
         user = new UserEntity();
         user.setId(userId);
         user.setEmail("admin@example.com");
-        user.setAccount(account);
-        user.setRoles(Set.of(Role.ACCOUNT_ADMIN, Role.USER));
 
         when(accountRepository.findById(accountId)).thenReturn(Optional.of(account));
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
@@ -129,6 +132,9 @@ public class TeamControllerTest {
     @Test
     void getMembers_ShouldReturnList() throws Exception {
         when(teamService.getMembers(any())).thenReturn(List.of(user));
+        final var userAccount = new UserAccountEntity(user, account, Set.of(Role.USER));
+        when(userAccountRepository.findByUserIdAndAccountId(user.getId(), account.getId()))
+            .thenReturn(Optional.of(userAccount));
 
         mockMvc.perform(get("/api/team/members")
                 .principal(new JwtAuthenticationToken(createJwt())))

@@ -4,6 +4,7 @@
 
 package tech.amak.portbuddy.server.web;
 
+import static tech.amak.portbuddy.server.security.JwtService.resolveAccountId;
 import static tech.amak.portbuddy.server.security.JwtService.resolveUserId;
 
 import java.util.List;
@@ -44,10 +45,8 @@ public class TokensController {
      */
     @GetMapping
     public List<ApiTokenService.TokenView> list(@AuthenticationPrincipal final Jwt principal) {
-        final var userId = resolveUserId(principal);
-        final var user = userRepository.findById(userId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
-        return apiTokenService.listTokens(user.getAccount().getId());
+        final var accountId = resolveAccountId(principal);
+        return apiTokenService.listTokens(accountId);
     }
 
     /**
@@ -61,10 +60,9 @@ public class TokensController {
     public CreateTokenResponse create(@AuthenticationPrincipal final Jwt principal,
                                       @RequestBody final CreateTokenRequest req) {
         final var userId = resolveUserId(principal);
-        final var user = userRepository.findById(userId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+        final var accountId = resolveAccountId(principal);
         final var created = apiTokenService.createToken(
-            user.getAccount().getId(),
+            accountId,
             userId,
             req == null ? null : req.getLabel());
         return new CreateTokenResponse(created.id(), created.token());
@@ -80,10 +78,8 @@ public class TokensController {
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void revoke(@AuthenticationPrincipal final Jwt principal, @PathVariable("id") final String id) {
-        final var userId = resolveUserId(principal);
-        final var user = userRepository.findById(userId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
-        apiTokenService.revoke(user.getAccount().getId(), id);
+        final var accountId = resolveAccountId(principal);
+        apiTokenService.revoke(accountId, id);
     }
 
     @Data

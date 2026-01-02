@@ -69,7 +69,7 @@ public class PortsController {
         final var userId = UUID.fromString(principal.getSubject());
         final var user = userRepository.findById(userId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
-        final var account = user.getAccount();
+        final var account = getAccount(principal);
         final var reservation = reservationService.createReservation(account, user)
             .orElseThrow(() -> new RuntimeException("No available ports"));
         return toDto(reservation);
@@ -133,9 +133,13 @@ public class PortsController {
     }
 
     private AccountEntity getAccount(final Jwt jwt) {
-        final var userId = UUID.fromString(jwt.getSubject());
-        return userRepository.findById(userId)
+        final var accountId = tech.amak.portbuddy.server.security.JwtService.resolveAccountId(jwt);
+        return userRepository.findById(UUID.fromString(jwt.getSubject()))
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"))
+            .getAccounts().stream()
+            .filter(ua -> ua.getAccount().getId().equals(accountId))
+            .findFirst()
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Account not found"))
             .getAccount();
     }
 

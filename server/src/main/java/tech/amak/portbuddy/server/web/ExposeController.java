@@ -4,6 +4,7 @@
 
 package tech.amak.portbuddy.server.web;
 
+import static tech.amak.portbuddy.server.security.JwtService.resolveAccountId;
 import static tech.amak.portbuddy.server.security.JwtService.resolveUserId;
 
 import org.springframework.http.HttpStatus;
@@ -23,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.dto.ExposeRequest;
 import tech.amak.portbuddy.common.dto.ExposeResponse;
 import tech.amak.portbuddy.server.config.AppProperties;
+import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
 import tech.amak.portbuddy.server.service.DomainService;
 import tech.amak.portbuddy.server.service.PortReservationService;
@@ -37,6 +39,7 @@ public class ExposeController {
     private final AppProperties properties;
     private final TunnelService tunnelService;
     private final UserRepository userRepository;
+    private final AccountRepository accountRepository;
     private final DomainService domainService;
     private final PortReservationService portReservationService;
     private final PasswordEncoder passwordEncoder;
@@ -56,9 +59,11 @@ public class ExposeController {
     public ExposeResponse exposeHttp(final @AuthenticationPrincipal Jwt jwt,
                                      final @RequestBody ExposeRequest request) {
         final var userId = resolveUserId(jwt);
+        final var accountId = resolveAccountId(jwt);
         final var user = userRepository.findById(userId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
-        final var account = user.getAccount();
+        final var account = accountRepository.findById(accountId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Account not found"));
 
         final var domain = domainService.resolveDomain(
             account, request.domain(), request.host(), request.port());
@@ -101,9 +106,11 @@ public class ExposeController {
     public ExposeResponse exposeNet(final @AuthenticationPrincipal Jwt jwt,
                                     final @RequestBody ExposeRequest request) {
         final var userId = resolveUserId(jwt);
+        final var accountId = resolveAccountId(jwt);
         final var user = userRepository.findById(userId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
-        final var account = user.getAccount();
+        final var account = accountRepository.findById(accountId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Account not found"));
 
         final var apiKeyId = extractApiKeyId(jwt);
         // Pre-create tunnel and use its DB id as tunnelId

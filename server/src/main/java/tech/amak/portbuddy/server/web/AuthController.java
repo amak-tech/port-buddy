@@ -25,6 +25,7 @@ import tech.amak.portbuddy.common.dto.auth.RegisterResponse;
 import tech.amak.portbuddy.common.dto.auth.TokenExchangeRequest;
 import tech.amak.portbuddy.common.dto.auth.TokenExchangeResponse;
 import tech.amak.portbuddy.server.config.AppProperties;
+import tech.amak.portbuddy.server.db.repo.UserAccountRepository;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
 import tech.amak.portbuddy.server.security.JwtService;
 import tech.amak.portbuddy.server.service.ApiTokenService;
@@ -47,6 +48,7 @@ public class AuthController {
     private final UserProvisioningService userProvisioningService;
     private final PasswordResetService passwordResetService;
     private final AppProperties properties;
+    private final UserAccountRepository userAccountRepository;
 
     /**
      * Exchanges a valid API token for a short-lived JWT suitable for authenticating API and WebSocket calls.
@@ -162,10 +164,14 @@ public class AuthController {
         if (user.getAvatarUrl() != null) {
             claims.put("picture", user.getAvatarUrl());
         }
-        claims.put("aid", user.getAccount().getId().toString());
+
+        final var userAccount = userAccountRepository.findLatestUsedByUserId(user.getId())
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "User has no accounts"));
+
+        claims.put("aid", userAccount.getAccount().getId().toString());
         claims.put("uid", user.getId().toString());
 
-        final var jwt = jwtService.createToken(claims, user.getId().toString(), user.getRoles());
+        final var jwt = jwtService.createToken(claims, user.getId().toString(), userAccount.getRoles());
         return new TokenExchangeResponse(jwt, "Bearer");
     }
 

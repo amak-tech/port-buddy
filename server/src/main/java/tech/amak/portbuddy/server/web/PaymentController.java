@@ -4,8 +4,10 @@
 
 package tech.amak.portbuddy.server.web;
 
+import static tech.amak.portbuddy.server.security.JwtService.resolveAccountId;
 import static tech.amak.portbuddy.server.security.JwtService.resolveUserId;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.stripe.exception.StripeException;
 
@@ -21,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.Plan;
 import tech.amak.portbuddy.server.db.entity.UserEntity;
+import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
 import tech.amak.portbuddy.server.service.StripeService;
 
@@ -32,6 +36,7 @@ public class PaymentController {
 
     private final StripeService stripeService;
     private final UserRepository userRepository;
+    private final AccountRepository accountRepository;
 
     /**
      * Creates a checkout session for the user's account and the requested plan.
@@ -46,8 +51,10 @@ public class PaymentController {
     public SessionResponse createCheckoutSession(
         @AuthenticationPrincipal final Jwt jwt,
         @RequestBody final CheckoutRequest request) throws StripeException {
-        final var user = resolveUser(jwt);
-        final var url = stripeService.createCheckoutSession(user.getAccount(), request.getPlan());
+        final var accountId = resolveAccountId(jwt);
+        final var account = accountRepository.findById(accountId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Account not found"));
+        final var url = stripeService.createCheckoutSession(account, request.getPlan());
         return new SessionResponse(url);
     }
 
@@ -61,8 +68,10 @@ public class PaymentController {
     @Transactional
     @PostMapping("/create-portal-session")
     public SessionResponse createPortalSession(@AuthenticationPrincipal final Jwt jwt) throws StripeException {
-        final var user = resolveUser(jwt);
-        final var url = stripeService.createPortalSession(user.getAccount());
+        final var accountId = resolveAccountId(jwt);
+        final var account = accountRepository.findById(accountId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Account not found"));
+        final var url = stripeService.createPortalSession(account);
         return new SessionResponse(url);
     }
 
