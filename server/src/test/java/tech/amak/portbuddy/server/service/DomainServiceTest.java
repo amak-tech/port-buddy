@@ -65,6 +65,7 @@ class DomainServiceTest {
             mail,
             new AppProperties.Cli("1.0"),
             portReservations,
+            null,
             null);
 
         domainService = new DomainService(

@@ -13,7 +13,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -26,6 +28,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import tech.amak.portbuddy.common.Plan;
 import tech.amak.portbuddy.common.TunnelType;
 import tech.amak.portbuddy.common.dto.ExposeRequest;
+import tech.amak.portbuddy.server.config.AppProperties;
 import tech.amak.portbuddy.server.db.entity.AccountEntity;
 import tech.amak.portbuddy.server.db.entity.DomainEntity;
 import tech.amak.portbuddy.server.db.entity.TunnelEntity;
@@ -46,7 +49,16 @@ class TunnelServiceTest {
 
     @BeforeEach
     void setUp() {
-        tunnelService = new TunnelService(tunnelRepository, accountRepository);
+        final var properties = new AppProperties(
+            null, null, null, null, null, null,
+            new AppProperties.Subscriptions(
+                Duration.ofDays(3),
+                Duration.ofHours(1),
+                new AppProperties.Subscriptions.Tunnels(
+                    Map.of(Plan.PRO, 1, Plan.TEAM, 10), Map.of(Plan.PRO, 1, Plan.TEAM, 5))),
+            null
+        );
+        tunnelService = new TunnelService(tunnelRepository, accountRepository, properties);
         account = new AccountEntity();
         account.setId(UUID.randomUUID());
         account.setPlan(Plan.PRO);
@@ -73,12 +85,12 @@ class TunnelServiceTest {
         final var tunnel = new TunnelEntity();
         tunnel.setId(tunnelId);
         tunnel.setAccountId(account.getId());
-        
+
         account.setSubscriptionStatus("canceled");
-        
+
         when(tunnelRepository.findById(tunnelId)).thenReturn(Optional.of(tunnel));
         when(accountRepository.findById(account.getId())).thenReturn(Optional.of(account));
-        
+
         assertThrows(IllegalStateException.class, () -> tunnelService.markConnected(tunnelId));
     }
 
@@ -88,12 +100,12 @@ class TunnelServiceTest {
         final var tunnel = new TunnelEntity();
         tunnel.setId(tunnelId);
         tunnel.setAccountId(account.getId());
-        
+
         account.setSubscriptionStatus("past_due");
-        
+
         when(tunnelRepository.findById(tunnelId)).thenReturn(Optional.of(tunnel));
         when(accountRepository.findById(account.getId())).thenReturn(Optional.of(account));
-        
+
         assertThrows(IllegalStateException.class, () -> tunnelService.heartbeat(tunnelId));
     }
 
@@ -101,10 +113,10 @@ class TunnelServiceTest {
     void checkTunnelLimit_LimitReached_ThrowsException() {
         when(tunnelRepository.countByAccountIdAndStatusIn(any(), any())).thenReturn(1L);
         account.setExtraTunnels(0);
-        
+
         final var exception = assertThrows(IllegalStateException.class, () -> tunnelService.createHttpTunnel(
             account, UUID.randomUUID(), null, createRequest(), "http://abc.pb.dev", new DomainEntity()));
-        
+
         assertEquals("Tunnel limit reached for your plan (1). Please upgrade or add more tunnels.",
             exception.getMessage());
     }
@@ -140,7 +152,7 @@ class TunnelServiceTest {
         account.setSubscriptionStatus(null);
         account.setPlan(Plan.PRO);
         account.setExtraTunnels(0);
-        
+
         when(tunnelRepository.countByAccountIdAndStatusIn(any(), any())).thenReturn(0L);
         assertDoesNotThrow(() -> tunnelService.createHttpTunnel(
             account, UUID.randomUUID(), null, createRequest(), "http://abc.pb.dev", new DomainEntity()));
@@ -151,7 +163,7 @@ class TunnelServiceTest {
         account.setSubscriptionStatus(null);
         account.setPlan(Plan.PRO);
         account.setExtraTunnels(1);
-        
+
         assertThrows(IllegalStateException.class, () -> tunnelService.createHttpTunnel(
             account, UUID.randomUUID(), null, createRequest(), "http://abc.pb.dev", new DomainEntity()));
     }
@@ -160,7 +172,7 @@ class TunnelServiceTest {
     void checkTunnelLimit_TeamPlanNoSubscription_ThrowsException() {
         account.setSubscriptionStatus(null);
         account.setPlan(Plan.TEAM);
-        
+
         assertThrows(IllegalStateException.class, () -> tunnelService.createHttpTunnel(
             account, UUID.randomUUID(), null, createRequest(), "http://abc.pb.dev", new DomainEntity()));
     }
