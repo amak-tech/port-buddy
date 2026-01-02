@@ -55,8 +55,11 @@ export default function AppLayout() {
           {/* Account Switcher */}
           <div className="px-4 py-4 border-b border-slate-800 relative">
             <button
+              disabled={accounts.length <= 1}
               onClick={() => setShowAccountSwitcher(!showAccountSwitcher)}
-              className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-slate-800/50 hover:bg-slate-800 text-white transition-colors border border-slate-700/50"
+              className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-slate-800/50 text-white transition-colors border border-slate-700/50 ${
+                accounts.length > 1 ? 'hover:bg-slate-800 cursor-pointer' : 'cursor-default'
+              }`}
             >
               <div className="flex flex-col items-start min-w-0">
                 <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Account</span>
@@ -64,7 +67,7 @@ export default function AppLayout() {
                   {user?.accountName || accounts.find(a => a.lastUsedAt)?.accountName || 'Select Account'}
                 </span>
               </div>
-              <ChevronUpDownIcon className="h-5 w-5 text-slate-400 shrink-0" />
+              {accounts.length > 1 && <ChevronUpDownIcon className="h-5 w-5 text-slate-400 shrink-0" />}
             </button>
 
             {showAccountSwitcher && (
