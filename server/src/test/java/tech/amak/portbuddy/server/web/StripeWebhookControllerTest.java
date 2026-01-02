@@ -81,6 +81,9 @@ class StripeWebhookControllerTest {
         when(appProperties.gateway()).thenReturn(new AppProperties.Gateway(
             "http://localhost:8080", "localhost", "http", "/404", "/passcode"
         ));
+        when(appProperties.stripe()).thenReturn(new AppProperties.Stripe(
+            "whsec_test", "sk_test", new AppProperties.Stripe.PriceIds("pro", "team", "extra")
+        ));
     }
 
     @Test
