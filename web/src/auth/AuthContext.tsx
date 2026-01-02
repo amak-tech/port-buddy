@@ -1,16 +1,22 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { jwtDecode } from 'jwt-decode'
 import { API_BASE, apiJson, getToken } from '../lib/api'
 
 export type User = {
     id: string
+    accountId: string
     email: string
     name?: string
     avatarUrl?: string
     roles?: string[]
     plan?: 'pro' | 'team'
+    accountName?: string
     extraTunnels?: number
     baseTunnels?: number
 }
+
+const ACCOUNT_NAME_CLAIM = 'aname'
+const ACCOUNT_ID_CLAIM = 'aid'
 
 type AuthState = {
     user: User | null
@@ -28,6 +34,12 @@ const APP_ORIGIN = window.location.origin
 const OAUTH_REDIRECT_URI = `${APP_ORIGIN}/auth/callback`
 
 function storeTokenFromUrlIfPresent(): string | null {
+    // Only capture token if we are on the auth callback path or similar
+    // to avoid stealing tokens from other pages (like /accept-invite?token=...)
+    if (!window.location.pathname.startsWith('/auth/callback') && !window.location.pathname.startsWith('/login')) {
+        return localStorage.getItem('pb_token')
+    }
+
     // Support either hash or query param token from backend callback, e.g. /auth/callback#token=... or ?token=...
     const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''))
     const query = new URLSearchParams(window.location.search)
@@ -51,16 +63,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const refresh = useCallback(async () => {
         setLoading(true)
 
-        if (!getToken()) {
+        const token = getToken()
+        if (!token) {
             setUser(null)
             setLoading(false)
             return
         }
 
+        const decoded: any = jwtDecode(token)
+        const currentUserId = decoded.uid
+        const currentAccountName = decoded[ACCOUNT_NAME_CLAIM]
+        const currentAccountId = decoded[ACCOUNT_ID_CLAIM]
+
         try {
             const details = await apiJson<{
                 user: { id: string, email: string, firstName?: string, lastName?: string, avatarUrl?: string, roles?: string[] }
-                account?: { plan?: string, extraTunnels?: number, baseTunnels?: number }
+                account?: { name?: string, plan?: string, extraTunnels?: number, baseTunnels?: number }
             }>('/api/users/me/details', undefined, { skipRedirectOn401: true })
 
             const firstName = details?.user?.firstName?.trim() || ''
@@ -70,11 +88,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // Map server response to SPA User shape
             const mapped: User = {
                 id: details.user.id,
+                accountId: currentAccountId,
                 email: details.user.email,
                 name,
                 avatarUrl: details.user.avatarUrl || undefined,
                 roles: details.user.roles,
                 plan: details.account?.plan?.toLowerCase() as any,
+                accountName: details.account?.name || currentAccountName,
                 extraTunnels: details.account?.extraTunnels,
                 baseTunnels: details.account?.baseTunnels,
             }

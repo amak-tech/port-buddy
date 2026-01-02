@@ -77,7 +77,7 @@ class AuthControllerTest {
         final var apiKey = "test-api-key";
 
         when(userProvisioningService.createLocalUser(any(), any(), any()))
-            .thenReturn(new UserProvisioningService.ProvisionedUser(userId, accountId, Set.of(Role.ACCOUNT_ADMIN)));
+            .thenReturn(new UserProvisioningService.ProvisionedUser(userId, accountId, "Test Account", Set.of(Role.ACCOUNT_ADMIN)));
 
         when(apiTokenService.createToken(accountId, userId, "prtb-client"))
             .thenReturn(new ApiTokenService.CreatedToken(UUID.randomUUID().toString(), apiKey));

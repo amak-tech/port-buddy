@@ -11,26 +11,30 @@ import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline'
 export default function AcceptInvite() {
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token')
-  const { user, authenticated, refresh } = useAuth()
+  const { user, loading, refresh } = useAuth()
   const navigate = useNavigate()
   
   const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'unauthenticated'>('loading')
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (loading) {
+      return
+    }
+
     if (!token) {
       setStatus('error')
       setError('Missing invitation token.')
       return
     }
 
-    if (!authenticated) {
+    if (!user) {
       setStatus('unauthenticated')
       return
     }
 
     void handleAccept()
-  }, [token, authenticated])
+  }, [token, user, loading])
 
   async function handleAccept() {
     setStatus('loading')

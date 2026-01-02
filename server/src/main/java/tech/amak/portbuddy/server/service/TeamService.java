@@ -188,7 +188,7 @@ public class TeamService {
         userAccount.setLastUsedAt(OffsetDateTime.now());
         userAccountRepository.save(userAccount);
 
-        return new UserProvisioningService.ProvisionedUser(userId, accountId, userAccount.getRoles());
+        return new UserProvisioningService.ProvisionedUser(userId, accountId, userAccount.getAccount().getName(), userAccount.getRoles());
     }
 
     private void sendInvitationEmail(final InvitationEntity invitation) {

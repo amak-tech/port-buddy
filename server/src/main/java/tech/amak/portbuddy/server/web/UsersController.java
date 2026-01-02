@@ -6,6 +6,7 @@ package tech.amak.portbuddy.server.web;
 
 import static tech.amak.portbuddy.server.security.JwtService.resolveUserId;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -243,6 +244,7 @@ public class UsersController {
             claims.put(Oauth2SuccessHandler.PICTURE_CLAIM, picture);
         }
         claims.put(Oauth2SuccessHandler.ACCOUNT_ID_CLAIM, provisioned.accountId().toString());
+        claims.put(Oauth2SuccessHandler.ACCOUNT_NAME_CLAIM, provisioned.accountName());
         claims.put(Oauth2SuccessHandler.USER_ID_CLAIM, provisioned.userId().toString());
 
         final var token = jwtService.createToken(claims, provisioned.userId().toString(), provisioned.roles());
@@ -338,6 +340,6 @@ public class UsersController {
         private String accountName;
         private Plan plan;
         private Set<String> roles;
-        private java.time.OffsetDateTime lastUsedAt;
+        private OffsetDateTime lastUsedAt;
     }
 }

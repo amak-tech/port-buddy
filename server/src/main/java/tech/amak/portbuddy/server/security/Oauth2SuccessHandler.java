@@ -35,6 +35,7 @@ public class Oauth2SuccessHandler implements AuthenticationSuccessHandler {
     public static final String FIRST_NAME_CLAIM = "given_name";
     public static final String LAST_NAME_CLAIM = "family_name";
     public static final String ACCOUNT_ID_CLAIM = "aid";
+    public static final String ACCOUNT_NAME_CLAIM = "aname";
     public static final String USER_ID_CLAIM = "uid";
     public static final String SUBJECT_CLAIM = "sub";
     public static final String ID_CLAIM = "id";
@@ -105,6 +106,7 @@ public class Oauth2SuccessHandler implements AuthenticationSuccessHandler {
             claims.put(PICTURE_CLAIM, picture);
         }
         claims.put(ACCOUNT_ID_CLAIM, provisioned.accountId().toString());
+        claims.put(ACCOUNT_NAME_CLAIM, provisioned.accountName());
         claims.put(USER_ID_CLAIM, provisioned.userId().toString());
 
         final var token = jwtService.createToken(claims, provisioned.userId().toString(), provisioned.roles());

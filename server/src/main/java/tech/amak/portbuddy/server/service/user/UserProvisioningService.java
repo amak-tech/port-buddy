@@ -45,7 +45,7 @@ public class UserProvisioningService {
     private final ApplicationEventPublisher eventPublisher;
     private final PasswordResetService passwordResetService;
 
-    public record ProvisionedUser(UUID userId, UUID accountId, Set<Role> roles) {
+    public record ProvisionedUser(UUID userId, UUID accountId, String accountName, Set<Role> roles) {
     }
 
     /**
@@ -116,7 +116,7 @@ public class UserProvisioningService {
             user.getId(), account.getId(), user.getEmail(), user.getFirstName(), user.getLastName(), resetPasswordLink
         ));
 
-        return new ProvisionedUser(user.getId(), account.getId(), userAccount.getRoles());
+        return new ProvisionedUser(user.getId(), account.getId(), account.getName(), userAccount.getRoles());
     }
 
     /**
@@ -167,7 +167,7 @@ public class UserProvisioningService {
             }
             final var userAccount = userAccountRepository.findLatestUsedByUserId(user.getId())
                 .orElseThrow(() -> new IllegalStateException("User has no accounts"));
-            return new ProvisionedUser(user.getId(), userAccount.getAccount().getId(), userAccount.getRoles());
+            return new ProvisionedUser(user.getId(), userAccount.getAccount().getId(), userAccount.getAccount().getName(), userAccount.getRoles());
         }
 
         // For new identities we must have a non-null email to create/merge a user
@@ -212,7 +212,7 @@ public class UserProvisioningService {
                 }
                 final var userAccount = userAccountRepository.findLatestUsedByUserId(user.getId())
                     .orElseThrow(() -> new IllegalStateException("User has no accounts"));
-                return new ProvisionedUser(user.getId(), userAccount.getAccount().getId(), userAccount.getRoles());
+                return new ProvisionedUser(user.getId(), userAccount.getAccount().getId(), userAccount.getAccount().getName(), userAccount.getRoles());
             }
         }
 
@@ -249,7 +249,7 @@ public class UserProvisioningService {
             user.getId(), account.getId(), user.getEmail(), user.getFirstName(), user.getLastName(), null
         ));
 
-        return new ProvisionedUser(user.getId(), account.getId(), userAccount.getRoles());
+        return new ProvisionedUser(user.getId(), account.getId(), account.getName(), userAccount.getRoles());
     }
 
     private static String defaultAccountName(final String firstName, final String lastName, final String email) {
