@@ -8,6 +8,7 @@ import static tech.amak.portbuddy.server.security.JwtService.resolveAccountId;
 import static tech.amak.portbuddy.server.security.JwtService.resolveUserId;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +33,7 @@ import tech.amak.portbuddy.server.service.StripeService;
 @RestController
 @RequestMapping("/api/payments")
 @RequiredArgsConstructor
+@PreAuthorize("hasAnyRole('ADMIN', 'ACCOUNT_ADMIN')")
 public class PaymentController {
 
     private final StripeService stripeService;

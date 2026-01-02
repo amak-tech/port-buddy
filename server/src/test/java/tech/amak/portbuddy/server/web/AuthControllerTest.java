@@ -33,6 +33,7 @@ import tech.amak.portbuddy.server.security.JwtService;
 import tech.amak.portbuddy.server.service.ApiTokenService;
 import tech.amak.portbuddy.server.service.user.PasswordResetService;
 import tech.amak.portbuddy.server.service.user.UserProvisioningService;
+import tech.amak.portbuddy.server.service.user.UserProvisioningService.ProvisionedUser;
 import tech.amak.portbuddy.server.web.dto.PasswordResetRequest;
 
 @WebMvcTest(AuthController.class)
@@ -77,7 +78,7 @@ class AuthControllerTest {
         final var apiKey = "test-api-key";
 
         when(userProvisioningService.createLocalUser(any(), any(), any()))
-            .thenReturn(new UserProvisioningService.ProvisionedUser(userId, accountId, "Test Account", Set.of(Role.ACCOUNT_ADMIN)));
+            .thenReturn(new ProvisionedUser(userId, accountId, "Test Account", Set.of(Role.ACCOUNT_ADMIN)));
 
         when(apiTokenService.createToken(accountId, userId, "prtb-client"))
             .thenReturn(new ApiTokenService.CreatedToken(UUID.randomUUID().toString(), apiKey));

@@ -82,7 +82,7 @@ public class TeamController {
      * @return the created invitation
      */
     @PostMapping("/invitations")
-    @PreAuthorize("hasRole('ACCOUNT_ADMIN')")
+    @PreAuthorize("hasAnyRole('ACCOUNT_ADMIN', 'ADMIN')")
     public InvitationDto inviteMember(@AuthenticationPrincipal final Jwt jwt,
                                       @RequestBody final InviteRequest request) {
         final var account = getAccount(jwt);
@@ -92,12 +92,37 @@ public class TeamController {
     }
 
     @DeleteMapping("/invitations/{id}")
-    @PreAuthorize("hasRole('ACCOUNT_ADMIN')")
+    @PreAuthorize("hasAnyRole('ACCOUNT_ADMIN', 'ADMIN')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void cancelInvitation(@AuthenticationPrincipal final Jwt jwt,
                                  @PathVariable("id") final UUID id) {
         final var account = getAccount(jwt);
         teamService.cancelInvitation(account, id);
+    }
+
+    @PostMapping("/invitations/{id}/resend")
+    @PreAuthorize("hasAnyRole('ACCOUNT_ADMIN', 'ADMIN')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void resendInvitation(@AuthenticationPrincipal final Jwt jwt,
+                                 @PathVariable("id") final UUID id) {
+        final var account = getAccount(jwt);
+        teamService.resendInvitation(account, id);
+    }
+
+    /**
+     * Removes a member from the team.
+     *
+     * @param jwt    the JWT token
+     * @param userId the user id to remove
+     */
+    @DeleteMapping("/members/{userId}")
+    @PreAuthorize("hasAnyRole('ACCOUNT_ADMIN', 'ADMIN')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void removeMember(@AuthenticationPrincipal final Jwt jwt,
+                             @PathVariable("userId") final UUID userId) {
+        final var account = getAccount(jwt);
+        final var user = getUser(jwt);
+        teamService.removeMember(account, userId, user);
     }
 
     @PostMapping("/accept")

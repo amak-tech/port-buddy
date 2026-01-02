@@ -176,6 +176,38 @@ public class TeamControllerTest {
     }
 
     @Test
+    void resendInvitation_ShouldCallService() throws Exception {
+        final var invId = UUID.randomUUID();
+
+        mockMvc.perform(post("/api/team/invitations/" + invId + "/resend")
+                .principal(new JwtAuthenticationToken(createJwt())))
+            .andExpect(status().isNoContent());
+
+        verify(teamService).resendInvitation(any(), eq(invId));
+    }
+
+    @Test
+    void removeMember_ShouldCallService() throws Exception {
+        final var memberId = UUID.randomUUID();
+
+        mockMvc.perform(delete("/api/team/members/" + memberId)
+                .principal(new JwtAuthenticationToken(createJwt())))
+            .andExpect(status().isNoContent());
+
+        verify(teamService).removeMember(any(), eq(memberId), any());
+    }
+
+    @Test
+    void removeMember_ShouldReturnBadRequest_WhenRemovingSelf() throws Exception {
+        org.mockito.Mockito.doThrow(new IllegalArgumentException("You cannot remove yourself from the account."))
+            .when(teamService).removeMember(any(), eq(userId), any());
+
+        mockMvc.perform(delete("/api/team/members/" + userId)
+                .principal(new JwtAuthenticationToken(createJwt())))
+            .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void getMembers_ShouldThrowException_WhenAccountIdClaimIsMissing() throws Exception {
         final var jwtWithoutAccountId = org.springframework.security.oauth2.jwt.Jwt.withTokenValue("token")
             .header("alg", "none")
@@ -185,6 +217,23 @@ public class TeamControllerTest {
         mockMvc.perform(get("/api/team/members")
                 .principal(new JwtAuthenticationToken(jwtWithoutAccountId)))
             .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void removeMember_ShouldCallService_WhenAdmin() throws Exception {
+        final var memberId = UUID.randomUUID();
+        final var jwt = org.springframework.security.oauth2.jwt.Jwt.withTokenValue("token")
+            .header("alg", "none")
+            .subject(userId.toString())
+            .claim("aid", accountId.toString())
+            .claim("roles", List.of("ADMIN", "USER"))
+            .build();
+
+        mockMvc.perform(delete("/api/team/members/" + memberId)
+                .principal(new JwtAuthenticationToken(jwt)))
+            .andExpect(status().isNoContent());
+
+        verify(teamService).removeMember(any(), eq(memberId), any());
     }
 
     private org.springframework.security.oauth2.jwt.Jwt createJwt() {

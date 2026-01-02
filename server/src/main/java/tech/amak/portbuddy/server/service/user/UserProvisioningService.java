@@ -167,7 +167,9 @@ public class UserProvisioningService {
             }
             final var userAccount = userAccountRepository.findLatestUsedByUserId(user.getId())
                 .orElseThrow(() -> new IllegalStateException("User has no accounts"));
-            return new ProvisionedUser(user.getId(), userAccount.getAccount().getId(), userAccount.getAccount().getName(), userAccount.getRoles());
+            final var account = userAccount.getAccount();
+
+            return new ProvisionedUser(user.getId(), account.getId(), account.getName(), userAccount.getRoles());
         }
 
         // For new identities we must have a non-null email to create/merge a user
@@ -212,7 +214,9 @@ public class UserProvisioningService {
                 }
                 final var userAccount = userAccountRepository.findLatestUsedByUserId(user.getId())
                     .orElseThrow(() -> new IllegalStateException("User has no accounts"));
-                return new ProvisionedUser(user.getId(), userAccount.getAccount().getId(), userAccount.getAccount().getName(), userAccount.getRoles());
+                final var account = userAccount.getAccount();
+
+                return new ProvisionedUser(user.getId(), account.getId(), account.getName(), userAccount.getRoles());
             }
         }
 

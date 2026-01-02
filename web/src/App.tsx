@@ -133,7 +133,7 @@ export default function App() {
             <Route path="domains" element={<Domains/>} />
             <Route path="ports" element={<Ports/>} />
             <Route path="team" element={<Team/>} />
-            <Route path="billing" element={<Billing/>} />
+            <Route path="billing" element={<ProtectedRoute role="ACCOUNT_ADMIN"><Billing/></ProtectedRoute>} />
             <Route path="billing/success" element={<BillingSuccess/>} />
             <Route path="billing/cancel" element={<BillingCancel/>} />
             <Route path="settings" element={<Settings/>} />

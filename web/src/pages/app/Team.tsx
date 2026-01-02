@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { apiJson } from '../../lib/api'
 import { useAuth } from '../../auth/AuthContext'
 import { usePageTitle } from '../../components/PageHeader'
-import { UserGroupIcon, UserPlusIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { UserGroupIcon, UserPlusIcon, XMarkIcon, TrashIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
 import { AlertModal, ConfirmModal } from '../../components/Modal'
 
 type Member = {
@@ -43,9 +43,10 @@ export default function Team() {
     isOpen: false, title: '', message: ''
   })
   const [cancelId, setCancelId] = useState<string | null>(null)
+  const [removeMemberId, setRemoveMemberId] = useState<string | null>(null)
 
   const isTeamPlan = user?.plan === 'team'
-  const isAccountAdmin = user?.roles?.includes('ACCOUNT_ADMIN')
+  const isAccountAdmin = user?.roles?.some(r => r === 'ACCOUNT_ADMIN' || r === 'ADMIN')
 
   useEffect(() => {
     if (isTeamPlan) {
@@ -107,6 +108,40 @@ export default function Team() {
     }
   }
 
+  async function handleResendInvitation(id: string) {
+    try {
+      await apiJson(`/api/team/invitations/${id}/resend`, { method: 'POST' })
+      setAlertState({
+        isOpen: true,
+        title: 'Success',
+        message: 'Invitation has been resent successfully.'
+      })
+      void loadData()
+    } catch (err: any) {
+      setAlertState({
+        isOpen: true,
+        title: 'Error',
+        message: err.message || 'Failed to resend invitation'
+      })
+    }
+  }
+
+  async function confirmRemoveMember() {
+    if (!removeMemberId) return
+    
+    try {
+      await apiJson(`/api/team/members/${removeMemberId}`, { method: 'DELETE' })
+      setRemoveMemberId(null)
+      void loadData()
+    } catch (err: any) {
+      setAlertState({ 
+        isOpen: true, 
+        title: 'Error', 
+        message: err.message || 'Failed to remove member' 
+      })
+    }
+  }
+
   if (!isTeamPlan) {
     return (
       <div className="max-w-4xl">
@@ -138,6 +173,14 @@ export default function Team() {
         message="Are you sure you want to cancel this invitation?" 
         onClose={() => setCancelId(null)} 
         onConfirm={() => void confirmCancelInvitation()}
+        isDangerous={true}
+      />
+      <ConfirmModal 
+        isOpen={!!removeMemberId} 
+        title="Remove Member" 
+        message="Are you sure you want to remove this member from your account? They will lose access to all shared resources." 
+        onClose={() => setRemoveMemberId(null)} 
+        onConfirm={() => void confirmRemoveMember()}
         isDangerous={true}
       />
       
@@ -181,12 +224,13 @@ export default function Team() {
                 <th className="px-6 py-4">User</th>
                 <th className="px-6 py-4">Roles</th>
                 <th className="px-6 py-4">Joined</th>
+                <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
               {loading ? (
                 <tr>
-                   <td colSpan={3} className="px-6 py-12 text-center text-slate-500">Loading members...</td>
+                   <td colSpan={4} className="px-6 py-12 text-center text-slate-500">Loading members...</td>
                 </tr>
               ) : members.map((m) => (
                 <tr key={m.id} className="hover:bg-slate-800/30 transition-colors">
@@ -222,6 +266,17 @@ export default function Team() {
                   <td className="px-6 py-4 text-slate-400 text-xs">
                     {new Date(m.joinedAt).toLocaleDateString()}
                   </td>
+                  <td className="px-6 py-4 text-right">
+                    {isAccountAdmin && m.id !== user?.id && (
+                      <button
+                        onClick={() => setRemoveMemberId(m.id)}
+                        className="text-slate-500 hover:text-red-400 p-1 rounded-lg transition-colors"
+                        title="Remove member"
+                      >
+                        <TrashIcon className="w-5 h-5" />
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -255,13 +310,22 @@ export default function Team() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       {isAccountAdmin && (
-                        <button
-                          onClick={() => setCancelId(i.id)}
-                          className="text-slate-500 hover:text-red-400 p-1 rounded-lg transition-colors"
-                          title="Cancel invitation"
-                        >
-                          <XMarkIcon className="w-5 h-5" />
-                        </button>
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => void handleResendInvitation(i.id)}
+                            className="text-slate-500 hover:text-indigo-400 p-1 rounded-lg transition-colors"
+                            title="Resend invitation"
+                          >
+                            <ArrowPathIcon className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={() => setCancelId(i.id)}
+                            className="text-slate-500 hover:text-red-400 p-1 rounded-lg transition-colors"
+                            title="Cancel invitation"
+                          >
+                            <XMarkIcon className="w-5 h-5" />
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>

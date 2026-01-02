@@ -26,7 +26,7 @@ import tech.amak.portbuddy.server.db.repo.InvitationRepository;
 import tech.amak.portbuddy.server.db.repo.UserAccountRepository;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
 import tech.amak.portbuddy.server.mail.EmailService;
-import tech.amak.portbuddy.server.service.user.UserProvisioningService;
+import tech.amak.portbuddy.server.service.user.UserProvisioningService.ProvisionedUser;
 
 /**
  * Service for managing team members and invitations.
@@ -106,18 +106,18 @@ public class TeamService {
     /**
      * Removes a member from the team.
      *
-     * @param account  the account to remove from.
-     * @param userId   the user to remove.
+     * @param account     the account to remove from.
+     * @param userId      the user to remove.
+     * @param currentUser the user who is performing the removal.
      */
     @Transactional
-    public void removeMember(final AccountEntity account, final UUID userId) {
+    public void removeMember(final AccountEntity account, final UUID userId, final UserEntity currentUser) {
+        if (currentUser.getId().equals(userId)) {
+            throw new IllegalArgumentException("You cannot remove yourself from the account.");
+        }
+
         final var userAccount = userAccountRepository.findByUserIdAndAccountId(userId, account.getId())
             .orElseThrow(() -> new IllegalArgumentException("User does not belong to this account."));
-
-        if (userAccount.getRoles().contains(Role.ACCOUNT_ADMIN)) {
-             // In a real app we might want to check if they are the ONLY admin
-             // For now, let's assume we can remove any admin but they can't remove themselves easily from UI
-        }
 
         userAccountRepository.delete(userAccount);
     }
@@ -163,7 +163,7 @@ public class TeamService {
         final var userAccountId = invitation.getAccount().getId();
         final var userAccount = userAccountRepository.findByUserIdAndAccountId(user.getId(), userAccountId)
             .orElseGet(() -> new UserAccountEntity(user, invitation.getAccount(), new HashSet<>(List.of(Role.USER))));
-        
+
         userAccount.setLastUsedAt(OffsetDateTime.now());
         userAccountRepository.save(userAccount);
 
@@ -181,14 +181,40 @@ public class TeamService {
      * @return provisioned user information with the new account.
      */
     @Transactional
-    public UserProvisioningService.ProvisionedUser switchAccount(final UUID userId, final UUID accountId) {
+    public ProvisionedUser switchAccount(final UUID userId, final UUID accountId) {
         final var userAccount = userAccountRepository.findByUserIdAndAccountId(userId, accountId)
             .orElseThrow(() -> new IllegalArgumentException("User does not belong to this account."));
 
         userAccount.setLastUsedAt(OffsetDateTime.now());
         userAccountRepository.save(userAccount);
 
-        return new UserProvisioningService.ProvisionedUser(userId, accountId, userAccount.getAccount().getName(), userAccount.getRoles());
+        return new ProvisionedUser(userId, accountId, userAccount.getAccount().getName(), userAccount.getRoles());
+    }
+
+    /**
+     * Resends a pending invitation.
+     *
+     * @param account      the account.
+     * @param invitationId the invitation id.
+     */
+    @Transactional
+    public void resendInvitation(final AccountEntity account, final UUID invitationId) {
+        final var invitation = invitationRepository.findById(invitationId)
+            .orElseThrow(() -> new IllegalArgumentException("Invitation not found."));
+
+        if (!invitation.getAccount().getId().equals(account.getId())) {
+            throw new IllegalArgumentException("Invitation does not belong to this account.");
+        }
+
+        if (invitation.getAcceptedAt() != null) {
+            throw new IllegalStateException("Invitation has already been accepted.");
+        }
+
+        invitation.setToken(UUID.randomUUID().toString());
+        invitation.setExpiresAt(OffsetDateTime.now().plusDays(7));
+        final var saved = invitationRepository.save(invitation);
+
+        sendInvitationEmail(saved);
     }
 
     private void sendInvitationEmail(final InvitationEntity invitation) {
