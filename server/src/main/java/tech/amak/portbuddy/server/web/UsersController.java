@@ -151,7 +151,7 @@ public class UsersController {
      * @param request request body.
      * @return updated account details.
      */
-    @PostMapping("/account/tunnels")
+    @PatchMapping(path = "/account/tunnels", consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAnyRole('ACCOUNT_ADMIN', 'ADMIN')")
     @Transactional
     public AccountDto updateExtraTunnels(@AuthenticationPrincipal final Jwt jwt,
