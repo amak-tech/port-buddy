@@ -347,7 +347,6 @@ export default function Billing() {
         </Link>
       </div>
 
-      <PlanComparison />
     </div>
   )
 }
