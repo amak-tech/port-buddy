@@ -153,7 +153,8 @@ public class StripeWebhookController {
         if (oldSubscriptionId != null) {
             log.info("Cancelling old subscription {} for account {}", oldSubscriptionId, accountId);
             try {
-                stripeService.cancelSubscription(oldSubscriptionId);
+                final var oldSubscription = Subscription.retrieve(oldSubscriptionId);
+                oldSubscription.cancel();
             } catch (Exception e) {
                 log.error("Failed to cancel old subscription {}: {}", oldSubscriptionId, e.getMessage());
                 // We don't throw here to avoid failing the whole webhook if cancellation fails
@@ -211,7 +212,8 @@ public class StripeWebhookController {
             // Only process events for the current subscription. 
             // If the event is for a different subscription, we ignore it to avoid overwriting 
             // active subscription with status from a cancelled old one (e.g. after upgrade).
-            if (account.getStripeSubscriptionId() != null && !account.getStripeSubscriptionId().equals(subscription.getId())) {
+            if (account.getStripeSubscriptionId() != null
+                && !account.getStripeSubscriptionId().equals(subscription.getId())) {
                 log.info("Ignoring event for subscription {} as it is not the current subscription {} for account {}",
                     subscription.getId(), account.getStripeSubscriptionId(), account.getId());
                 return;
@@ -238,6 +240,13 @@ public class StripeWebhookController {
             final var wasActive = "active".equals(oldStatus);
             final var isCanceled = "canceled".equals(account.getSubscriptionStatus());
             final var planChanged = account.getPlan() != oldPlan;
+
+            if (isCanceled && !"canceled".equals(oldStatus)) {
+                log.info("Subscription canceled for account {}, resetting extra tunnels to 0", account.getId());
+                account.setExtraTunnels(0);
+                account.setPlan(Plan.PRO);
+                account.setStripeSubscriptionId(null);
+            }
 
             accountRepository.save(account);
             tunnelService.enforceTunnelLimit(account);

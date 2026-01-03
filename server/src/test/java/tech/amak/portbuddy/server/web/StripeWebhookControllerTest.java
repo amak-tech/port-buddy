@@ -227,7 +227,7 @@ class StripeWebhookControllerTest {
                 .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk());
 
-        verify(stripeService).cancelSubscription(oldSubId);
+        verify(stripeService).cancelSubscription(account);
         verify(accountRepository).save(account);
         assert account.getStripeSubscriptionId().equals(newSubId);
         assert account.getPlan() == Plan.TEAM;

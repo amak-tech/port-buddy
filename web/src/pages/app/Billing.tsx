@@ -5,6 +5,7 @@ import { usePageTitle } from '../../components/PageHeader'
 import { CheckIcon, ArrowLeftIcon, PlusIcon, MinusIcon } from '@heroicons/react/24/outline'
 import { apiJson } from '../../lib/api'
 import PlanComparison from '../../components/PlanComparison'
+import { ConfirmModal } from '../../components/Modal'
 
 export default function Billing() {
   usePageTitle('Billing')
@@ -15,6 +16,19 @@ export default function Billing() {
   const [success, setSuccess] = useState(false)
   const [pendingExtra, setPendingExtra] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean,
+    title: string,
+    message: string,
+    onConfirm: () => void,
+    isDangerous?: boolean
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    isDangerous: false
+  })
 
   useEffect(() => {
     if (searchParams.get('success')) {
@@ -88,10 +102,21 @@ export default function Billing() {
 
     const newLimit = baseTunnels + pendingExtra;
     if (pendingExtra < extraTunnels && activeTunnels > newLimit) {
-      if (!window.confirm(`Reducing extra tunnels will lower your total limit to ${newLimit}. You currently have ${activeTunnels} active tunnels. Excess tunnels will be automatically closed. Do you want to proceed?`)) {
-        return;
-      }
+      setConfirmConfig({
+        isOpen: true,
+        title: 'Reduce Tunnel Limit',
+        message: `Reducing extra tunnels will lower your total limit to ${newLimit}. You currently have ${activeTunnels} active tunnels. Excess tunnels will be automatically closed. Do you want to proceed?`,
+        onConfirm: () => performUpdate(),
+        isDangerous: true
+      });
+      return;
     }
+
+    performUpdate();
+  }
+
+  const performUpdate = async () => {
+    if (pendingExtra === null) return;
 
     // If user has no subscription and is adding extra tunnels, we must use checkout session
     if (pendingExtra > 0 && !user?.subscriptionStatus) {
@@ -144,17 +169,62 @@ export default function Billing() {
 
   const handleUpgrade = async (planKey: string) => {
     const isDowngrade = currentPlanKey === 'team' && planKey === 'pro';
-    const newLimit = getLimitForPlan(planKey) + extraTunnels;
+    const newLimit = getLimitForPlan(planKey) + (isDowngrade ? 0 : extraTunnels);
     
-    if (isDowngrade && activeTunnels > newLimit) {
-      if (!window.confirm(`Downgrading to PRO will reduce your tunnel limit to ${newLimit}. You currently have ${activeTunnels} active tunnels. Excess tunnels will be automatically closed. Do you want to proceed?`)) {
+    if (isDowngrade) {
+        setConfirmConfig({
+            isOpen: true,
+            title: 'Downgrade to PRO',
+            message: 'Cancelling your TEAM subscription will reset your extra tunnels to 0 and downgrade your account to PRO. Do you want to proceed?',
+            onConfirm: () => checkTunnelLimitAndUpgrade(planKey, newLimit),
+            isDangerous: true
+        });
         return;
-      }
+    } else if (subscriptionStatus === 'active') {
+        setConfirmConfig({
+            isOpen: true,
+            title: 'Switch Plan',
+            message: `Switching to ${planKey.toUpperCase()} will cancel your current subscription and reset extra tunnels to 0. You will be redirected to payment for the new plan. Do you want to proceed?`,
+            onConfirm: () => checkTunnelLimitAndUpgrade(planKey, newLimit),
+            isDangerous: false
+        });
+        return;
     }
 
+    checkTunnelLimitAndUpgrade(planKey, newLimit);
+  }
+
+  const checkTunnelLimitAndUpgrade = (planKey: string, newLimit: number) => {
+    if (activeTunnels > newLimit) {
+        setConfirmConfig({
+            isOpen: true,
+            title: 'Reduce Tunnel Limit',
+            message: `This change will reduce your tunnel limit to ${newLimit}. You currently have ${activeTunnels} active tunnels. Excess tunnels will be automatically closed. Do you want to proceed?`,
+            onConfirm: () => performUpgrade(planKey),
+            isDangerous: true
+        });
+        return;
+    }
+
+    performUpgrade(planKey);
+  }
+
+  const performUpgrade = async (planKey: string) => {
     setError(null)
     setLoading(true)
     try {
+      if (subscriptionStatus === 'active') {
+        await apiJson('/api/payments/cancel-subscription', {
+          method: 'POST'
+        })
+        await refresh()
+      }
+
+      if (planKey === 'pro') {
+          setSuccess(true)
+          return
+      }
+
       const { url } = await apiJson('/api/payments/create-checkout-session', {
         method: 'POST',
         body: JSON.stringify({ plan: planKey.toUpperCase() })
@@ -346,6 +416,15 @@ export default function Billing() {
           Back to dashboard
         </Link>
       </div>
+
+      <ConfirmModal
+        isOpen={confirmConfig.isOpen}
+        onClose={() => setConfirmConfig({ ...confirmConfig, isOpen: false })}
+        onConfirm={confirmConfig.onConfirm}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        isDangerous={confirmConfig.isDangerous}
+      />
 
     </div>
   )

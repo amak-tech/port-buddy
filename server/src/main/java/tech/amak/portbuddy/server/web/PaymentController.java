@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -73,6 +74,24 @@ public class PaymentController {
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Account not found"));
         final var url = stripeService.createPortalSession(account);
         return new SessionResponse(url);
+    }
+
+    /**
+     * Cancels the current subscription for the user's account and resets extra tunnels.
+     *
+     * @param jwt the JWT token
+     * @throws StripeException if Stripe API call fails
+     */
+    @Transactional
+    @PostMapping("/cancel-subscription")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void cancelSubscription(@AuthenticationPrincipal final Jwt jwt) throws StripeException {
+        final var accountId = resolveAccountId(jwt);
+        final var account = accountRepository.findById(accountId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Account not found"));
+        stripeService.cancelSubscription(account);
+        account.setExtraTunnels(0);
+        accountRepository.save(account);
     }
 
     @Data

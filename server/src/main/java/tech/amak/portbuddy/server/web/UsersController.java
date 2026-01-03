@@ -33,6 +33,7 @@ import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import tech.amak.portbuddy.common.Plan;
 import tech.amak.portbuddy.server.config.AppProperties;
+import tech.amak.portbuddy.server.db.entity.AccountEntity;
 import tech.amak.portbuddy.server.db.entity.UserAccountEntity;
 import tech.amak.portbuddy.server.db.entity.UserEntity;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
@@ -253,7 +254,7 @@ public class UsersController {
         return Map.of("token", token);
     }
 
-    private AccountDto toAccountDto(final tech.amak.portbuddy.server.db.entity.AccountEntity account) {
+    private AccountDto toAccountDto(final AccountEntity account) {
         final var dto = new AccountDto();
         dto.setId(account.getId().toString());
         dto.setName(account.getName());

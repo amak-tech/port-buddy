@@ -89,16 +89,17 @@ public class StripeService {
     }
 
     /**
-     * Cancels the given subscription in Stripe.
+     * Cancels the given subscription in Stripe and resets extra tunnels.
      *
-     * @param subscriptionId the subscription ID to cancel
+     * @param account the account
      * @throws StripeException if Stripe API call fails
      */
-    public void cancelSubscription(final String subscriptionId) throws StripeException {
+    public void cancelSubscription(final AccountEntity account) throws StripeException {
+        final var subscriptionId = account.getStripeSubscriptionId();
         if (subscriptionId == null) {
             return;
         }
-        log.info("Cancelling Stripe subscription: {}", subscriptionId);
+        log.info("Cancelling Stripe subscription: {} for account: {}", subscriptionId, account.getId());
         final var subscription = Subscription.retrieve(subscriptionId);
         subscription.cancel();
     }
