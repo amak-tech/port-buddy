@@ -42,7 +42,9 @@ import tech.amak.portbuddy.server.db.repo.StripeEventRepository;
 import tech.amak.portbuddy.server.mail.EmailService;
 import tech.amak.portbuddy.server.security.ApiTokenAuthFilter;
 import tech.amak.portbuddy.server.security.Oauth2SuccessHandler;
+import tech.amak.portbuddy.server.service.StripeService;
 import tech.amak.portbuddy.server.service.StripeWebhookService;
+import com.stripe.model.checkout.Session;
 import tech.amak.portbuddy.server.service.TunnelService;
 
 @WebMvcTest(StripeWebhookController.class)
@@ -66,6 +68,9 @@ class StripeWebhookControllerTest {
 
     @MockitoBean
     private StripeWebhookService stripeWebhookService;
+
+    @MockitoBean
+    private StripeService stripeService;
 
     @MockitoBean
     private ApiTokenAuthFilter apiTokenAuthFilter;
@@ -178,5 +183,95 @@ class StripeWebhookControllerTest {
             eq("email/subscription-canceled"),
             anyMap()
         );
+    }
+
+    @Test
+    void handleCheckoutSessionCompleted_withOldSubscription_shouldCancelOldSubscription() throws Exception {
+        final var accountId = UUID.randomUUID();
+        final var oldSubId = "sub_old";
+        final var newSubId = "sub_new";
+        final var customerId = "cus_123";
+
+        final var account = new AccountEntity();
+        account.setId(accountId);
+        account.setStripeCustomerId(customerId);
+        account.setStripeSubscriptionId(oldSubId);
+        account.setPlan(Plan.PRO);
+
+        when(accountRepository.findById(accountId)).thenReturn(Optional.of(account));
+        when(stripeEventRepository.existsById(anyString())).thenReturn(false);
+
+        final var session = mock(Session.class);
+        when(session.getId()).thenReturn("cs_123");
+        when(session.getCustomer()).thenReturn(customerId);
+        when(session.getSubscription()).thenReturn(newSubId);
+        when(session.getMetadata()).thenReturn(java.util.Map.of(
+            "accountId", accountId.toString(),
+            "plan", "TEAM",
+            "oldSubscriptionId", oldSubId
+        ));
+
+        final var event = mock(Event.class);
+        when(event.getId()).thenReturn("evt_789");
+        when(event.getType()).thenReturn("checkout.session.completed");
+
+        final var deserializer = mock(EventDataObjectDeserializer.class);
+        when(deserializer.getObject()).thenReturn(Optional.of(session));
+        when(event.getDataObjectDeserializer()).thenReturn(deserializer);
+
+        when(stripeWebhookService.constructEvent(anyString(), anyString(), any())).thenReturn(event);
+
+        mockMvc.perform(post("/api/webhooks/stripe")
+                .header("Stripe-Signature", "sig")
+                .content("{}")
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk());
+
+        verify(stripeService).cancelSubscription(oldSubId);
+        verify(accountRepository).save(account);
+        assert account.getStripeSubscriptionId().equals(newSubId);
+        assert account.getPlan() == Plan.TEAM;
+    }
+
+    @Test
+    void handleSubscriptionDeleted_forOldSubscription_shouldNotCancelAccount() throws Exception {
+        final var customerId = "cus_123";
+        final var currentSubId = "sub_current";
+        final var oldSubId = "sub_old";
+
+        final var account = new AccountEntity();
+        account.setId(UUID.randomUUID());
+        account.setStripeCustomerId(customerId);
+        account.setStripeSubscriptionId(currentSubId);
+        account.setPlan(Plan.TEAM);
+        account.setSubscriptionStatus("active");
+
+        when(accountRepository.findByStripeCustomerId(customerId)).thenReturn(Optional.of(account));
+        when(stripeEventRepository.existsById(anyString())).thenReturn(false);
+
+        final var subscription = new Subscription();
+        subscription.setId(oldSubId);
+        subscription.setCustomer(customerId);
+        subscription.setStatus("canceled");
+
+        final var event = mock(Event.class);
+        when(event.getId()).thenReturn("evt_old_deleted");
+        when(event.getType()).thenReturn("customer.subscription.deleted");
+
+        final var deserializer = mock(EventDataObjectDeserializer.class);
+        when(deserializer.getObject()).thenReturn(Optional.of(subscription));
+        when(event.getDataObjectDeserializer()).thenReturn(deserializer);
+
+        when(stripeWebhookService.constructEvent(anyString(), anyString(), any())).thenReturn(event);
+
+        mockMvc.perform(post("/api/webhooks/stripe")
+                .header("Stripe-Signature", "sig")
+                .content("{}")
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk());
+
+        // The account should still have the current subscription ID and active status
+        assert account.getStripeSubscriptionId().equals(currentSubId);
+        assert account.getSubscriptionStatus().equals("active");
     }
 }

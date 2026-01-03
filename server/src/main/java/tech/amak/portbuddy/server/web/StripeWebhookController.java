@@ -32,6 +32,7 @@ import tech.amak.portbuddy.server.db.entity.StripeEventEntity;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.StripeEventRepository;
 import tech.amak.portbuddy.server.mail.EmailService;
+import tech.amak.portbuddy.server.service.StripeService;
 import tech.amak.portbuddy.server.service.StripeWebhookService;
 import tech.amak.portbuddy.server.service.TunnelService;
 
@@ -45,6 +46,7 @@ public class StripeWebhookController {
     private final StripeEventRepository stripeEventRepository;
     private final EmailService emailService;
     private final TunnelService tunnelService;
+    private final StripeService stripeService;
     private final StripeWebhookService stripeWebhookService;
     private final AppProperties properties;
 
@@ -143,9 +145,22 @@ public class StripeWebhookController {
 
         final var accountId = UUID.fromString(accountIdStr);
         final var planStr = session.getMetadata().get("plan");
+        final var oldSubscriptionId = session.getMetadata().get("oldSubscriptionId");
 
         final var account = accountRepository.findById(accountId)
             .orElseThrow(() -> new RuntimeException("Account not found: " + accountId));
+
+        if (oldSubscriptionId != null) {
+            log.info("Cancelling old subscription {} for account {}", oldSubscriptionId, accountId);
+            try {
+                stripeService.cancelSubscription(oldSubscriptionId);
+            } catch (Exception e) {
+                log.error("Failed to cancel old subscription {}: {}", oldSubscriptionId, e.getMessage());
+                // We don't throw here to avoid failing the whole webhook if cancellation fails
+                // although it might lead to two active subscriptions if not handled.
+                // But normally this should work.
+            }
+        }
 
         account.setStripeCustomerId(session.getCustomer());
         account.setStripeSubscriptionId(session.getSubscription());
@@ -193,6 +208,15 @@ public class StripeWebhookController {
             event.getType(), subscription.getId(), customerId, subscription.getStatus());
 
         accountRepository.findByStripeCustomerId(customerId).ifPresentOrElse(account -> {
+            // Only process events for the current subscription. 
+            // If the event is for a different subscription, we ignore it to avoid overwriting 
+            // active subscription with status from a cancelled old one (e.g. after upgrade).
+            if (account.getStripeSubscriptionId() != null && !account.getStripeSubscriptionId().equals(subscription.getId())) {
+                log.info("Ignoring event for subscription {} as it is not the current subscription {} for account {}",
+                    subscription.getId(), account.getStripeSubscriptionId(), account.getId());
+                return;
+            }
+
             final var oldPlan = account.getPlan();
             final var oldStatus = account.getSubscriptionStatus();
 

@@ -45,6 +45,12 @@ public class StripeService {
      */
     public String createCheckoutSession(final AccountEntity account, final Plan plan) throws StripeException {
         log.info("Creating checkout session for account: {}, plan: {}", account.getId(), plan);
+
+        if (account.getStripeSubscriptionId() != null) {
+            log.info("Account {} already has an active subscription: {}. It will be replaced.",
+                account.getId(), account.getStripeSubscriptionId());
+        }
+
         final var customerId = getOrCreateCustomer(account);
         final var stripeProperties = properties.stripe();
 
@@ -65,6 +71,10 @@ public class StripeService {
             .putMetadata("accountId", account.getId().toString())
             .putMetadata("plan", plan.name());
 
+        if (account.getStripeSubscriptionId() != null) {
+            paramsBuilder.putMetadata("oldSubscriptionId", account.getStripeSubscriptionId());
+        }
+
         // If the account already has extra tunnels recorded, include them in the checkout session
         if (account.getExtraTunnels() > 0) {
             paramsBuilder.addLineItem(LineItem.builder()
@@ -76,6 +86,21 @@ public class StripeService {
         final var session = Session.create(paramsBuilder.build());
         log.info("Created checkout session: id={}, url={}", session.getId(), session.getUrl());
         return session.getUrl();
+    }
+
+    /**
+     * Cancels the given subscription in Stripe.
+     *
+     * @param subscriptionId the subscription ID to cancel
+     * @throws StripeException if Stripe API call fails
+     */
+    public void cancelSubscription(final String subscriptionId) throws StripeException {
+        if (subscriptionId == null) {
+            return;
+        }
+        log.info("Cancelling Stripe subscription: {}", subscriptionId);
+        final var subscription = Subscription.retrieve(subscriptionId);
+        subscription.cancel();
     }
 
     /**
