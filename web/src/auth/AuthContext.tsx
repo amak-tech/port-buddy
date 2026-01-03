@@ -13,6 +13,9 @@ export type User = {
     accountName?: string
     extraTunnels?: number
     baseTunnels?: number
+    activeTunnels?: number
+    subscriptionStatus?: string
+    stripeCustomerId?: string
 }
 
 const ACCOUNT_NAME_CLAIM = 'aname'
@@ -78,7 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             const details = await apiJson<{
                 user: { id: string, email: string, firstName?: string, lastName?: string, avatarUrl?: string, roles?: string[] }
-                account?: { name?: string, plan?: string, extraTunnels?: number, baseTunnels?: number }
+                account?: { name?: string, plan?: string, extraTunnels?: number, baseTunnels?: number, activeTunnels?: number, subscriptionStatus?: string, stripeCustomerId?: string }
             }>('/api/users/me/details', undefined, { skipRedirectOn401: true })
 
             const firstName = details?.user?.firstName?.trim() || ''
@@ -97,6 +100,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 accountName: details.account?.name || currentAccountName,
                 extraTunnels: details.account?.extraTunnels,
                 baseTunnels: details.account?.baseTunnels,
+                activeTunnels: details.account?.activeTunnels,
+                subscriptionStatus: details.account?.subscriptionStatus,
+                stripeCustomerId: details.account?.stripeCustomerId,
             }
             setUser(mapped)
         } catch (e: any) {

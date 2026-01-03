@@ -5,7 +5,6 @@
 package tech.amak.portbuddy.server.web;
 
 import static tech.amak.portbuddy.server.security.JwtService.resolveAccountId;
-import static tech.amak.portbuddy.server.security.JwtService.resolveUserId;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -24,7 +23,6 @@ import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.Plan;
-import tech.amak.portbuddy.server.db.entity.UserEntity;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
 import tech.amak.portbuddy.server.service.StripeService;
@@ -75,12 +73,6 @@ public class PaymentController {
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Account not found"));
         final var url = stripeService.createPortalSession(account);
         return new SessionResponse(url);
-    }
-
-    private UserEntity resolveUser(final Jwt jwt) {
-        final var userId = resolveUserId(jwt);
-        return userRepository.findById(userId)
-            .orElseThrow(() -> new RuntimeException("User not found. Id: " + userId));
     }
 
     @Data
