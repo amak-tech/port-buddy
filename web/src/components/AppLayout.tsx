@@ -111,10 +111,10 @@ export default function AppLayout() {
           {/* Bottom block (fixed at bottom) */}
           <div className="sticky bottom-0 z-10 border-t border-slate-800 bg-slate-900 px-6 py-5">
             <div className="flex items-center justify-between gap-3 mb-4">
-              <a href="/#docs" className="text-slate-400 hover:text-white text-sm inline-flex items-center gap-2 transition-colors">
+              <Link to="/docs" className="text-slate-400 hover:text-white text-sm inline-flex items-center gap-2 transition-colors">
                 <AcademicCapIcon className="h-5 w-5" aria-hidden="true" />
                 <span>Documentation</span>
-              </a>
+              </Link>
             </div>
             <div className="flex items-center justify-between gap-3">
               <Link to="/app/profile" className="flex items-center gap-3 min-w-0 hover:opacity-80 transition-opacity">

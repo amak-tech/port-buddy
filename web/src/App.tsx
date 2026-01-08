@@ -2,6 +2,7 @@ import { Link, Navigate, Outlet, Route, Routes, useLocation } from 'react-router
 import { useEffect, useState } from 'react'
 import Landing from './pages/Landing'
 import Installation from './pages/Installation'
+import Docs from './pages/Docs'
 import AcceptInvite from './pages/AcceptInvite'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -79,6 +80,7 @@ export default function App() {
           </Link>
           <nav className="flex items-center gap-8 text-sm font-medium">
             <Link to="/install" className="text-slate-400 hover:text-white transition-colors" aria-label="Installation instructions">Installation</Link>
+            <Link to="/docs" className="text-slate-400 hover:text-white transition-colors" aria-label="Documentation">Docs</Link>
             <Link to="/#pricing" className="text-slate-400 hover:text-white transition-colors" aria-label="View pricing">Pricing</Link>
             {!user ? (
               // Only Login button when not authenticated
@@ -124,6 +126,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Landing/>} />
           <Route path="/install" element={<Installation/>} />
+          <Route path="/docs" element={<Docs/>} />
           <Route path="/login" element={<Login/>} />
           <Route path="/register" element={<Register/>} />
           <Route path="/forgot-password" element={<ForgotPassword/>} />
@@ -168,7 +171,7 @@ export default function App() {
           <div className="flex gap-8 text-sm font-medium">
             <a href="/#pricing" className="text-slate-400 hover:text-indigo-400 transition-colors">Pricing</a>
             <a href="/#use-cases" className="text-slate-400 hover:text-indigo-400 transition-colors">Use Cases</a>
-            <a href="/#docs" className="text-slate-400 hover:text-indigo-400 transition-colors">Documentation</a>
+            <Link to="/docs" className="text-slate-400 hover:text-indigo-400 transition-colors">Documentation</Link>
             <Link to="/terms" className="text-slate-400 hover:text-indigo-400 transition-colors">Terms</Link>
             <Link to="/privacy" className="text-slate-400 hover:text-indigo-400 transition-colors">Privacy</Link>
           </div>
