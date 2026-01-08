@@ -12,7 +12,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -140,8 +139,8 @@ public class UsersControllerTest {
 
         when(userAccountRepository.findByUserIdAndAccountId(eq(userId), eq(accountId)))
             .thenReturn(Optional.of(userAccount));
-        
-        AppProperties.Subscriptions subscriptions = new AppProperties.Subscriptions(
+
+        final var subscriptions = new AppProperties.Subscriptions(
             null,
             null,
             new AppProperties.Subscriptions.Tunnels(
@@ -174,7 +173,7 @@ public class UsersControllerTest {
     @Test
     void updateExtraTunnels_withSubscription_shouldUpdateStripe() throws Exception {
         account.setStripeSubscriptionId("sub_123");
-        
+
         final var request = new UsersController.UpdateTunnelsRequest();
         request.setExtraTunnels(1);
 

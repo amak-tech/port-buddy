@@ -31,6 +31,7 @@ import com.stripe.model.Event;
 import com.stripe.model.EventDataObjectDeserializer;
 import com.stripe.model.Invoice;
 import com.stripe.model.Subscription;
+import com.stripe.model.checkout.Session;
 
 import tech.amak.portbuddy.common.Plan;
 import tech.amak.portbuddy.server.config.AppProperties;
@@ -44,7 +45,6 @@ import tech.amak.portbuddy.server.security.ApiTokenAuthFilter;
 import tech.amak.portbuddy.server.security.Oauth2SuccessHandler;
 import tech.amak.portbuddy.server.service.StripeService;
 import tech.amak.portbuddy.server.service.StripeWebhookService;
-import com.stripe.model.checkout.Session;
 import tech.amak.portbuddy.server.service.TunnelService;
 
 @WebMvcTest(StripeWebhookController.class)

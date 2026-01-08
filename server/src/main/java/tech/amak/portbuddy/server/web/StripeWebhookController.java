@@ -155,7 +155,7 @@ public class StripeWebhookController {
             log.info("Cancelling old subscription {} for account {}", oldSubscriptionId, accountId);
             try {
                 stripeService.cancelSubscription(oldSubscriptionId);
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 log.error("Failed to cancel old subscription {}: {}", oldSubscriptionId, e.getMessage());
                 // We don't throw here to avoid failing the whole webhook if cancellation fails
                 // although it might lead to two active subscriptions if not handled.
