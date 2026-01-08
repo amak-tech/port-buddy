@@ -61,8 +61,7 @@ public class RenewalScheduler {
 
             final var needsRenewal = certificateRepository.findByDomainIgnoreCase(wildcardDomain)
                 .filter(cert -> cert.getStatus() == CertificateStatus.ACTIVE)
-                .filter(cert -> cert.getExpiresAt() != null)
-                .filter(cert -> cert.getExpiresAt().isAfter(cutoff))
+                .filter(cert -> cert.getExpiresAt() == null || cert.getExpiresAt().isAfter(cutoff))
                 .isEmpty();
 
             if (needsRenewal) {
