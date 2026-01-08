@@ -146,7 +146,8 @@ public class PaymentControllerTest {
         org.mockito.Mockito.verify(accountRepository).save(account);
         
         org.junit.jupiter.api.Assertions.assertEquals(0, account.getExtraTunnels());
-        org.junit.jupiter.api.Assertions.assertEquals("canceled", account.getSubscriptionStatus());
+        org.junit.jupiter.api.Assertions.assertEquals("active", account.getSubscriptionStatus());
+        org.junit.jupiter.api.Assertions.assertEquals(Plan.PRO, account.getPlan());
         org.junit.jupiter.api.Assertions.assertNull(account.getStripeSubscriptionId());
     }
 

@@ -222,6 +222,7 @@ public class StripeWebhookController {
                 return;
             }
 
+            final var user = account.getUsers().stream().findFirst().orElse(null);
             final var oldPlan = account.getPlan();
             final var oldStatus = account.getSubscriptionStatus();
 
@@ -238,24 +239,32 @@ public class StripeWebhookController {
                 }
             }
 
-            final var user = account.getUsers().stream().findFirst().orElse(null);
-            final var isNowActive = "active".equals(account.getSubscriptionStatus());
-            final var wasActive = "active".equals(oldStatus);
             final var isCanceled = "canceled".equals(account.getSubscriptionStatus());
-            final var planChanged = account.getPlan() != oldPlan;
 
             if (isCanceled && !"canceled".equals(oldStatus)) {
                 log.info("Subscription canceled for account {}, resetting extra tunnels to 0", account.getId());
                 account.setExtraTunnels(0);
                 account.setPlan(Plan.PRO);
+                account.setSubscriptionStatus("active");
                 account.setStripeSubscriptionId(null);
+                
+                if (user != null) {
+                    emailService.sendTemplate(user.getEmail(), "Subscription Canceled - Port Buddy",
+                        "email/subscription-canceled", Map.of("name",
+                            user.getFirstName() != null ? user.getFirstName() : "there",
+                            "portalUrl", properties.gateway().url() + "/app/billing"));
+                }
             }
 
             accountRepository.save(account);
             tunnelService.enforceTunnelLimit(account);
             log.info("Updated subscription status for account {} to {}", account.getId(), subscription.getStatus());
 
-            if (user != null) {
+            final var isNowActive = "active".equals(account.getSubscriptionStatus());
+            final var wasActive = "active".equals(oldStatus);
+            final var planChanged = account.getPlan() != oldPlan;
+
+            if (user != null && !isCanceled) {
                 if (planChanged || (isNowActive && !wasActive)) {
                     final var plan = account.getPlan();
                     final var baseLimit = properties.subscriptions().tunnels().base().get(plan);
@@ -265,11 +274,6 @@ public class StripeWebhookController {
                             "plan", plan.name(), "tunnelLimit", baseLimit,
                             "extraTunnels", account.getExtraTunnels(), "portalUrl",
                             properties.gateway().url() + "/app"));
-                } else if (isCanceled && !"canceled".equals(oldStatus)) {
-                    emailService.sendTemplate(user.getEmail(), "Subscription Canceled - Port Buddy",
-                        "email/subscription-canceled", Map.of("name",
-                            user.getFirstName() != null ? user.getFirstName() : "there",
-                            "portalUrl", properties.gateway().url() + "/app/billing"));
                 }
             }
         }, () -> log.warn("Account not found for Stripe customer {}", customerId));

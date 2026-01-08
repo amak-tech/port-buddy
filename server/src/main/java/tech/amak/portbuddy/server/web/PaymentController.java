@@ -91,7 +91,8 @@ public class PaymentController {
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Account not found"));
         stripeService.cancelSubscription(account);
         account.setExtraTunnels(0);
-        account.setSubscriptionStatus("canceled");
+        account.setPlan(Plan.PRO);
+        account.setSubscriptionStatus("active");
         account.setStripeSubscriptionId(null);
         accountRepository.save(account);
     }

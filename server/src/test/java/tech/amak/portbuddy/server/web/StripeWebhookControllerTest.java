@@ -183,6 +183,10 @@ class StripeWebhookControllerTest {
             eq("email/subscription-canceled"),
             anyMap()
         );
+
+        org.junit.jupiter.api.Assertions.assertEquals("active", account.getSubscriptionStatus());
+        org.junit.jupiter.api.Assertions.assertEquals(Plan.PRO, account.getPlan());
+        org.junit.jupiter.api.Assertions.assertNull(account.getStripeSubscriptionId());
     }
 
     @Test
