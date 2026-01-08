@@ -51,6 +51,17 @@ public class Oauth2SuccessHandler implements AuthenticationSuccessHandler {
     private final OAuth2AuthorizedClientService authorizedClientService;
     private final RestClient restClient;
 
+    /**
+     * Constructs an instance of {@code Oauth2SuccessHandler} with the required dependencies.
+     * Handles OAuth2 authentication success events and manages token creation, user provisioning,
+     * and authorized client services.
+     *
+     * @param jwtService              the service responsible for creating and handling JWT tokens.
+     * @param properties              the application properties configuration.
+     * @param userProvisioningService the service responsible for provisioning users based on OAuth2 authentication.
+     * @param authorizedClientService the service for managing OAuth2 authorized clients.
+     * @param restClientBuilder       the builder for constructing REST clients.
+     */
     public Oauth2SuccessHandler(final JwtService jwtService,
                                 final AppProperties properties,
                                 final UserProvisioningService userProvisioningService,

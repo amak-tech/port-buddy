@@ -4,8 +4,6 @@
 
 package tech.amak.portbuddy.server.security;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -24,17 +22,14 @@ import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpHeaders;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.client.RestClient;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -70,28 +65,34 @@ class Oauth2SuccessHandlerTest {
     @BeforeEach
     void setUp() {
         when(restClientBuilder.build()).thenReturn(restClient);
-        handler = new Oauth2SuccessHandler(jwtService, properties, userProvisioningService, authorizedClientService, restClientBuilder);
+        handler = new Oauth2SuccessHandler(
+            jwtService,
+            properties,
+            userProvisioningService,
+            authorizedClientService,
+            restClientBuilder);
 
         // AppProperties config
-        AppProperties.Gateway gateway = mock(AppProperties.Gateway.class);
+        final var gateway = mock(AppProperties.Gateway.class);
         when(properties.gateway()).thenReturn(gateway);
         when(gateway.url()).thenReturn("http://localhost:8443");
     }
 
     @Test
     void onAuthenticationSuccess_WithEmail_ShouldProvisionAndRedirect() throws IOException {
-        Map<String, Object> attributes = new HashMap<>();
+        final var attributes = new HashMap<String, Object>();
         attributes.put("id", "123");
         attributes.put("email", "test@example.com");
         attributes.put("name", "Test User");
 
-        OAuth2User principal = new DefaultOAuth2User(List.of(), attributes, "id");
-        OAuth2AuthenticationToken authentication = new OAuth2AuthenticationToken(principal, List.of(), "google");
+        final var principal = new DefaultOAuth2User(List.of(), attributes, "id");
+        final var authentication = new OAuth2AuthenticationToken(principal, List.of(), "google");
 
-        UUID userId = UUID.randomUUID();
-        UUID accountId = UUID.randomUUID();
+        final var userId = UUID.randomUUID();
+        final var accountId = UUID.randomUUID();
         when(userProvisioningService.provision(anyString(), anyString(), anyString(), anyString(), anyString(), any()))
-            .thenReturn(new UserProvisioningService.ProvisionedUser(userId, accountId, "Test Account", Collections.emptySet()));
+            .thenReturn(new UserProvisioningService.ProvisionedUser(
+                userId, accountId, "Test Account", Collections.emptySet()));
         when(jwtService.createToken(any(), anyString(), any())).thenReturn("mock-token");
 
         handler.onAuthenticationSuccess(request, response, authentication);
@@ -102,38 +103,40 @@ class Oauth2SuccessHandlerTest {
     @Test
     @SuppressWarnings("unchecked")
     void onAuthenticationSuccess_MissingEmailGithub_ShouldFetchEmail() throws IOException {
-        Map<String, Object> attributes = new HashMap<>();
+        final var attributes = new HashMap<String, Object>();
         attributes.put("id", 123);
         attributes.put("name", "Github User");
 
-        OAuth2User principal = new DefaultOAuth2User(List.of(), attributes, "id");
-        OAuth2AuthenticationToken authentication = new OAuth2AuthenticationToken(principal, List.of(), "github");
+        final var principal = new DefaultOAuth2User(List.of(), attributes, "id");
+        final var authentication = new OAuth2AuthenticationToken(principal, List.of(), "github");
 
-        OAuth2AuthorizedClient client = mock(OAuth2AuthorizedClient.class);
-        OAuth2AccessToken accessToken = mock(OAuth2AccessToken.class);
+        final var client = mock(OAuth2AuthorizedClient.class);
+        final var accessToken = mock(OAuth2AccessToken.class);
         when(accessToken.getTokenValue()).thenReturn("gh-token");
         when(client.getAccessToken()).thenReturn(accessToken);
         when(authorizedClientService.loadAuthorizedClient(eq("github"), anyString())).thenReturn(client);
 
         // Mock RestClient calls
-        RestClient.RequestHeadersUriSpec getSpec = mock(RestClient.RequestHeadersUriSpec.class);
-        RestClient.RequestHeadersSpec headersSpec = mock(RestClient.RequestHeadersSpec.class);
-        RestClient.ResponseSpec responseSpec = mock(RestClient.ResponseSpec.class);
+        final var getSpec = mock(RestClient.RequestHeadersUriSpec.class);
+        final var headersSpec = mock(RestClient.RequestHeadersSpec.class);
+        final var responseSpec = mock(RestClient.ResponseSpec.class);
 
         when(restClient.get()).thenReturn(getSpec);
         when(getSpec.uri("https://api.github.com/user/emails")).thenReturn(headersSpec);
         when(headersSpec.headers(any(Consumer.class))).thenReturn(headersSpec);
         when(headersSpec.retrieve()).thenReturn(responseSpec);
 
-        List<Map<String, Object>> emails = List.of(
+        final var emails = List.of(
             Map.of("email", "primary@example.com", "primary", true, "verified", true)
         );
         when(responseSpec.body(any(ParameterizedTypeReference.class))).thenReturn(emails);
 
-        UUID userId = UUID.randomUUID();
-        UUID accountId = UUID.randomUUID();
-        when(userProvisioningService.provision(eq("github"), eq("123"), eq("primary@example.com"), anyString(), anyString(), any()))
-            .thenReturn(new UserProvisioningService.ProvisionedUser(userId, accountId, "Test Account", Collections.emptySet()));
+        final var userId = UUID.randomUUID();
+        final var accountId = UUID.randomUUID();
+        when(userProvisioningService.provision(
+            eq("github"), eq("123"), eq("primary@example.com"), anyString(), anyString(), any()))
+            .thenReturn(new UserProvisioningService.ProvisionedUser(
+                userId, accountId, "Test Account", Collections.emptySet()));
         when(jwtService.createToken(any(), anyString(), any())).thenReturn("mock-token");
 
         handler.onAuthenticationSuccess(request, response, authentication);
@@ -143,12 +146,12 @@ class Oauth2SuccessHandlerTest {
 
     @Test
     void onAuthenticationSuccess_MissingEmailNotGithub_ShouldRedirectWithError() throws IOException {
-        Map<String, Object> attributes = new HashMap<>();
+        final var attributes = new HashMap<String, Object>();
         attributes.put("id", "123");
         attributes.put("name", "Other User");
 
-        OAuth2User principal = new DefaultOAuth2User(List.of(), attributes, "id");
-        OAuth2AuthenticationToken authentication = new OAuth2AuthenticationToken(principal, List.of(), "other-provider");
+        final var principal = new DefaultOAuth2User(List.of(), attributes, "id");
+        final var authentication = new OAuth2AuthenticationToken(principal, List.of(), "other-provider");
 
         when(userProvisioningService.provision(anyString(), anyString(), eq(null), anyString(), anyString(), any()))
             .thenThrow(new MissingEmailException("Email is required"));
