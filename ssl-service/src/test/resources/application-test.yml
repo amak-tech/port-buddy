@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:portbuddy}
+    username: ${DB_USER:portbuddy}
+    password: ${DB_PASSWORD:portbuddy}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: certificates
+  flyway:
+    enabled: true
+    default-schema: certificates
+    create-schemas: true
+
+eureka:
+  client:
+    enabled: false

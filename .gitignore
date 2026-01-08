@@ -45,3 +45,4 @@ ref
 pg_data
 log
 /checkstyle_report.txt
+/test_output.txt

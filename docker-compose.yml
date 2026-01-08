@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -13,6 +11,9 @@ services:
       - "5432:5432"
     volumes:
       - ${PWD}/pg_data:/var/lib/postgresql/data
+    logging:
+      options:
+        max-size: 10M
 
   eureka:
     image: cr.yandex/crpop0r0f81mcsvg9kei/port-buddy-eureka:latest
@@ -31,12 +32,32 @@ services:
     container_name: pb-server
     restart: unless-stopped
     network_mode: host
+    environment:
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      SMTP_USERNAME: ${SMTP_USERNAME}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      STRIPE_API_KEY: ${STRIPE_API_KEY}
+      STRIPE_PRICE_PRO: ${STRIPE_PRICE_PRO}
+      STRIPE_PRICE_TEAM: ${STRIPE_PRICE_TEAM}
+      STRIPE_PRICE_EXTRA_TUNNEL: ${STRIPE_PRICE_EXTRA_TUNNEL}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      OAUTH_GOOGLE_CLIENT_ID: ${OAUTH_GOOGLE_CLIENT_ID}
+      OAUTH_GOOGLE_CLIENT_SECRET: ${OAUTH_GOOGLE_CLIENT_SECRET}
+      OAUTH_GITHUB_CLIENT_ID: ${OAUTH_GITHUB_CLIENT_ID}
+      OAUTH_GITHUB_CLIENT_SECRET: ${OAUTH_GITHUB_CLIENT_SECRET}
     volumes:
       - ${PWD}/server/config:/app/config
       - ${PWD}/server/logs:/app/logs
+    depends_on:
+      - eureka
+      - postgres
     logging:
       options:
-        max-size: 10M
+        max-size: 100M
 
   gateway:
     image: cr.yandex/crpop0r0f81mcsvg9kei/port-buddy-gateway:latest
@@ -46,6 +67,8 @@ services:
     volumes:
       - ${PWD}/gateway/config:/app/config
       - ${PWD}/gateway/logs:/app/logs
+    depends_on:
+      - eureka
     logging:
       options:
         max-size: 10M
@@ -58,6 +81,8 @@ services:
     volumes:
       - ${PWD}/net-proxy/config:/app/config
       - ${PWD}/net-proxy/logs:/app/logs
+    depends_on:
+      - eureka
     logging:
       options:
         max-size: 10M
@@ -75,6 +100,9 @@ services:
       - ${PWD}/ssl-service/config:/app/config
       - ${PWD}/ssl-service/logs:/app/logs
       - ${PWD}/ssl-service/certs:/app/certs
+    depends_on:
+      - eureka
+      - postgres
     logging:
       options:
         max-size: 10M

@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS ssl_certificate_jobs (
     order_location VARCHAR(1024) NULL,
     authorization_urls_json TEXT NULL,
     challenge_expires_at TIMESTAMPTZ NULL,
+    managed BOOLEAN NOT NULL DEFAULT FALSE,
     started_at TIMESTAMPTZ NULL,
     finished_at TIMESTAMPTZ NULL,
     created_by VARCHAR(100) NULL,
