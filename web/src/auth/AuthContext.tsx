@@ -26,6 +26,7 @@ type AuthState = {
     loading: boolean
     loginWithGoogle: () => void
     loginWithEmail: (email: string, pass: string) => Promise<void>
+    register: (email: string, pass: string, name?: string) => Promise<void>
     logout: () => Promise<void>
     refresh: () => Promise<void>
     switchAccount: (accountId: string) => Promise<void>
@@ -141,6 +142,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await refresh()
     }, [refresh])
 
+    const register = useCallback(async (email: string, pass: string, name?: string) => {
+        const res = await apiJson<{ success: boolean, message?: string }>('/api/auth/register', {
+            method: 'POST',
+            body: JSON.stringify({ email, password: pass, name })
+        }, { skipAuth: true })
+        
+        if (!res.success) {
+            throw new Error(res.message || 'Registration failed')
+        }
+        
+        await loginWithEmail(email, pass)
+    }, [loginWithEmail])
+
     const logout = useCallback(async () => {
         // Stateless logout: just drop the JWT from localStorage client-side
         try {
@@ -171,10 +185,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loading, 
         loginWithGoogle, 
         loginWithEmail, 
+        register,
         logout, 
         refresh,
         switchAccount
-    }), [user, loading, loginWithGoogle, loginWithEmail, logout, refresh, switchAccount])
+    }), [user, loading, loginWithGoogle, loginWithEmail, register, logout, refresh, switchAccount])
 
     return (
         <AuthContext.Provider value={value}>

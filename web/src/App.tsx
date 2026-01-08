@@ -4,6 +4,7 @@ import Landing from './pages/Landing'
 import Installation from './pages/Installation'
 import AcceptInvite from './pages/AcceptInvite'
 import Login from './pages/Login'
+import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import Billing from './pages/app/Billing'
@@ -61,7 +62,7 @@ export default function App() {
   }, [startLoading, stopLoading])
 
   const isApp = location.pathname.startsWith('/app')
-  const showHeader = !isApp && !['/login', '/forgot-password', '/reset-password'].includes(location.pathname)
+  const showHeader = !isApp && !['/login', '/register', '/forgot-password', '/reset-password'].includes(location.pathname)
 
   return (
     <div className="min-h-full flex flex-col bg-slate-950 text-slate-200">
@@ -124,6 +125,7 @@ export default function App() {
           <Route path="/" element={<Landing/>} />
           <Route path="/install" element={<Installation/>} />
           <Route path="/login" element={<Login/>} />
+          <Route path="/register" element={<Register/>} />
           <Route path="/forgot-password" element={<ForgotPassword/>} />
           <Route path="/reset-password" element={<ResetPassword/>} />
           <Route path="/auth/callback" element={<Login/>} />
