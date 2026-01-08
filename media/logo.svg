@@ -1,0 +1,33 @@
+<!--
+  - Copyright (c) 2026 AMAK Inc. All rights reserved.
+  -->
+
+<svg width="200" height="50" viewBox="0 0 200 50" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@800&amp;display=swap');
+      .text {
+        font-family: 'JetBrains Mono', monospace;
+        font-weight: 800;
+        fill: #ffffff;
+        font-size: 24px;
+      }
+      .circle-bg {
+        fill: #6366f1;
+      }
+      .circle-glow {
+        fill: #818cf8;
+        opacity: 0.5;
+      }
+    </style>
+  </defs>
+  
+  <!-- Pulsing circle representation (static for SVG) -->
+  <circle cx="20" cy="25" r="8" class="circle-glow">
+    <animate attributeName="r" values="6;9;6" dur="2s" repeatCount="indefinite" />
+    <animate attributeName="opacity" values="0.3;0.7;0.3" dur="2s" repeatCount="indefinite" />
+  </circle>
+  <circle cx="20" cy="25" r="5" class="circle-bg" />
+  
+  <text x="40" y="33" class="text">Port Buddy</text>
+</svg>
