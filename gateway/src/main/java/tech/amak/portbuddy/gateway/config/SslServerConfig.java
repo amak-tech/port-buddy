@@ -89,7 +89,7 @@ public class SslServerConfig {
         if (properties.ssl().enabled()) {
             final var adapter = new ReactorHttpHandlerAdapter(httpHandler);
             this.httpServer = HttpServer.create()
-                .port(8080)
+                .port(properties.httpPort())
                 .handle((request, response) -> {
                     final var path = request.uri();
                     if (path.startsWith("/.well-known/acme-challenge/")) {
@@ -101,11 +101,9 @@ public class SslServerConfig {
                             return response.send();
                         }
 
-                        // Remove port from host if present
-                        final var hostWithoutPort = host.contains(":") ? host.substring(0, host.indexOf(":")) : host;
-                        final var sslPort = properties.ssl().port();
-                        final var redirectUrl = "https://" + hostWithoutPort
-                                                + (sslPort == 443 ? "" : ":" + sslPort) + path;
+                        final var redirectUrl = properties.url()
+                                                    .replace(":80", "")
+                                                    .replace(":443", "") + path;
 
                         response.status(HttpStatus.MOVED_PERMANENTLY.value());
                         response.header(HttpHeaderNames.LOCATION, redirectUrl);

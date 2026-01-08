@@ -10,8 +10,10 @@ eureka:
 
 app:
   gateway:
-    domain: localhost:8443
-    schema: https
+    host: ${APP_PUBLIC_HOST:localhost}
+    port: ${APP_PUBLIC_PORT:8443}
+    schema: ${APP_PUBLIC_SCHEMA:https}
+    domain: ${app.gateway.host}:${app.gateway.port}
     url: ${app.gateway.schema}://${app.gateway.domain}
     not-found-page: ${app.gateway.url}/404
     passcode-page: ${app.gateway.url}/passcode
@@ -45,8 +47,8 @@ app:
       currentKeyId: dev-key
       keys:
         - id: dev-key
-          publicKeyPem: ${PUBLIC_KEY:classpath:keys/dev_jwt.pub}
-          privateKeyPem: ${PRIVATE_KEY:classpath:keys/dev_jwt.pem}
+          publicKeyPem: ${JWT_PUBLIC_KEY:classpath:keys/dev_jwt.pub}
+          privateKeyPem: ${JWT_PRIVATE_KEY:classpath:keys/dev_jwt.pem}
 
   web-socket:
     max-text-message-size: 100MB

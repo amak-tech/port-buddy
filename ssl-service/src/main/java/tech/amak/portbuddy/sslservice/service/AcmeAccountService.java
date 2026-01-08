@@ -44,7 +44,7 @@ public class AcmeAccountService {
     public KeyPair loadAccountKeyPair() {
         final var pathString = properties.acme().accountKeyPath();
         final Resource resource = resourceLoader.getResource(pathString);
-        try (Reader reader = new InputStreamReader(resource.getInputStream())) {
+        try (final var reader = new InputStreamReader(resource.getInputStream())) {
             try (final var pemParser = new PEMParser(reader)) {
                 final var obj = pemParser.readObject();
                 final var converter = new JcaPEMKeyConverter();
@@ -55,7 +55,8 @@ public class AcmeAccountService {
                 final var file = resource.getFile();
                 final var dir = file.getParentFile();
                 final var privateDer = file.toPath();
-                final var publicDer = dir.toPath().resolve("account.pub");
+                final var keyName = file.getName().replace(".pem", "");
+                final var publicDer = dir.toPath().resolve(keyName + ".pub");
                 if (Files.exists(privateDer) && Files.exists(publicDer)) {
                     final var factory = KeyFactory.getInstance("RSA");
                     final var priv = factory.generatePrivate(new PKCS8EncodedKeySpec(Files.readAllBytes(privateDer)));

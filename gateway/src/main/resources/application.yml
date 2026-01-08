@@ -1,5 +1,29 @@
 server:
-  port: 8443
+  port: ${APP_PUBLIC_PORT:8443}
+
+app:
+  host: ${APP_PUBLIC_HOST:localhost}
+  port: ${server.port}
+  http-port: ${APP_PUBLIC_HTTP_PORT:8080}
+  scheme: ${APP_PUBLIC_SCHEMA:https}
+  domain: ${app.host}:${app.port}
+  url: ${app.scheme}://${app.domain}
+  server-error-page: ${app.url}/500
+  spa-backend-enabled: true
+  spa-fallback-enabled: false
+  ssl:
+    enabled: true
+    # brew install mkcert
+    # mkcert -install
+    # mkcert -key-file key.pem -cert-file cert.pem localhost 127.0.0.1 ::1
+    fallback:
+      enabled: true
+      key-cert-chain-file: ${SELF_SERT_CHAIN_FILE:}
+      key-file: ${SELF_SERT_KEY_FILE:}
+  jwt:
+    jwk-set-uri: lb://port-buddy-server/.well-known/jwks.json
+    # Must match the issuer used by the Server when minting JWTs
+    issuer: port-buddy
 
 eureka:
   client:
@@ -166,28 +190,6 @@ spring:
                 - Path=/**
               filters:
                 - PreserveHostHeader
-
-app:
-  domain: localhost:8443
-  scheme: https
-  url: ${app.scheme}://${app.domain}
-  server-error-page: ${app.url}/500
-  spa-backend-enabled: true
-  spa-fallback-enabled: false
-  ssl:
-    port: 8443
-    enabled: true
-    # brew install mkcert
-    # mkcert -install
-    # mkcert -key-file key.pem -cert-file cert.pem localhost 127.0.0.1 ::1
-    fallback:
-      enabled: true
-      key-cert-chain-file: ${SELF_SERT_CHAIN_FILE:}
-      key-file: ${SELF_SERT_KEY_FILE:}
-  jwt:
-    jwk-set-uri: lb://port-buddy-server/.well-known/jwks.json
-    # Must match the issuer used by the Server when minting JWTs
-    issuer: port-buddy
 
 logging:
   level:

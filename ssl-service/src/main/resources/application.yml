@@ -39,7 +39,7 @@ app:
     jwk-set-uri: lb://port-buddy-server/.well-known/jwks.json
   acme:
     serverUrl: https://acme-v02.api.letsencrypt.org/directory
-    accountKeyPath: file:config/acme/account.key
+    accountKeyPath: ${ACME_ACCOUNT_KEY_PATH:file:config/acme/account.key}
     contactEmail: admin@portbuddy.dev
     retry:
       maxAttempts: 6
