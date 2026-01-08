@@ -174,9 +174,9 @@ export default function Login() {
           <div className="mt-8 pt-6 border-t border-slate-800 text-center">
             <p className="text-xs text-slate-500 mb-4">
               By continuing, you agree to our{' '}
-              <a href="#terms" className="text-indigo-400 hover:text-indigo-300 hover:underline">Terms of Service</a>
+              <Link to="/terms" className="text-indigo-400 hover:text-indigo-300 hover:underline">Terms of Service</Link>
               {' '}and{' '}
-              <a href="#privacy" className="text-indigo-400 hover:text-indigo-300 hover:underline">Privacy Policy</a>.
+              <Link to="/privacy" className="text-indigo-400 hover:text-indigo-300 hover:underline">Privacy Policy</Link>.
             </p>
             
             <Link to="/" className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors group">
