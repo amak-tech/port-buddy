@@ -43,7 +43,7 @@ public class RenewalScheduler {
     /**
      * Runs every 5 minutes with 1 minute initial delay.
      */
-    @Scheduled(initialDelay = 60_000, fixedDelay = 300_000)
+    @Scheduled(initialDelay = 5_000, fixedDelay = 300_000)
     public void scheduleRenewals() {
         final var managed = certificateRepository.findAllByManagedTrue();
         if (managed.isEmpty()) {
@@ -61,7 +61,8 @@ public class RenewalScheduler {
 
             final var needsRenewal = certificateRepository.findByDomainIgnoreCase(wildcardDomain)
                 .filter(cert -> cert.getStatus() == CertificateStatus.ACTIVE)
-                .filter(cert -> cert.getExpiresAt() == null || cert.getExpiresAt().isAfter(cutoff))
+                .filter(cert -> cert.getExpiresAt() != null)
+                .filter(cert -> cert.getExpiresAt().isAfter(cutoff))
                 .isEmpty();
 
             if (needsRenewal) {
