@@ -109,13 +109,14 @@ public class AcmeCertificateService {
     @Transactional
     public void processJobAsync(final UUID jobId) {
         final var job = jobRepository.findById(jobId).orElseThrow();
-        MDC.put("jobId", String.valueOf(jobId));
-        MDC.put("domain", job.getDomain());
-        job.setStatus(CertificateJobStatus.RUNNING);
-        job.setStartedAt(OffsetDateTime.now());
-        jobRepository.save(job);
 
         try {
+            MDC.put("jobId", String.valueOf(jobId));
+            MDC.put("domain", job.getDomain());
+            job.setStatus(CertificateJobStatus.RUNNING);
+            job.setStartedAt(OffsetDateTime.now());
+            jobRepository.save(job);
+
             // If the requested domain contains a wildcard, use manual DNS-01 flow with admin confirmation.
             if (job.getDomain().contains("*")) {
                 performAcmeDns01Initiate(job);
