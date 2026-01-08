@@ -118,39 +118,20 @@ export default function Billing() {
   const performUpdate = async () => {
     if (pendingExtra === null) return;
 
-    // If user has no subscription and is adding extra tunnels, we must use checkout session
-    if (pendingExtra > 0 && !user?.subscriptionStatus) {
-      setError(null)
-      setLoading(true)
-      try {
-        // First update the local extra tunnels count so it's included in checkout
-        await apiJson('/api/users/me/account/tunnels', {
-          method: 'PATCH',
-          body: JSON.stringify({ extraTunnels: pendingExtra })
-        })
-        
-        // Then redirect to checkout
-        const { url } = await apiJson('/api/payments/create-checkout-session', {
-          method: 'POST',
-          body: JSON.stringify({ plan: currentPlanKey.toUpperCase() })
-        })
-        window.location.href = url
-        return
-      } catch (e: any) {
-        setError(e.message || 'Failed to initiate checkout')
-        setLoading(false)
-        return
-      }
-    }
-
     setError(null)
     setUpdating(true)
     setLoading(true)
     try {
-      await apiJson('/api/users/me/account/tunnels', {
+      const response = await apiJson('/api/users/me/account/tunnels', {
         method: 'PATCH',
         body: JSON.stringify({ extraTunnels: pendingExtra })
       })
+      
+      if (response.checkoutUrl) {
+        window.location.href = response.checkoutUrl
+        return
+      }
+
       await refresh()
       setPendingExtra(null)
       setSuccess(true)
@@ -359,9 +340,13 @@ export default function Billing() {
                       <button
                         onClick={handleUpdate}
                         disabled={updating}
-                        className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-lg shadow-lg shadow-indigo-500/20 transition-all disabled:opacity-50"
+                        className={`flex-1 py-2 text-sm font-semibold rounded-lg shadow-lg transition-all disabled:opacity-50 ${
+                          currentPlanKey === 'pro' && pendingExtra === 0 
+                            ? 'bg-red-600 hover:bg-red-500 shadow-red-500/20' 
+                            : 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-500/20'
+                        } text-white`}
                       >
-                        Update my subscription
+                        {currentPlanKey === 'pro' && pendingExtra === 0 ? 'Cancel subscription' : 'Update my subscription'}
                       </button>
                       <button
                         onClick={() => setPendingExtra(null)}

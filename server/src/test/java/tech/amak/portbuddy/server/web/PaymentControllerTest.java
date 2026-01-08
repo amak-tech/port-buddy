@@ -132,6 +132,24 @@ public class PaymentControllerTest {
             .andExpect(status().isOk());
     }
 
+    @Test
+    void cancelSubscription_shouldUpdateAccount() throws Exception {
+        account.setExtraTunnels(5);
+        account.setSubscriptionStatus("active");
+        account.setStripeSubscriptionId("sub_123");
+
+        mockMvc.perform(post("/api/payments/cancel-subscription")
+                .principal(new JwtAuthenticationToken(createJwt(List.of("ACCOUNT_ADMIN")))))
+            .andExpect(status().isNoContent());
+
+        org.mockito.Mockito.verify(stripeService).cancelSubscription(account);
+        org.mockito.Mockito.verify(accountRepository).save(account);
+        
+        org.junit.jupiter.api.Assertions.assertEquals(0, account.getExtraTunnels());
+        org.junit.jupiter.api.Assertions.assertEquals("canceled", account.getSubscriptionStatus());
+        org.junit.jupiter.api.Assertions.assertNull(account.getStripeSubscriptionId());
+    }
+
     // Note: standaloneSetup doesn't enforce @PreAuthorize. 
     // To test @PreAuthorize we would need a full integration test or a different setup.
     // However, since I'm just verifying the controller logic works when authorized, 

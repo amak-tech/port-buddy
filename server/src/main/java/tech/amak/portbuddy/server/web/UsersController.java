@@ -181,15 +181,24 @@ public class UsersController {
         }
 
         if (requestedExtra > 0 && account.getStripeSubscriptionId() == null) {
-            // If they don't have a subscription yet, we allow the PATCH to update the database
-            // but the frontend MUST then follow up with a checkout session to actually create the subscription
-            // in Stripe.
-            account.setExtraTunnels(requestedExtra);
-            accountRepository.save(account);
-            return toAccountDto(account);
+            // If they don't have a subscription yet, we must create a checkout session
+            // to actually create the subscription in Stripe.
+            // We do NOT update the account in the database yet. 
+            // It will be updated by the webhook after successful payment.
+
+            final var url = stripeService.createCheckoutSession(account, account.getPlan(), requestedExtra);
+            final var dto = toAccountDto(account);
+            dto.setCheckoutUrl(url);
+            return dto;
         }
 
-        stripeService.updateExtraTunnels(account, requestedExtra);
+        if (requestedExtra == 0 && account.getPlan() == Plan.PRO && account.getStripeSubscriptionId() != null) {
+            stripeService.cancelSubscription(account);
+            account.setSubscriptionStatus("canceled");
+            account.setStripeSubscriptionId(null);
+        } else {
+            stripeService.updateExtraTunnels(account, requestedExtra);
+        }
 
         account.setExtraTunnels(requestedExtra);
         accountRepository.save(account);
@@ -315,6 +324,7 @@ public class UsersController {
         private int activeTunnels;
         private String subscriptionStatus;
         private String stripeCustomerId;
+        private String checkoutUrl;
     }
 
     @Data

@@ -145,6 +145,7 @@ public class StripeWebhookController {
 
         final var accountId = UUID.fromString(accountIdStr);
         final var planStr = session.getMetadata().get("plan");
+        final var extraTunnelsStr = session.getMetadata().get("extraTunnels");
         final var oldSubscriptionId = session.getMetadata().get("oldSubscriptionId");
 
         final var account = accountRepository.findById(accountId)
@@ -153,8 +154,7 @@ public class StripeWebhookController {
         if (oldSubscriptionId != null) {
             log.info("Cancelling old subscription {} for account {}", oldSubscriptionId, accountId);
             try {
-                final var oldSubscription = Subscription.retrieve(oldSubscriptionId);
-                oldSubscription.cancel();
+                stripeService.cancelSubscription(oldSubscriptionId);
             } catch (Exception e) {
                 log.error("Failed to cancel old subscription {}: {}", oldSubscriptionId, e.getMessage());
                 // We don't throw here to avoid failing the whole webhook if cancellation fails
@@ -168,6 +168,9 @@ public class StripeWebhookController {
         account.setSubscriptionStatus("active");
         if (planStr != null) {
             account.setPlan(Plan.valueOf(planStr));
+        }
+        if (extraTunnelsStr != null) {
+            account.setExtraTunnels(Integer.parseInt(extraTunnelsStr));
         }
         accountRepository.save(account);
         tunnelService.enforceTunnelLimit(account);

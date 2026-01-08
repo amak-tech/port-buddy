@@ -208,6 +208,7 @@ class StripeWebhookControllerTest {
         when(session.getMetadata()).thenReturn(java.util.Map.of(
             "accountId", accountId.toString(),
             "plan", "TEAM",
+            "extraTunnels", "5",
             "oldSubscriptionId", oldSubId
         ));
 
@@ -227,10 +228,11 @@ class StripeWebhookControllerTest {
                 .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk());
 
-        verify(stripeService).cancelSubscription(account);
+        verify(stripeService).cancelSubscription("sub_old");
         verify(accountRepository).save(account);
         assert account.getStripeSubscriptionId().equals(newSubId);
         assert account.getPlan() == Plan.TEAM;
+        assert account.getExtraTunnels() == 5;
     }
 
     @Test

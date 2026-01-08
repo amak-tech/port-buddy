@@ -38,13 +38,16 @@ public class StripeService {
     /**
      * Creates a checkout session for the given account and plan.
      *
-     * @param account the account
-     * @param plan    the plan
+     * @param account       the account
+     * @param plan          the plan
+     * @param extraTunnels  the number of extra tunnels
      * @return the checkout session URL
      * @throws StripeException if Stripe API call fails
      */
-    public String createCheckoutSession(final AccountEntity account, final Plan plan) throws StripeException {
-        log.info("Creating checkout session for account: {}, plan: {}", account.getId(), plan);
+    public String createCheckoutSession(final AccountEntity account, final Plan plan, final int extraTunnels)
+        throws StripeException {
+        log.info("Creating checkout session for account: {}, plan: {}, extraTunnels: {}",
+            account.getId(), plan, extraTunnels);
 
         if (account.getStripeSubscriptionId() != null) {
             log.info("Account {} already has an active subscription: {}. It will be replaced.",
@@ -69,17 +72,18 @@ public class StripeService {
                 .setQuantity(1L)
                 .build())
             .putMetadata("accountId", account.getId().toString())
-            .putMetadata("plan", plan.name());
+            .putMetadata("plan", plan.name())
+            .putMetadata("extraTunnels", String.valueOf(extraTunnels));
 
         if (account.getStripeSubscriptionId() != null) {
             paramsBuilder.putMetadata("oldSubscriptionId", account.getStripeSubscriptionId());
         }
 
-        // If the account already has extra tunnels recorded, include them in the checkout session
-        if (account.getExtraTunnels() > 0) {
+        // Include extra tunnels in the checkout session if requested
+        if (extraTunnels > 0) {
             paramsBuilder.addLineItem(LineItem.builder()
                 .setPrice(stripeProperties.priceIds().extraTunnel())
-                .setQuantity((long) account.getExtraTunnels())
+                .setQuantity((long) extraTunnels)
                 .build());
         }
 
@@ -89,19 +93,40 @@ public class StripeService {
     }
 
     /**
+     * Creates a checkout session for the given account and plan using current account's extra tunnels.
+     *
+     * @param account the account
+     * @param plan    the plan
+     * @return the checkout session URL
+     * @throws StripeException if Stripe API call fails
+     */
+    public String createCheckoutSession(final AccountEntity account, final Plan plan) throws StripeException {
+        return createCheckoutSession(account, plan, account.getExtraTunnels());
+    }
+
+    /**
+     * Cancels the given subscription in Stripe.
+     *
+     * @param subscriptionId the subscription ID
+     * @throws StripeException if Stripe API call fails
+     */
+    public void cancelSubscription(final String subscriptionId) throws StripeException {
+        if (subscriptionId == null) {
+            return;
+        }
+        log.info("Cancelling Stripe subscription: {}", subscriptionId);
+        final var subscription = Subscription.retrieve(subscriptionId);
+        subscription.cancel();
+    }
+
+    /**
      * Cancels the given subscription in Stripe and resets extra tunnels.
      *
      * @param account the account
      * @throws StripeException if Stripe API call fails
      */
     public void cancelSubscription(final AccountEntity account) throws StripeException {
-        final var subscriptionId = account.getStripeSubscriptionId();
-        if (subscriptionId == null) {
-            return;
-        }
-        log.info("Cancelling Stripe subscription: {} for account: {}", subscriptionId, account.getId());
-        final var subscription = Subscription.retrieve(subscriptionId);
-        subscription.cancel();
+        cancelSubscription(account.getStripeSubscriptionId());
     }
 
     /**
