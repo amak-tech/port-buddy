@@ -22,7 +22,7 @@ services:
     network_mode: host
     volumes:
       - ${PWD}/eureka/config:/app/config
-      - ${PWD}/eureka/logs:/app/logs
+      - ${PWD}/eureka/logs:/app/log
     logging:
       options:
         max-size: 10M
@@ -51,7 +51,7 @@ services:
       OAUTH_GITHUB_CLIENT_SECRET: ${OAUTH_GITHUB_CLIENT_SECRET}
     volumes:
       - ${PWD}/server/config:/app/config
-      - ${PWD}/server/logs:/app/logs
+      - ${PWD}/server/logs:/app/log
     depends_on:
       - eureka
       - postgres
@@ -66,7 +66,7 @@ services:
     network_mode: host
     volumes:
       - ${PWD}/gateway/config:/app/config
-      - ${PWD}/gateway/logs:/app/logs
+      - ${PWD}/gateway/logs:/app/log
     depends_on:
       - eureka
     logging:
@@ -80,7 +80,7 @@ services:
     network_mode: host
     volumes:
       - ${PWD}/net-proxy/config:/app/config
-      - ${PWD}/net-proxy/logs:/app/logs
+      - ${PWD}/net-proxy/logs:/app/log
     depends_on:
       - eureka
     logging:
@@ -98,7 +98,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
     volumes:
       - ${PWD}/ssl-service/config:/app/config
-      - ${PWD}/ssl-service/logs:/app/logs
+      - ${PWD}/ssl-service/logs:/app/log
       - ${PWD}/ssl-service/certs:/app/certs
     depends_on:
       - eureka
