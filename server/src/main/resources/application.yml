@@ -88,8 +88,8 @@ spring:
       client:
         registration:
           google:
-            client-id: 943200305645-kk9e9767lc9andmtlhamht42gjaguriq.apps.googleusercontent.com
-            client-secret: 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
+            client-id: ${OAUTH_GOOGLE_CLIENT_ID:1111111111111-2222222222222.apps.googleusercontent.com}
+            client-secret: ${OAUTH_GOOGLE_CLIENT_SECRET:secret}
             scope: openid,profile,email
             redirect-uri: "${app.gateway.url}/login/oauth2/code/{registrationId}"
         provider:
