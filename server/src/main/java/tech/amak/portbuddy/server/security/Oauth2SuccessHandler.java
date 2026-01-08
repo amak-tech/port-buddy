@@ -9,29 +9,32 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClient;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import tech.amak.portbuddy.server.config.AppProperties;
 import tech.amak.portbuddy.server.service.user.MissingEmailException;
 import tech.amak.portbuddy.server.service.user.UserProvisioningService;
 
 @Component
-@RequiredArgsConstructor
 public class Oauth2SuccessHandler implements AuthenticationSuccessHandler {
 
     public static final String EMAIL_CLAIM = "email";
     public static final String NAME_CLAIM = "name";
     public static final String PICTURE_CLAIM = "picture";
+    public static final String AVATAR_URL_CLAIM = "avatar_url";
     public static final String FIRST_NAME_CLAIM = "given_name";
     public static final String LAST_NAME_CLAIM = "family_name";
     public static final String ACCOUNT_ID_CLAIM = "aid";
@@ -45,6 +48,20 @@ public class Oauth2SuccessHandler implements AuthenticationSuccessHandler {
     private final JwtService jwtService;
     private final AppProperties properties;
     private final UserProvisioningService userProvisioningService;
+    private final OAuth2AuthorizedClientService authorizedClientService;
+    private final RestClient restClient;
+
+    public Oauth2SuccessHandler(final JwtService jwtService,
+                                final AppProperties properties,
+                                final UserProvisioningService userProvisioningService,
+                                final OAuth2AuthorizedClientService authorizedClientService,
+                                final RestClient.Builder restClientBuilder) {
+        this.jwtService = jwtService;
+        this.properties = properties;
+        this.userProvisioningService = userProvisioningService;
+        this.authorizedClientService = authorizedClientService;
+        this.restClient = restClientBuilder.build();
+    }
 
     @Override
     public void onAuthenticationSuccess(final HttpServletRequest request,
@@ -73,9 +90,16 @@ public class Oauth2SuccessHandler implements AuthenticationSuccessHandler {
             email = asNullableString(attrs, EMAIL_CLAIM);
             name = asNullableString(attrs, NAME_CLAIM);
             picture = asNullableString(attrs, PICTURE_CLAIM);
+            if (picture == null) {
+                picture = asNullableString(attrs, AVATAR_URL_CLAIM);
+            }
             if (attrs.containsKey(FIRST_NAME_CLAIM) || attrs.containsKey(LAST_NAME_CLAIM)) {
                 firstName = asNullableString(attrs, FIRST_NAME_CLAIM);
                 lastName = asNullableString(attrs, LAST_NAME_CLAIM);
+            }
+
+            if (email == null && "github".equals(provider)) {
+                email = fetchGithubEmail(authentication);
             }
         }
 
@@ -119,6 +143,45 @@ public class Oauth2SuccessHandler implements AuthenticationSuccessHandler {
             return oauthToken.getAuthorizedClientRegistrationId();
         }
         return "unknown";
+    }
+
+    private String fetchGithubEmail(final Authentication authentication) {
+        if (!(authentication instanceof OAuth2AuthenticationToken oauthToken)) {
+            return null;
+        }
+        final var client = authorizedClientService.loadAuthorizedClient(
+            oauthToken.getAuthorizedClientRegistrationId(),
+            oauthToken.getName());
+        if (client == null || client.getAccessToken() == null) {
+            return null;
+        }
+
+        try {
+            final var emails = restClient.get()
+                .uri("https://api.github.com/user/emails")
+                .headers(headers -> headers.setBearerAuth(client.getAccessToken().getTokenValue()))
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<Map<String, Object>>>() {
+                });
+
+            if (emails == null || emails.isEmpty()) {
+                return null;
+            }
+
+            // Prefer primary email
+            return emails.stream()
+                .filter(map ->
+                    Boolean.TRUE.equals(map.get("primary")) && Boolean.TRUE.equals(map.get("verified")))
+                .map(map -> (String) map.get("email"))
+                .findFirst()
+                .orElseGet(() -> emails.stream()
+                    .filter(map -> Boolean.TRUE.equals(map.get("verified")))
+                    .map(map -> (String) map.get("email"))
+                    .findFirst()
+                    .orElse(null));
+        } catch (final Exception e) {
+            return null;
+        }
     }
 
     private static String asNullableString(final Map<String, Object> attrs, final String key) {

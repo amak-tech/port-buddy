@@ -10,8 +10,8 @@ eureka:
 
 app:
   gateway:
-    domain: localhost:8080
-    schema: http
+    domain: localhost:8443
+    schema: https
     url: ${app.gateway.schema}://${app.gateway.domain}
     not-found-page: ${app.gateway.url}/404
     passcode-page: ${app.gateway.url}/passcode
@@ -92,6 +92,11 @@ spring:
             client-secret: ${OAUTH_GOOGLE_CLIENT_SECRET:secret}
             scope: openid,profile,email
             redirect-uri: "${app.gateway.url}/login/oauth2/code/{registrationId}"
+          github:
+            client-id: ${OAUTH_GITHUB_CLIENT_ID:github-client-id}
+            client-secret: ${OAUTH_GITHUB_CLIENT_SECRET:github-client-secret}
+            scope: read:user,user:email
+            redirect-uri: "${app.gateway.url}/login/oauth2/code/{registrationId}"
         provider:
           google:
             authorization-uri: https://accounts.google.com/o/oauth2/auth
@@ -99,6 +104,11 @@ spring:
             jwk-set-uri: https://www.googleapis.com/oauth2/v3/certs
             user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
             user-name-attribute: sub
+          github:
+            authorization-uri: https://github.com/login/oauth/authorize
+            token-uri: https://github.com/login/oauth/access_token
+            user-info-uri: https://api.github.com/user
+            user-name-attribute: id
   mail:
     host: ${SMTP_HOST:postbox.cloud.yandex.net}
     port: ${SMTP_PORT:587}
