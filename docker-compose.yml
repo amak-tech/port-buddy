@@ -50,6 +50,8 @@ services:
       OAUTH_GITHUB_CLIENT_ID: ${OAUTH_GITHUB_CLIENT_ID}
       OAUTH_GITHUB_CLIENT_SECRET: ${OAUTH_GITHUB_CLIENT_SECRET}
       APP_DOMAIN: ${APP_DOMAIN}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
       JVM_OPTS: -Dspring.profiles.active=prod,default
     volumes:
       - ${PWD}/server/config:/app/config
