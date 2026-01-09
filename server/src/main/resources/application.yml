@@ -156,4 +156,4 @@ spring:
 
 app:
   gateway:
-    domain: portbuddy.dev
+    domain: ${APP_DOMAIN:portbuddy.dev}

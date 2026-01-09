@@ -214,6 +214,6 @@ server:
 
 app:
   http-port: 80
-  domain: portbuddy.dev
+  domain: ${APP_DOMAIN:portbuddy.dev}
   spa-backend-enabled: false
   spa-fallback-enabled: true

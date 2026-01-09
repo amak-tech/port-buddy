@@ -49,6 +49,7 @@ services:
       OAUTH_GOOGLE_CLIENT_SECRET: ${OAUTH_GOOGLE_CLIENT_SECRET}
       OAUTH_GITHUB_CLIENT_ID: ${OAUTH_GITHUB_CLIENT_ID}
       OAUTH_GITHUB_CLIENT_SECRET: ${OAUTH_GITHUB_CLIENT_SECRET}
+      APP_DOMAIN: ${APP_DOMAIN}
       JVM_OPTS: -Dspring.profiles.active=prod,default
     volumes:
       - ${PWD}/server/config:/app/config
@@ -66,6 +67,7 @@ services:
     restart: unless-stopped
     network_mode: host
     environment:
+      APP_DOMAIN: ${APP_DOMAIN}
       JVM_OPTS: -Dspring.profiles.active=prod,default
     volumes:
       - ${PWD}/gateway/config:/app/config
@@ -82,7 +84,7 @@ services:
     restart: unless-stopped
     network_mode: host
     environment:
-      NET_PROXY_PUBLIC_HOST: portbuddy.dev
+      NET_PROXY_PUBLIC_HOST: ${NET_PROXY_PUBLIC_HOST}
     volumes:
       - ${PWD}/net-proxy/config:/app/config
       - ${PWD}/net-proxy/logs:/app/log
