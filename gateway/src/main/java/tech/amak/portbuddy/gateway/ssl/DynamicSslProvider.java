@@ -15,6 +15,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 import tech.amak.portbuddy.gateway.client.SslServiceClient;
@@ -28,6 +29,7 @@ public class DynamicSslProvider {
     private final SslServiceClient sslServiceClient;
     private final AsyncCache<String, SslContext> sslContextCache;
     private final String baseDomain;
+    @Getter
     private final SslContext fallbackSslContext;
 
     /**
@@ -76,10 +78,6 @@ public class DynamicSslProvider {
         }
     }
 
-    public SslContext getFallbackSslContext() {
-        return fallbackSslContext;
-    }
-
     /**
      * Retrieves SslContext for a given hostname, utilizing Caffeine cache.
      *
@@ -95,7 +93,7 @@ public class DynamicSslProvider {
 
     private Mono<SslContext> loadSslContext(final String hostname) {
         var lookupDomain = hostname;
-        if (hostname.endsWith("." + baseDomain)) {
+        if (hostname.equals(baseDomain) || hostname.endsWith("." + baseDomain)) {
             lookupDomain = "*." + baseDomain;
         }
 

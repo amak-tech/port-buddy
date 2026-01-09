@@ -217,3 +217,7 @@ app:
   domain: ${APP_DOMAIN:portbuddy.dev}
   spa-backend-enabled: false
   spa-fallback-enabled: true
+  ssl:
+    enabled: true
+    fallback:
+      enabled: false
