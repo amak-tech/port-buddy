@@ -65,7 +65,9 @@ public class HttpTunnelClient {
             .pingInterval(15, TimeUnit.SECONDS) // send pings to keep intermediaries/proxies from dropping idle WS
             .retryOnConnectionFailure(true);
 
-        HttpUtils.configureInsecureSsl(builder);
+        if (ConfigurationService.INSTANCE.isDev()) {
+            HttpUtils.configureInsecureSsl(builder);
+        }
 
         return builder.build();
     }
@@ -80,7 +82,9 @@ public class HttpTunnelClient {
             .followSslRedirects(false)
             .retryOnConnectionFailure(true);
 
-        HttpUtils.configureInsecureSsl(builder);
+        if (ConfigurationService.INSTANCE.isDev()) {
+            HttpUtils.configureInsecureSsl(builder);
+        }
 
         return builder.build();
     }
