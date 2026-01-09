@@ -37,7 +37,7 @@ public record AppProperties(
     public record Gateway(
         String url,
         String domain,
-        String schema,
+        String subdomainUrlTemplate,
         String notFoundPage,
         String passcodePage
     ) {

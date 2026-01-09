@@ -1,13 +1,10 @@
 server:
-  port: ${APP_PUBLIC_PORT:8443}
+  port: 8443
 
 app:
-  host: ${APP_PUBLIC_HOST:localhost}
-  port: ${server.port}
-  http-port: ${APP_PUBLIC_HTTP_PORT:8080}
-  scheme: ${APP_PUBLIC_SCHEMA:https}
-  domain: ${app.host}:${app.port}
-  url: ${app.scheme}://${app.domain}
+  http-port: 8080
+  domain: localhost:${server.port}
+  url: https://${app.domain}
   server-error-page: ${app.url}/500
   spa-backend-enabled: true
   spa-fallback-enabled: false
@@ -212,6 +209,11 @@ spring:
     activate:
       on-profile: prod
 
+server:
+  port: 443
+
 app:
+  http-port: 80
+  domain: portbuddy.dev
   spa-backend-enabled: false
   spa-fallback-enabled: true

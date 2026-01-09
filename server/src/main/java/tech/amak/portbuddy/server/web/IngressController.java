@@ -277,7 +277,7 @@ public class IngressController {
         final var gateway = properties.gateway();
         final var cookie = new Cookie(PASSCODE_COOKIE_NAME, value);
         cookie.setHttpOnly(true);
-        cookie.setSecure("https".equalsIgnoreCase(gateway.schema()));
+        cookie.setSecure(gateway.url().startsWith("https"));
         cookie.setPath("/");
 
         // Build a safe cookie domain: strip port and avoid setting Domain for localhost/IP to satisfy RFC6265

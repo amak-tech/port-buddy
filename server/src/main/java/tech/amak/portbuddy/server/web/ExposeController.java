@@ -69,7 +69,7 @@ public class ExposeController {
             account, request.domain(), request.host(), request.port());
         final var subdomain = domain.getSubdomain();
         final var gateway = properties.gateway();
-        final var publicUrl = "%s://%s.%s".formatted(gateway.schema(), subdomain, gateway.domain());
+        final var publicUrl = gateway.subdomainUrlTemplate().formatted(subdomain);
         final var source = "%s://%s:%s".formatted(request.scheme(), request.host(), request.port());
 
         final var apiKeyId = extractApiKeyId(jwt);

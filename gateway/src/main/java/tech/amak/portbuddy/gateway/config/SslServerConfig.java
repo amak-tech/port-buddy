@@ -101,9 +101,7 @@ public class SslServerConfig {
                             return response.send();
                         }
 
-                        final var redirectUrl = properties.url()
-                                                    .replace(":80", "")
-                                                    .replace(":443", "") + path;
+                        final var redirectUrl = properties.url() + path;
 
                         response.status(HttpStatus.MOVED_PERMANENTLY.value());
                         response.header(HttpHeaderNames.LOCATION, redirectUrl);

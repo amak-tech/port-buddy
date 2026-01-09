@@ -10,11 +10,9 @@ eureka:
 
 app:
   gateway:
-    host: ${APP_PUBLIC_HOST:localhost}
-    port: ${APP_PUBLIC_PORT:8443}
-    schema: ${APP_PUBLIC_SCHEMA:https}
-    domain: ${app.gateway.host}:${app.gateway.port}
-    url: ${app.gateway.schema}://${app.gateway.domain}
+    domain: localhost:8443
+    url: https://${app.gateway.domain}
+    subdomain-url-template: https://%s.${app.gateway.domain}
     not-found-page: ${app.gateway.url}/404
     passcode-page: ${app.gateway.url}/passcode
   mail:
@@ -149,3 +147,13 @@ logging:
       max-history: 14
       total-size-cap: 1000MB
       max-file-size: 100MB
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+app:
+  gateway:
+    domain: portbuddy.dev

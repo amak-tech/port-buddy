@@ -20,7 +20,7 @@ spring:
           jwk-set-uri: lb://port-buddy-server/.well-known/jwks.json
 
 app:
-  public-host: ${PUBLIC_HOST:localhost}
+  public-host: ${NET_PROXY_PUBLIC_HOST:localhost}
   web-socket:
     max-text-message-size: 100MB
     max-binary-message-size: 1GB

@@ -9,12 +9,8 @@ import org.springframework.core.io.Resource;
 
 @ConfigurationProperties(prefix = "app")
 public record AppProperties(
-    String host,
-    int port,
     int httpPort,
-    String portPart,
     String domain,
-    String scheme,
     String url,
     String serverErrorPage,
     Jwt jwt,
