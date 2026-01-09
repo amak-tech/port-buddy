@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import tech.amak.portbuddy.common.dto.DnsInstructionsEmailRequest;
 
-@FeignClient(name = "server")
+@FeignClient(name = "port-buddy-server")
 public interface ServerClient {
 
     @PostMapping("/api/internal/email/dns-instructions")
