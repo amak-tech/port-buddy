@@ -49,6 +49,10 @@ services:
       OAUTH_GOOGLE_CLIENT_SECRET: ${OAUTH_GOOGLE_CLIENT_SECRET}
       OAUTH_GITHUB_CLIENT_ID: ${OAUTH_GITHUB_CLIENT_ID}
       OAUTH_GITHUB_CLIENT_SECRET: ${OAUTH_GITHUB_CLIENT_SECRET}
+      APP_DOMAIN: ${APP_DOMAIN}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
+      JVM_OPTS: -Dspring.profiles.active=prod,default
     volumes:
       - ${PWD}/server/config:/app/config
       - ${PWD}/server/logs:/app/log
@@ -64,8 +68,12 @@ services:
     container_name: pb-gateway
     restart: unless-stopped
     network_mode: host
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN}
+      JVM_OPTS: -Dspring.profiles.active=prod,default
     volumes:
       - ${PWD}/gateway/config:/app/config
+      - ${PWD}/gateway/jwt_keys:/app/jwt_keys
       - ${PWD}/gateway/logs:/app/log
     depends_on:
       - eureka
@@ -78,6 +86,8 @@ services:
     container_name: pb-net-proxy
     restart: unless-stopped
     network_mode: host
+    environment:
+      NET_PROXY_PUBLIC_HOST: ${NET_PROXY_PUBLIC_HOST}
     volumes:
       - ${PWD}/net-proxy/config:/app/config
       - ${PWD}/net-proxy/logs:/app/log

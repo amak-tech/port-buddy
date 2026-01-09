@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import tech.amak.portbuddy.sslservice.domain.CertificateJobStatus;
 import tech.amak.portbuddy.sslservice.domain.CertificateStatus;
 import tech.amak.portbuddy.sslservice.repo.CertificateJobRepository;
@@ -41,9 +42,10 @@ public class RenewalScheduler {
     private final AcmeCertificateService acmeCertificateService;
 
     /**
-     * Runs every 5 minutes with 1 minute initial delay.
+     * Runs every 5 minutes with 5 seconds initial delay.
      */
     @Scheduled(initialDelay = 5_000, fixedDelay = 300_000)
+    @SchedulerLock(name = "RenewalScheduler_scheduleRenewals", lockAtMostFor = "PT10M", lockAtLeastFor = "PT1M")
     public void scheduleRenewals() {
         final var managed = certificateRepository.findAllByManagedTrue();
         if (managed.isEmpty()) {

@@ -6,17 +6,12 @@ package tech.amak.portbuddy.sslservice.service;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.Reader;
 import java.nio.file.Files;
-import java.security.KeyFactory;
 import java.security.KeyPair;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
+import java.security.Security;
 
-import org.bouncycastle.openssl.PEMKeyPair;
-import org.bouncycastle.openssl.PEMParser;
-import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
-import org.springframework.core.io.Resource;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.shredzone.acme4j.util.KeyPairUtils;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
 
@@ -32,42 +27,47 @@ import tech.amak.portbuddy.sslservice.config.AppProperties;
 @Slf4j
 public class AcmeAccountService {
 
+    static {
+        Security.addProvider(new BouncyCastleProvider());
+    }
+
     private final AppProperties properties;
     private final ResourceLoader resourceLoader;
 
     /**
      * Loads the ACME account {@link KeyPair} from {@code app.acme.accountKeyPath}.
-     * The key must be in PEM format (PKCS#1 or PKCS#8). If the file does not exist, an exception is thrown.
+     * The key must be in PEM format (PKCS#1 or PKCS#8). If the file does not exist,
+     * a new key pair is generated and saved.
      *
      * @return account key pair
      */
     public KeyPair loadAccountKeyPair() {
         final var pathString = properties.acme().accountKeyPath();
-        final Resource resource = resourceLoader.getResource(pathString);
-        try (Reader reader = new InputStreamReader(resource.getInputStream())) {
-            try (final var pemParser = new PEMParser(reader)) {
-                final var obj = pemParser.readObject();
-                final var converter = new JcaPEMKeyConverter();
-                if (obj instanceof PEMKeyPair pemKeyPair) {
-                    return converter.getKeyPair(pemKeyPair);
-                }
-                // Try DER fallback (PKCS8 private + X509 public alongside)
-                final var file = resource.getFile();
-                final var dir = file.getParentFile();
-                final var privateDer = file.toPath();
-                final var publicDer = dir.toPath().resolve("account.pub");
-                if (Files.exists(privateDer) && Files.exists(publicDer)) {
-                    final var factory = KeyFactory.getInstance("RSA");
-                    final var priv = factory.generatePrivate(new PKCS8EncodedKeySpec(Files.readAllBytes(privateDer)));
-                    final var pub = factory.generatePublic(new X509EncodedKeySpec(Files.readAllBytes(publicDer)));
-                    return new KeyPair(pub, priv);
-                }
-                throw new IllegalStateException("Unsupported ACME account key format: " + obj);
+        final var resource = resourceLoader.getResource(pathString);
+
+        if (resource.exists()) {
+            try (final var reader = new InputStreamReader(resource.getInputStream())) {
+                return KeyPairUtils.readKeyPair(reader);
+            } catch (final IOException e) {
+                log.error("Failed to load ACME account key pair from {}", pathString, e);
+                throw new IllegalStateException("Failed to load ACME account key pair", e);
             }
-        } catch (final IOException e) {
-            throw new IllegalStateException("Failed to read ACME account key at " + pathString, e);
-        } catch (final Exception e) {
-            throw new IllegalStateException("Failed to parse ACME account key at " + pathString, e);
+        } else {
+            final var keyPair = KeyPairUtils.createKeyPair();
+            try {
+                final var file = resource.getFile();
+                final var parentFile = file.getParentFile();
+                if (parentFile != null && !parentFile.exists() && !parentFile.mkdirs()) {
+                    throw new IOException("Failed to create directory: " + parentFile);
+                }
+                try (final var writer = Files.newBufferedWriter(file.toPath())) {
+                    KeyPairUtils.writeKeyPair(keyPair, writer);
+                }
+            } catch (final IOException e) {
+                log.error("Failed to save ACME account key pair to {}", pathString, e);
+                throw new IllegalStateException("Failed to save ACME account key pair", e);
+            }
+            return keyPair;
         }
     }
 }

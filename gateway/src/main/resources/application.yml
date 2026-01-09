@@ -1,6 +1,27 @@
 server:
   port: 8443
 
+app:
+  http-port: 8080
+  domain: localhost:${server.port}
+  url: https://${app.domain}
+  server-error-page: ${app.url}/500
+  spa-backend-enabled: true
+  spa-fallback-enabled: false
+  ssl:
+    enabled: true
+    # brew install mkcert
+    # mkcert -install
+    # mkcert -key-file key.pem -cert-file cert.pem localhost 127.0.0.1 ::1
+    fallback:
+      enabled: true
+      key-cert-chain-file: ${SELF_SERT_CHAIN_FILE:}
+      key-file: ${SELF_SERT_KEY_FILE:}
+  jwt:
+    jwk-set-uri: lb://port-buddy-server/.well-known/jwks.json
+    # Must match the issuer used by the Server when minting JWTs
+    issuer: port-buddy
+
 eureka:
   client:
     # Fetch registry updates from Eureka more frequently so the gateway sees
@@ -167,28 +188,6 @@ spring:
               filters:
                 - PreserveHostHeader
 
-app:
-  domain: localhost:8443
-  scheme: https
-  url: ${app.scheme}://${app.domain}
-  server-error-page: ${app.url}/500
-  spa-backend-enabled: true
-  spa-fallback-enabled: false
-  ssl:
-    port: 8443
-    enabled: true
-    # brew install mkcert
-    # mkcert -install
-    # mkcert -key-file key.pem -cert-file cert.pem localhost 127.0.0.1 ::1
-    fallback:
-      enabled: true
-      key-cert-chain-file: ${SELF_SERT_CHAIN_FILE:}
-      key-file: ${SELF_SERT_KEY_FILE:}
-  jwt:
-    jwk-set-uri: lb://port-buddy-server/.well-known/jwks.json
-    # Must match the issuer used by the Server when minting JWTs
-    issuer: port-buddy
-
 logging:
   level:
     root: info
@@ -210,6 +209,11 @@ spring:
     activate:
       on-profile: prod
 
+server:
+  port: 443
+
 app:
+  http-port: 80
+  domain: ${APP_DOMAIN:portbuddy.dev}
   spa-backend-enabled: false
   spa-fallback-enabled: true

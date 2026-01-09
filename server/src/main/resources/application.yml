@@ -11,8 +11,8 @@ eureka:
 app:
   gateway:
     domain: localhost:8443
-    schema: https
-    url: ${app.gateway.schema}://${app.gateway.domain}
+    url: https://${app.gateway.domain}
+    subdomain-url-template: https://%s.${app.gateway.domain}
     not-found-page: ${app.gateway.url}/404
     passcode-page: ${app.gateway.url}/passcode
   mail:
@@ -45,8 +45,8 @@ app:
       currentKeyId: dev-key
       keys:
         - id: dev-key
-          publicKeyPem: ${PUBLIC_KEY:classpath:keys/dev_jwt.pub}
-          privateKeyPem: ${PRIVATE_KEY:classpath:keys/dev_jwt.pem}
+          publicKeyPem: ${JWT_PUBLIC_KEY:classpath:keys/dev_jwt.pub}
+          privateKeyPem: ${JWT_PRIVATE_KEY:classpath:keys/dev_jwt.pem}
 
   web-socket:
     max-text-message-size: 100MB
@@ -147,3 +147,13 @@ logging:
       max-history: 14
       total-size-cap: 1000MB
       max-file-size: 100MB
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+app:
+  gateway:
+    domain: ${APP_DOMAIN:portbuddy.dev}

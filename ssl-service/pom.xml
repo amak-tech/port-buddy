@@ -75,18 +75,29 @@
         <dependency>
             <groupId>org.shredzone.acme4j</groupId>
             <artifactId>acme4j-client</artifactId>
-            <version>3.3.1</version>
+            <version>3.5.1</version>
         </dependency>
         <!-- BouncyCastle for CSR/PEM handling -->
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcpkix-jdk18on</artifactId>
-            <version>1.78.1</version>
+            <version>1.83</version>
         </dependency>
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk18on</artifactId>
-            <version>1.78.1</version>
+            <version>1.83</version>
+        </dependency>
+        <!-- ShedLock for cluster-safe scheduling -->
+        <dependency>
+            <groupId>net.javacrumbs.shedlock</groupId>
+            <artifactId>shedlock-spring</artifactId>
+            <version>7.2.0</version>
+        </dependency>
+        <dependency>
+            <groupId>net.javacrumbs.shedlock</groupId>
+            <artifactId>shedlock-provider-jdbc-template</artifactId>
+            <version>7.2.0</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
