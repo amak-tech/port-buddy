@@ -20,12 +20,11 @@ public class SniSslContextMapping implements AsyncMapping<String, SslContext> {
     @Override
     public Future<SslContext> map(final String hostname, final Promise<SslContext> promise) {
         log.debug("SNI lookup for hostname: {}", hostname);
-        try {
-            final SslContext sslContext = sslProvider.getSslContext(hostname);
-            return promise.setSuccess(sslContext);
-        } catch (final Exception e) {
-            log.error("Error during SNI lookup for {}", hostname, e);
-            return promise.setFailure(e);
-        }
+        sslProvider.getSslContext(hostname)
+            .subscribe(
+                promise::setSuccess,
+                promise::setFailure
+            );
+        return promise;
     }
 }

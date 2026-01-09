@@ -46,14 +46,13 @@ public class SslServerConfig {
     public WebServerFactoryCustomizer<NettyReactiveWebServerFactory> sslCustomizer() {
         return factory -> factory.addServerCustomizers(server -> {
             if (properties.ssl().enabled()) {
-                server = server.secure(sslContextSpec ->
-                    sslContextSpec.sslContext(sslProvider.getFallbackSslContext()));
-
-                // Add SNI support at the connection level to complement the secure() configuration
-                server = server.doOnConnection(connection -> {
-                    connection.addHandlerFirst("sni-handler", new SniHandler(new SniSslContextMapping(sslProvider)));
+                // We use doOnChannelInit to configure the pipeline at the transport level.
+                // This ensures SniHandler is added before any data is read and enables dynamic SSL via SNI.
+                server = server.doOnChannelInit((observer, channel, remoteAddress) -> {
+                    channel.pipeline().addFirst("sni-handler", new SniHandler(new SniSslContextMapping(sslProvider)));
                 });
             }
+
             return server.httpRequestDecoder(spec -> spec.allowDuplicateContentLengths(true)
                 .maxInitialLineLength(65536)
                 .maxHeaderSize(65536)

@@ -47,7 +47,7 @@ class DynamicSslProviderTest {
         when(sslServiceClient.getCertificate(anyString())).thenReturn(Mono.empty());
 
         // When
-        final SslContext context = sslProvider.getSslContext("unknown.com");
+        final SslContext context = sslProvider.getSslContext("unknown.com").block();
 
         // Then
         assertNotNull(context);
@@ -56,7 +56,7 @@ class DynamicSslProviderTest {
     @Test
     void shouldReturnFallbackWhenHostnameIsNull() {
         // When
-        final SslContext context = sslProvider.getSslContext(null);
+        final SslContext context = sslProvider.getSslContext(null).block();
 
         // Then
         assertNotNull(context);
