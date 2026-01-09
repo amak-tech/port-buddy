@@ -71,6 +71,7 @@ services:
       JVM_OPTS: -Dspring.profiles.active=prod,default
     volumes:
       - ${PWD}/gateway/config:/app/config
+      - ${PWD}/gateway/jwt_keys:/app/jwt_keys
       - ${PWD}/gateway/logs:/app/log
     depends_on:
       - eureka
