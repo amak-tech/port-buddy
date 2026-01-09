@@ -39,6 +39,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
@@ -341,7 +342,7 @@ public class AcmeCertificateService {
             jobRepository.save(job);
 
             final var records = objectMapper.readValue(job.getChallengeRecordsJson(),
-                new com.fasterxml.jackson.core.type.TypeReference<java.util.List<Map<String, String>>>() {
+                new TypeReference<List<Map<String, String>>>() {
                 });
 
             // Verify TXT visibility for each record
@@ -361,8 +362,10 @@ public class AcmeCertificateService {
             // Re-bind order and trigger challenges
             final Session session = acmeClientService.newSession();
             final KeyPair accountKeyPair = acmeAccountService.loadAccountKeyPair();
+            final Account account = retryExecutor
+                .callWithRetry("acme.login", () -> acmeClientService.loginOrRegister(session, accountKeyPair));
             final var orderLocation = job.getOrderLocation();
-            final Order order = acmeClientService.bindOrder(session, accountKeyPair, orderLocation);
+            final Order order = acmeClientService.bindOrder(session, account, accountKeyPair, orderLocation);
 
             final var authorizations = order.getAuthorizations();
             for (final Authorization auth : authorizations) {

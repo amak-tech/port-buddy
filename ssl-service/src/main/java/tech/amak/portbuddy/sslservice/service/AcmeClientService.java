@@ -75,11 +75,11 @@ public class AcmeClientService {
      * @throws AcmeException on ACME failures
      */
     public Order bindOrder(final Session session,
+                           final Account account,
                            final KeyPair keyPair,
                            final String orderLocation) throws AcmeException {
         try {
-            final var accountLoc = new URL(properties.acme().accountLocation());
-            final Login login = session.login(accountLoc, keyPair);
+            final Login login = session.login(account.getLocation(), keyPair);
             return login.bindOrder(new URL(orderLocation));
         } catch (final Exception e) {
             throw new AcmeException("Failed to bind order: " + e.getMessage(), e);
