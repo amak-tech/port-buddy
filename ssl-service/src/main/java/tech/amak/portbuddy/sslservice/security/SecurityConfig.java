@@ -47,6 +47,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/health**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/.well-known/acme-challenge/**").permitAll()
+                .requestMatchers("/internal/api/**").permitAll()
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().permitAll()
             )
