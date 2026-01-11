@@ -154,3 +154,65 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: portbuddy/portbuddy:latest
+
+  build-native-cli:
+    name: Build Native CLI (${{ matrix.os }})
+    needs: build
+    #if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/native-cli'
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            asset_name: port-buddy-linux-x64
+            executable_path: cli/target/port-buddy
+          - os: ubuntu-24.04-arm64
+            asset_name: port-buddy-linux-arm64
+            executable_path: cli/target/port-buddy
+          - os: macos-13
+            asset_name: port-buddy-macos-x64
+            executable_path: cli/target/port-buddy
+          - os: macos-14
+            asset_name: port-buddy-macos-arm64
+            executable_path: cli/target/port-buddy
+          - os: windows-latest
+            asset_name: port-buddy-windows-x64.exe
+            executable_path: cli/target/port-buddy.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up MSVC
+        if: matrix.os == 'windows-latest'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Set up GraalVM
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'graalvm'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cache: 'maven'
+
+      - name: Build with Maven (Native Image)
+        run: ./mvnw clean package -pl cli -am -DskipTests
+
+      - name: Prepare Artifact
+        shell: bash
+        run: |
+          cp ${{ matrix.executable_path }} ${{ matrix.asset_name }}
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.asset_name }}
+          tag_name: latest
+          name: Latest Release
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
