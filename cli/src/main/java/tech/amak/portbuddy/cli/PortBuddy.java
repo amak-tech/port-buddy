@@ -11,18 +11,12 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.Callable;
 
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
-import picocli.CommandLine;
-import picocli.CommandLine.Command;
-import picocli.CommandLine.Mixin;
-import picocli.CommandLine.Option;
-import picocli.CommandLine.Parameters;
 import tech.amak.portbuddy.cli.config.ConfigurationService;
 import tech.amak.portbuddy.cli.tunnel.HttpTunnelClient;
 import tech.amak.portbuddy.cli.tunnel.NetTunnelClient;
@@ -37,79 +31,175 @@ import tech.amak.portbuddy.common.dto.auth.RegisterResponse;
 import tech.amak.portbuddy.common.dto.auth.TokenExchangeRequest;
 import tech.amak.portbuddy.common.dto.auth.TokenExchangeResponse;
 
+/**
+ * Main class for the PortBuddy CLI application.
+ * Handles command-line argument parsing and coordinates tunnel exposure.
+ */
 @Slf4j
-@Command(
-    name = "port-buddy",
-    description = "Expose local ports to public network (simple ngrok alternative).",
-    mixinStandardHelpOptions = true,
-    version = {"port-buddy 1.0"},
-    subcommands = {PortBuddy.InitCommand.class}
-)
-public class PortBuddy implements Callable<Integer> {
+public class PortBuddy {
 
     private static final String OUTDATED = "outdated";
+    private static final int EXIT_OK = 0;
+    private static final int EXIT_ERROR = 1;
+    private static final int EXIT_USAGE = 2;
 
     private final ConfigurationService configurationService = ConfigurationService.INSTANCE;
 
-    @Mixin
-    private SharedOptions shared;
-
-    @Option(names = {"-d", "--domain"}, description = "Requested domain (e.g. my-domain or my-domain.portbuddy.dev)")
     private String domain;
-
-    @Option(names = {"-pr", "--port-reservation"},
-        description = "Use specific port reservation host:port for TCP/UDP (e.g. tcp-proxy-1.portbuddy.dev:45432)")
     private String portReservation;
-
-    @Option(names = {"-pc", "--passcode"}, description = "Passcode to secure HTTP tunnel (temporary for this tunnel)")
     private String passcode;
-
-    @Parameters(
-        arity = "0..2",
-        description = "[mode] [host:][port] or [schema://]host[:port]. Examples: '3000', 'localhost', 'example.com:8080', 'https://example.com'"
-    )
-    private final List<String> args = new ArrayList<>();
+    private boolean verbose;
+    private final List<String> positionalArgs = new ArrayList<>();
 
     private final OkHttpClient http = HttpUtils.createClient();
 
-    static void main(final String[] args) {
-        final var exit = new CommandLine(new PortBuddy()).execute(args);
-        System.exit(exit);
+    /**
+     * Main entry point for the application.
+     *
+     * @param args command line arguments
+     */
+    public static void main(final String[] args) {
+        final var portBuddy = new PortBuddy();
+        final var exitCode = portBuddy.execute(args);
+        System.exit(exitCode);
     }
 
-    @Override
-    public Integer call() throws Exception {
-        // Default command: expose
+    /**
+     * Parses arguments and executes the requested command.
+     *
+     * @param args command line arguments
+     * @return exit code
+     */
+    public int execute(final String[] args) {
+        if (args.length == 0) {
+            printHelp();
+            return EXIT_USAGE;
+        }
+
+        var i = 0;
+        while (i < args.length) {
+            final var arg = args[i];
+            if ("-h".equals(arg) || "--help".equals(arg)) {
+                printHelp();
+                return EXIT_OK;
+            } else if ("-V".equals(arg) || "--version".equals(arg)) {
+                printVersion();
+                return EXIT_OK;
+            } else if ("-v".equals(arg) || "--verbose".equals(arg)) {
+                this.verbose = true;
+            } else if ("-d".equals(arg) || "--domain".equals(arg)) {
+                if (++i < args.length) {
+                    this.domain = args[i];
+                } else {
+                    System.err.println("Error: Option '-d', '--domain' requires an argument.");
+                    return EXIT_USAGE;
+                }
+            } else if (arg.startsWith("--domain=")) {
+                this.domain = arg.substring("--domain=".length());
+            } else if ("-pr".equals(arg) || "--port-reservation".equals(arg)) {
+                if (++i < args.length) {
+                    this.portReservation = args[i];
+                } else {
+                    System.err.println("Error: Option '-pr', '--port-reservation' requires an argument.");
+                    return EXIT_USAGE;
+                }
+            } else if (arg.startsWith("--port-reservation=")) {
+                this.portReservation = arg.substring("--port-reservation=".length());
+            } else if ("-pc".equals(arg) || "--passcode".equals(arg)) {
+                if (++i < args.length) {
+                    this.passcode = args[i];
+                } else {
+                    System.err.println("Error: Option '-pc', '--passcode' requires an argument.");
+                    return EXIT_USAGE;
+                }
+            } else if (arg.startsWith("--passcode=")) {
+                this.passcode = arg.substring("--passcode=".length());
+            } else if ("init".equals(arg)) {
+                if (++i < args.length) {
+                    return init(args[i]);
+                } else {
+                    System.err.println("Error: Missing API token for 'init' command.");
+                    return EXIT_USAGE;
+                }
+            } else if (arg.startsWith("-")) {
+                System.err.println("Unknown option: " + arg);
+                printHelp();
+                return EXIT_USAGE;
+            } else {
+                positionalArgs.add(arg);
+            }
+            i++;
+        }
+
         return expose();
+    }
+
+    private void printHelp() {
+        System.out.println("Usage: port-buddy [options] [mode] [host:][port]");
+        System.out.println("Expose local ports to public network (simple ngrok alternative).");
+        System.out.println();
+        System.out.println("Options:");
+        System.out.println("  -d, --domain=<domain>       Requested domain (e.g. my-domain)");
+        System.out.println("  -pr, --port-reservation=<host:port>");
+        System.out.println("                              Use specific port reservation host:port for TCP/UDP");
+        System.out.println("  -pc, --passcode=<passcode>  Passcode to secure HTTP tunnel (temporary for this tunnel)");
+        System.out.println("  -v, --verbose               Verbose logging");
+        System.out.println("  -h, --help                  Show this help message and exit.");
+        System.out.println("  -V, --version               Print version information and exit.");
+        System.out.println();
+        System.out.println("Commands:");
+        System.out.println("  init <apiToken>             Initialize CLI with API token");
+        System.out.println();
+        System.out.println("Examples:");
+        System.out.println("  port-buddy 3000");
+        System.out.println("  port-buddy tcp 5432");
+        System.out.println("  port-buddy --domain=my-app 8080");
+    }
+
+    private void printVersion() {
+        System.out.println("port-buddy " + resolveCliVersion());
+    }
+
+    private int init(final String apiToken) {
+        try {
+            configurationService.saveApiToken(apiToken);
+            System.out.println("API token saved. You're now authenticated.");
+            return EXIT_OK;
+        } catch (final IOException e) {
+            System.err.println("Failed to save API token: " + e.getMessage());
+            return EXIT_ERROR;
+        }
     }
 
     private int expose() {
         final String modeStr;
         final String hostPortStr;
-        if (args.isEmpty()) {
+        if (positionalArgs.isEmpty()) {
             System.err.println("Usage: port-buddy [mode] [host:][port] or [schema://]host[:port]");
-            return CommandLine.ExitCode.USAGE;
-        } else if (args.size() == 1) {
+            return EXIT_USAGE;
+        } else if (positionalArgs.size() == 1) {
             modeStr = null; // default http
-            hostPortStr = args.get(0);
+            hostPortStr = positionalArgs.get(0);
         } else {
-            modeStr = args.get(0);
-            hostPortStr = args.get(1);
+            modeStr = positionalArgs.get(0);
+            hostPortStr = positionalArgs.get(1);
         }
 
         final var mode = TunnelType.from(modeStr);
         final var hostPort = parseHostPort(hostPortStr);
+        if (hostPort == null) {
+            return EXIT_USAGE;
+        }
         if (hostPort.port < 1 || hostPort.port > 65535) {
             System.err.println("Port must be in range [1, 65535]");
-            return CommandLine.ExitCode.USAGE;
+            return EXIT_USAGE;
         }
-
 
         final var config = configurationService.getConfig();
 
         // 1) Ensure API key is present and exchange it for a JWT at startup
         if (!ensureAuthenticated(config)) {
-            return CommandLine.ExitCode.SOFTWARE;
+            return EXIT_ERROR;
         }
 
         final var apiKey = config.getApiToken();
@@ -118,7 +208,7 @@ public class PortBuddy implements Callable<Integer> {
             System.err.println("""
                 Your port-buddy CLI is outdated.
                 Please upgrade to the latest version and try again.""");
-            return CommandLine.ExitCode.SOFTWARE;
+            return EXIT_ERROR;
         }
 
         if (jwt == null || jwt.isBlank()) {
@@ -126,7 +216,7 @@ public class PortBuddy implements Callable<Integer> {
                 Failed to authenticate with the provided API Key.
                 CLI must be initialized with a valid API Key.
                 Example: port-buddy init {API_TOKEN}""");
-            return CommandLine.ExitCode.SOFTWARE;
+            return EXIT_ERROR;
         }
 
         if (mode == TunnelType.HTTP) {
@@ -134,7 +224,7 @@ public class PortBuddy implements Callable<Integer> {
                 new ExposeRequest(mode, hostPort.scheme, hostPort.host, hostPort.port, domain, null, passcode));
             if (expose == null) {
                 System.err.println("Failed to contact server to create tunnel");
-                return CommandLine.ExitCode.SOFTWARE;
+                return EXIT_ERROR;
             }
 
             final var localInfo = String.format("%s://%s:%d", hostPort.scheme, hostPort.host, hostPort.port);
@@ -143,7 +233,7 @@ public class PortBuddy implements Callable<Integer> {
             final var tunnelId = expose.tunnelId();
             if (tunnelId == null) {
                 System.err.println("Server did not return tunnelId");
-                return CommandLine.ExitCode.SOFTWARE;
+                return EXIT_ERROR;
             }
 
             final var client = new HttpTunnelClient(
@@ -173,7 +263,7 @@ public class PortBuddy implements Callable<Integer> {
                 new ExposeRequest(mode, scheme, hostPort.host, hostPort.port, null, portReservation, null));
             if (expose == null || expose.publicHost() == null || expose.publicPort() == null) {
                 System.err.println("Failed to contact server to create " + mode + " tunnel");
-                return CommandLine.ExitCode.SOFTWARE;
+                return EXIT_ERROR;
             }
             final var localInfo = String.format("%s %s:%d", mode.name().toLowerCase(), hostPort.host, hostPort.port);
             final var publicInfo = String.format("%s:%d", expose.publicHost(), expose.publicPort());
@@ -181,7 +271,7 @@ public class PortBuddy implements Callable<Integer> {
             final var tunnelId = expose.tunnelId();
             if (tunnelId == null) {
                 System.err.println("Server did not return tunnelId");
-                return CommandLine.ExitCode.SOFTWARE;
+                return EXIT_ERROR;
             }
             // Use configured API server URL for the WebSocket control channel, not the public TCP host
             final var serverUri = URI.create(config.getServerUrl());
@@ -214,7 +304,7 @@ public class PortBuddy implements Callable<Integer> {
             }
         }
 
-        return CommandLine.ExitCode.OK;
+        return EXIT_OK;
     }
 
     private ExposeResponse callExposeTunnel(final String baseUrl, final String jwt, final ExposeRequest requestBody) {
@@ -299,18 +389,7 @@ public class PortBuddy implements Callable<Integer> {
         if (impl != null && !impl.isBlank()) {
             return impl.trim();
         }
-        // Fallback to picocli @Command version string if manifest is missing
-        // Expected format: "port-buddy X.Y[.Z]"
-        final var cmdAnno = PortBuddy.class.getAnnotation(Command.class);
-        if (cmdAnno != null && cmdAnno.version() != null && cmdAnno.version().length > 0) {
-            final var v = cmdAnno.version()[0];
-            final var idx = v.lastIndexOf(' ');
-            if (idx > -1 && idx < v.length() - 1) {
-                return v.substring(idx + 1).trim();
-            }
-            return v.trim();
-        }
-        return "dev";
+        return "1.0";
     }
 
     private boolean ensureAuthenticated(final ClientConfig config) {
@@ -380,7 +459,7 @@ public class PortBuddy implements Callable<Integer> {
 
         if (arg == null || arg.isBlank()) {
             System.err.println("Missing [host:][port] or [schema://]host[:port]. Example: 'port-buddy 3000' or 'port-buddy https://localhost'");
-            throw new CommandLine.ParameterException(new CommandLine(this), "Missing host/port argument");
+            return null;
         }
 
         var url = arg.trim();
@@ -409,19 +488,20 @@ public class PortBuddy implements Callable<Integer> {
             final var parts = url.split("://", 2);
             final var givenScheme = parts[0].toLowerCase();
             if (!givenScheme.equals("http") && !givenScheme.equals("https")) {
-                throw new CommandLine.ParameterException(
-                    new CommandLine(this), "Unsupported schema: " + givenScheme + ". Only http or https are allowed.");
+                System.err.println("Unsupported schema: " + givenScheme + ". Only http or https are allowed.");
+                return null;
             }
             scheme = givenScheme;
             schemeExplicit = true;
             final var rest = parts[1];
             if (rest.contains(":")) {
-                final var hostPort = rest.split(":", 2);
-                host = hostPort[0].isBlank() ? host : hostPort[0];
+                final var hostPortPart = rest.split(":", 2);
+                host = hostPortPart[0].isBlank() ? host : hostPortPart[0];
                 try {
-                    port = Integer.parseInt(hostPort[1]);
+                    port = Integer.parseInt(hostPortPart[1]);
                 } catch (final NumberFormatException e) {
-                    throw new CommandLine.ParameterException(new CommandLine(this), "Invalid port: " + hostPort[1]);
+                    System.err.println("Invalid port: " + hostPortPart[1]);
+                    return null;
                 }
             } else if (!rest.isBlank()) {
                 host = rest;
@@ -429,12 +509,13 @@ public class PortBuddy implements Callable<Integer> {
         } else if (port == null) {
             // Case 3: host[:port] (no scheme)
             if (url.contains(":")) {
-                final var hostPort = url.split(":", 2);
-                host = hostPort[0].isBlank() ? host : hostPort[0];
+                final var hostPortPart = url.split(":", 2);
+                host = hostPortPart[0].isBlank() ? host : hostPortPart[0];
                 try {
-                    port = Integer.parseInt(hostPort[1]);
+                    port = Integer.parseInt(hostPortPart[1]);
                 } catch (final NumberFormatException e) {
-                    throw new CommandLine.ParameterException(new CommandLine(this), "Invalid port: " + hostPort[1]);
+                    System.err.println("Invalid port: " + hostPortPart[1]);
+                    return null;
                 }
             } else {
                 host = url;
@@ -458,35 +539,15 @@ public class PortBuddy implements Callable<Integer> {
         return new HostPort(host, port, scheme);
     }
 
-    static final class HostPort {
-        final String host;
-        final int port;
-        final String scheme;
+    private static final class HostPort {
+        private final String host;
+        private final int port;
+        private final String scheme;
 
-        HostPort(final String host, final int port, final String scheme) {
+        private HostPort(final String host, final int port, final String scheme) {
             this.host = host;
             this.port = port;
             this.scheme = scheme;
         }
-    }
-
-    static class SharedOptions {
-        @Option(names = {"-v", "--verbose"}, description = "Verbose logging")
-        boolean verbose;
-    }
-
-    @Command(name = "init", description = "Initialize CLI with API token")
-    static class InitCommand implements Callable<Integer> {
-
-        @Parameters(index = "0", description = "API token from your account")
-        private String apiToken;
-
-        @Override
-        public Integer call() throws Exception {
-            ConfigurationService.INSTANCE.saveApiToken(apiToken);
-            System.out.println("API token saved. You're now authenticated.");
-            return CommandLine.ExitCode.OK;
-        }
-
     }
 }
