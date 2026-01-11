@@ -163,7 +163,6 @@
                                 <buildArg>--no-fallback</buildArg>
                                 <buildArg>--enable-http</buildArg>
                                 <buildArg>--enable-https</buildArg>
-                                <buildArg>-H:+ServiceLoaderFeature</buildArg>
                             </buildArgs>
                         </configuration>
                     </plugin>
