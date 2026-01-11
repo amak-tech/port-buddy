@@ -199,7 +199,7 @@ jobs:
           cache: 'maven'
 
       - name: Build with Maven (Native Image)
-        run: ./mvnw clean package -pl cli -am -DskipTests
+        run: ./mvnw clean package -pl cli -am -DskipTests -Pnative
 
       - name: Prepare Artifact
         shell: bash
