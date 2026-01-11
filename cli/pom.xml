@@ -147,6 +147,9 @@
                                 <buildArg>--enable-http</buildArg>
                                 <buildArg>--enable-https</buildArg>
                             </buildArgs>
+                            <jvmArgs>
+                                <jvmArg>--enable-native-access=ALL-UNNAMED</jvmArg>
+                            </jvmArgs>
                         </configuration>
                     </plugin>
                 </plugins>
