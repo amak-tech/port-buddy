@@ -169,19 +169,19 @@ jobs:
         include:
           - os: ubuntu-latest
             asset_name: port-buddy-linux-x64
-            executable_path: cli/target/port-buddy
+            executable_path: cli/target/portbuddy
           - os: ubuntu-24.04-arm64
             asset_name: port-buddy-linux-arm64
-            executable_path: cli/target/port-buddy
+            executable_path: cli/target/portbuddy
           - os: macos-15-intel
             asset_name: port-buddy-macos-x64
-            executable_path: cli/target/port-buddy
+            executable_path: cli/target/portbuddy
           - os: macos-latest
             asset_name: port-buddy-macos-arm64
-            executable_path: cli/target/port-buddy
+            executable_path: cli/target/portbuddy
           - os: windows-latest
             asset_name: port-buddy-windows-x64.exe
-            executable_path: cli/target/port-buddy.exe
+            executable_path: cli/target/portbuddy.exe
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
