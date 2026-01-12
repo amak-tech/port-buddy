@@ -4,7 +4,7 @@ FROM alpine:3.21
 WORKDIR /app
 
 # Install necessary libraries for GraalVM native image on Alpine
-RUN apk add --no-cache gcompat zlib
+RUN apk add --no-cache gcompat zlib libc6-compat
 
 COPY cli/target/portbuddy /app/portbuddy
 COPY entrypoint-cli.sh /app/entrypoint.sh
