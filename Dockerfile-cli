@@ -1,10 +1,13 @@
-FROM eclipse-temurin:25-jre
+# Runtime stage - Using Alpine with gcompat for a very small image
+FROM alpine:3.21
 
 WORKDIR /app
-COPY cli/target/cli-*.jar /app/app.jar
-COPY entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
 
-ENV JVM_OPTS="--enable-native-access=ALL-UNNAMED"
+# Install necessary libraries for GraalVM native image on Alpine
+RUN apk add --no-cache gcompat zlib
+
+COPY cli/target/portbuddy /app/portbuddy
+COPY entrypoint-cli.sh /app/entrypoint.sh
+RUN chmod +x /app/portbuddy /app/entrypoint.sh
 
 ENTRYPOINT ["/app/entrypoint.sh"]

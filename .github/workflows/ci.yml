@@ -117,22 +117,23 @@ jobs:
   deploy-cli:
     name: Build and Push CLI Images
     needs: build
-    if: github.ref == 'refs/heads/master'
+    #if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/native-cli'
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 25
+      - name: Set up GraalVM
         uses: actions/setup-java@v4
         with:
           java-version: '25'
-          distribution: 'temurin'
+          distribution: 'graalvm'
           cache: 'maven'
 
-      - name: Build with Maven
-        run: ./mvnw clean package -pl cli -am -DskipTests
+      - name: Build with Maven (Native Image)
+        run: ./mvnw clean package -pl cli -am -DskipTests -Pnative
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -195,7 +196,6 @@ jobs:
         with:
           java-version: '25'
           distribution: 'graalvm'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
           cache: 'maven'
 
       - name: Build with Maven (Native Image)
