@@ -143,9 +143,13 @@
                             <imageName>port-buddy</imageName>
                             <mainClass>tech.amak.portbuddy.cli.PortBuddy</mainClass>
                             <buildArgs>
+                                <buildArg>-Os</buildArg>
                                 <buildArg>--no-fallback</buildArg>
                                 <buildArg>--enable-http</buildArg>
                                 <buildArg>--enable-https</buildArg>
+                                <buildArg>--gc=serial</buildArg>
+                                <buildArg>-H:+UnlockExperimentalVMOptions</buildArg>
+                                <buildArg>-H:-StackTrace</buildArg>
                             </buildArgs>
                             <jvmArgs>
                                 <jvmArg>--enable-native-access=ALL-UNNAMED</jvmArg>
