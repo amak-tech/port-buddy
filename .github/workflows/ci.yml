@@ -117,8 +117,7 @@ jobs:
   deploy-cli:
     name: Build and Push CLI Images
     needs: build
-    #if: github.ref == 'refs/heads/master'
-    if: github.ref == 'refs/heads/native-cli'
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
 
     steps:
@@ -159,8 +158,7 @@ jobs:
   build-native-cli:
     name: Build Native CLI (${{ matrix.os }})
     needs: build
-    #if: github.ref == 'refs/heads/master'
-    if: github.ref == 'refs/heads/native-cli'
+    if: github.ref == 'refs/heads/master'
     permissions:
       contents: write
     strategy:
