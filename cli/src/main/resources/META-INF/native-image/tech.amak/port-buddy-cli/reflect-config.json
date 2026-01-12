@@ -1,0 +1,117 @@
+[
+  {
+    "name": "tech.amak.portbuddy.common.dto.auth.RegisterRequest",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "tech.amak.portbuddy.common.dto.auth.RegisterResponse",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "tech.amak.portbuddy.common.dto.auth.TokenExchangeRequest",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "tech.amak.portbuddy.common.dto.auth.TokenExchangeResponse",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "tech.amak.portbuddy.common.dto.ExposeRequest",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "tech.amak.portbuddy.common.dto.ExposeResponse",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "tech.amak.portbuddy.common.ClientConfig",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "tech.amak.portbuddy.common.TunnelType",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "java.util.UUID",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "tech.amak.portbuddy.cli.PortBuddy$HostPort",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "tech.amak.portbuddy.common.tunnel.ControlMessage",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "tech.amak.portbuddy.common.tunnel.ControlMessage$Type",
+    "allPublicMethods": true
+  },
+  {
+    "name": "tech.amak.portbuddy.common.tunnel.HttpTunnelMessage",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "tech.amak.portbuddy.common.tunnel.HttpTunnelMessage$Type",
+    "allPublicMethods": true
+  },
+  {
+    "name": "tech.amak.portbuddy.common.tunnel.MessageEnvelope",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "tech.amak.portbuddy.common.tunnel.WsTunnelMessage",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "tech.amak.portbuddy.common.tunnel.WsTunnelMessage$Type",
+    "allPublicMethods": true
+  },
+  {
+    "name": "tech.amak.portbuddy.common.tunnel.BinaryWsFrame$Decoded",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "com.fasterxml.jackson.dataformat.yaml.YAMLFactory",
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "com.fasterxml.jackson.dataformat.yaml.YAMLGenerator$Feature",
+    "allPublicMethods": true
+  },
+  {
+    "name": "com.fasterxml.jackson.dataformat.yaml.YAMLParser$Feature",
+    "allPublicMethods": true
+  }
+]

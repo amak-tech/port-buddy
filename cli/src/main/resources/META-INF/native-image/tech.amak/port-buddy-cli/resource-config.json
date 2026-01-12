@@ -1,0 +1,11 @@
+{
+  "resources": [
+    {
+      "pattern": "application\\.yml"
+    },
+    {
+      "pattern": "application-dev\\.yml"
+    }
+  ],
+  "bundles": []
+}

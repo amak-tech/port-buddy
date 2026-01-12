@@ -244,7 +244,8 @@ public class PortBuddy {
                 hostPort.scheme,
                 jwt,
                 publicInfo,
-                ui
+                ui,
+                verbose
             );
 
             final var thread = new Thread(client::runBlocking, "port-buddy-http-client");
@@ -291,7 +292,8 @@ public class PortBuddy {
                 expose.publicHost(),
                 expose.publicPort(),
                 jwt,
-                ui);
+                ui,
+                verbose);
             final var thread = new Thread(tcpClient::runBlocking, "port-buddy-net-client-" + mode.name().toLowerCase());
             ui.setOnExit(tcpClient::close);
             thread.start();
@@ -303,6 +305,8 @@ public class PortBuddy {
                 Thread.currentThread().interrupt();
             }
         }
+
+        System.out.println("\nThanks, bye!");
 
         return EXIT_OK;
     }
@@ -402,14 +406,29 @@ public class PortBuddy {
 
         try {
             final var request = ConsoleUi.promptForUserRegistration();
+            if (request == null) {
+                System.err.println("Registration cancelled or failed to get details.");
+                return false;
+            }
 
-            final var newApiKey = registerUser(config.getServerUrl(), request);
+            final var serverUrl = config.getServerUrl();
+            if (serverUrl == null || serverUrl.isBlank()) {
+                System.err.println("Error: Server URL is not configured. Please check your application.yml.");
+                return false;
+            }
+
+            final var newApiKey = registerUser(serverUrl, request);
             configurationService.saveApiToken(newApiKey);
             config.setApiToken(newApiKey);
             System.out.println("Registration successful! API key saved.");
             return true;
         } catch (final Exception e) {
+            log.debug("Registration failed", e);
             System.err.println("Registration failed: " + e.getMessage());
+            if (e.getMessage() == null) {
+                System.err.println("Error details: " + e.getClass().getName());
+                e.printStackTrace(System.err); // Print stack trace to see exactly where NPE happens
+            }
             return false;
         }
     }

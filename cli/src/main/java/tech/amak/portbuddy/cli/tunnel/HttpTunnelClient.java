@@ -53,6 +53,7 @@ public class HttpTunnelClient {
     private final String authToken; // Bearer token for API auth
     private final String publicBaseUrl; // e.g. https://abc123.portbuddy.dev
     private final HttpLogSink httpLogSink;
+    private final boolean verbose;
 
     // OkHttp client used exclusively for the control WebSocket connection to the server
     private final OkHttpClient http = createHttpClient();
@@ -149,6 +150,9 @@ public class HttpTunnelClient {
                 break;
             } catch (final Exception e) {
                 log.warn("Tunnel loop error: {}", e.toString());
+                if (verbose) {
+                    e.printStackTrace(System.err);
+                }
                 try {
                     Thread.sleep(backoffMs);
                 } catch (final InterruptedException ie) {

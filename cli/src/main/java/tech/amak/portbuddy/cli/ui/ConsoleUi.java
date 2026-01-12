@@ -116,9 +116,7 @@ public class ConsoleUi implements HttpLogSink, NetTrafficSink {
         try {
             terminal = buildTerminal();
             out = terminal.writer();
-            terminal.handle(Terminal.Signal.INT, signal -> {
-                stop();
-            });
+            terminal.handle(Terminal.Signal.INT, signal -> stop());
         } catch (final Exception e) {
             throw new IllegalStateException("Failed to start console UI", e);
         }

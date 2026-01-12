@@ -63,6 +63,7 @@ public class NetTunnelClient {
     private final int expectedPublicPort;
     private final String authToken; // Bearer token if available
     private final NetTrafficSink trafficSink;
+    private final boolean verbose;
 
     private final OkHttpClient http = HttpUtils.createClient();
     private final OkHttpClient rest = HttpUtils.createClient();
@@ -129,6 +130,9 @@ public class NetTunnelClient {
                 break;
             } catch (final Exception e) {
                 log.warn("Net tunnel loop error: {}", e.toString());
+                if (verbose) {
+                    e.printStackTrace(System.err);
+                }
                 try {
                     Thread.sleep(backoffMs);
                 } catch (final InterruptedException ie) {

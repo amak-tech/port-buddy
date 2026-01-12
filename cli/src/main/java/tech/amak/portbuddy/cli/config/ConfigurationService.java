@@ -69,11 +69,18 @@ public class ConfigurationService {
             .orElse("");
 
         final var resourceName = "/application%s.yml".formatted(envPart);
+        log.debug("Loading config from resource: {}", resourceName);
 
         try (final var configStream = ConfigurationService.class.getResourceAsStream(resourceName)) {
             if (configStream != null) {
                 final var clientConfig = yamlMapper.readValue(configStream, ClientConfig.class);
+                log.debug("Loaded config: {}", clientConfig);
                 config.set(clientConfig);
+            } else {
+                log.warn("Resource not found: {}", resourceName);
+                if (config.get() == null) {
+                    config.set(new ClientConfig());
+                }
             }
         }
     }
