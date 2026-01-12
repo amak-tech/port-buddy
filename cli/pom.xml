@@ -140,16 +140,20 @@
                             </execution>
                         </executions>
                         <configuration>
-                            <imageName>port-buddy</imageName>
+                            <imageName>portbuddy</imageName>
                             <mainClass>tech.amak.portbuddy.cli.PortBuddy</mainClass>
+                            <debug>false</debug>
+                            <verbose>false</verbose>
                             <buildArgs>
                                 <buildArg>-Os</buildArg>
                                 <buildArg>--no-fallback</buildArg>
                                 <buildArg>--enable-http</buildArg>
                                 <buildArg>--enable-https</buildArg>
                                 <buildArg>--gc=serial</buildArg>
+                                <buildArg>--exact-reachability-metadata</buildArg>
                                 <buildArg>-H:+UnlockExperimentalVMOptions</buildArg>
                                 <buildArg>-H:-StackTrace</buildArg>
+                                <buildArg>--initialize-at-build-time=org.slf4j,ch.qos.logback,tech.amak.portbuddy.common</buildArg>
                             </buildArgs>
                             <jvmArgs>
                                 <jvmArg>--enable-native-access=ALL-UNNAMED</jvmArg>
