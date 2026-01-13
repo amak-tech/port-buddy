@@ -70,6 +70,12 @@ export default function Installation() {
                     <CodeBlock code={`brew install amak-tech/tap/portbuddy`} />
                   </Step>
                   <Step 
+                    title="Install via Script"
+                    description="Alternative installation method using shell script."
+                  >
+                    <CodeBlock code={`curl -sSL https://portbuddy.dev/install.sh | sudo bash`} />
+                  </Step>
+                  <Step 
                     title="Expose your local node.js app"
                     description="This command will create a secured HTTP tunnel for localhost:3000"
                   >
@@ -80,13 +86,19 @@ export default function Installation() {
 
               {activeTab === 'linux' && (
                 <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  <Step 
-                    title="Install via Script"
-                    description="Download and install the binary to /usr/local/bin."
+                  <Step
+                      title="Install via Script"
+                      description="The fastest way to install Port Buddy on Linux. Automatically detects your architecture."
                   >
-                    <CodeBlock code={`curl -L https://github.com/amak-tech/port-buddy/releases/download/1.0.5-beta/portbuddy-linux-x64 -o portbuddy\nchmod +x portbuddy\nsudo mv portbuddy /usr/local/bin/`} />
+                    <CodeBlock code={`curl -sSL https://portbuddy.dev/install.sh | sudo bash`} />
                   </Step>
                   <Step 
+                    title="Install via Homebrew"
+                    description="Recommended for Linux users who use Homebrew."
+                  >
+                    <CodeBlock code={`brew install amak-tech/tap/portbuddy`} />
+                  </Step>
+                  <Step
                     title="Share access to your local PostgreSQL DB"
                     description="This command will create a TCP tunnel for localhost:5432"
                   >
