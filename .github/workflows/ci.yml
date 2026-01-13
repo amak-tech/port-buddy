@@ -257,7 +257,7 @@ jobs:
       - name: Checkout Homebrew Tap
         uses: actions/checkout@v4
         with:
-          repository: amak-tech/homebrew-portbuddy # REPLACE with your actual tap repository
+          repository: amak-tech/homebrew-tap # REPLACE with your actual tap repository
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }} # Needs a PAT with 'repo' scope
 
       - name: Extract version
@@ -271,19 +271,25 @@ jobs:
           # An easier way is to download them from the release if they are already there.
           # Or since we are in the same workflow, we can use 'gh release download'
           
-          gh release download ${{ steps.extract_version.outputs.VERSION }} -p "portbuddy-macos-*" --repo ${{ github.repository }}
+          gh release download ${{ steps.extract_version.outputs.VERSION }} -p "portbuddy-*" --repo ${{ github.repository }}
           
           if command -v shasum &> /dev/null; then
-            ARM_SHA=$(shasum -a 256 portbuddy-macos-arm64 | awk '{print $1}')
-            X64_SHA=$(shasum -a 256 portbuddy-macos-x64 | awk '{print $1}')
+            MAC_ARM_SHA=$(shasum -a 256 portbuddy-macos-arm64 | awk '{print $1}')
+            MAC_X64_SHA=$(shasum -a 256 portbuddy-macos-x64 | awk '{print $1}')
+            LINUX_ARM_SHA=$(shasum -a 256 portbuddy-linux-arm64 | awk '{print $1}')
+            LINUX_X64_SHA=$(shasum -a 256 portbuddy-linux-x64 | awk '{print $1}')
           else
-            ARM_SHA=$(sha256sum portbuddy-macos-arm64 | awk '{print $1}')
-            X64_SHA=$(sha256sum portbuddy-macos-x64 | awk '{print $1}')
+            MAC_ARM_SHA=$(sha256sum portbuddy-macos-arm64 | awk '{print $1}')
+            MAC_X64_SHA=$(sha256sum portbuddy-macos-x64 | awk '{print $1}')
+            LINUX_ARM_SHA=$(sha256sum portbuddy-linux-arm64 | awk '{print $1}')
+            LINUX_X64_SHA=$(sha256sum portbuddy-linux-x64 | awk '{print $1}')
           fi
           
           sed -i "s/version \".*\"/version \"${{ steps.extract_version.outputs.VERSION }}\"/" Formula/portbuddy.rb
-          sed -i "/portbuddy-macos-arm64\"/{n;s/sha256 \".*\"/sha256 \"$ARM_SHA\"/;}" Formula/portbuddy.rb
-          sed -i "/portbuddy-macos-x64\"/{n;s/sha256 \".*\"/sha256 \"$X64_SHA\"/;}" Formula/portbuddy.rb
+          sed -i "/portbuddy-macos-arm64\"/{n;s/sha256 \".*\"/sha256 \"$MAC_ARM_SHA\"/;}" Formula/portbuddy.rb
+          sed -i "/portbuddy-macos-x64\"/{n;s/sha256 \".*\"/sha256 \"$MAC_X64_SHA\"/;}" Formula/portbuddy.rb
+          sed -i "/portbuddy-linux-arm64\"/{n;s/sha256 \".*\"/sha256 \"$LINUX_ARM_SHA\"/;}" Formula/portbuddy.rb
+          sed -i "/portbuddy-linux-x64\"/{n;s/sha256 \".*\"/sha256 \"$LINUX_X64_SHA\"/;}" Formula/portbuddy.rb
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
