@@ -108,7 +108,7 @@ export default function Installation() {
                     title="Initialize (PowerShell)"
                     description="Link the CLI to your account."
                   >
-                    <CodeBlock code="port-buddy init {API_TOKEN}" />
+                    <CodeBlock code="portbuddy 8080 -d my-static-subdomain" />
                   </Step>
                 </div>
               )}
