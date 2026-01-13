@@ -101,7 +101,8 @@ export default function Installation() {
                     title="Install via Scoop"
                     description="Recommended for Windows users."
                   >
-                    <CodeBlock code={`scoop bucket add portbuddy https://github.com/amak-tech/scoop-bucket\nscoop install port-buddy`} />
+                    {/*<CodeBlock code={`scoop bucket add portbuddy https://github.com/amak-tech/scoop-bucket\nscoop install port-buddy`} />*/}
+                    <CodeBlock code={`We are working on it. Stay tuned.`} />
                   </Step>
                   <Step 
                     title="Initialize (PowerShell)"
