@@ -196,7 +196,7 @@ export default function Landing() {
             <Step 
               number="02"
               title="Connect"
-              description="Run `port-buddy 8080`. We create a secure tunnel to our edge network."
+              description="Run `portbuddy 8080`. We create a secure tunnel to our edge network."
             />
             <Step 
               number="03"

@@ -119,7 +119,7 @@ export default function Docs() {
                   <li>Go to the <Link to="/app/tokens" className="text-indigo-400 hover:underline">Tokens</Link> page and generate a new API token.</li>
                   <li>Run the following command in your terminal:</li>
                 </ol>
-                <CodeBlock code="port-buddy init {YOUR_API_TOKEN}" />
+                <CodeBlock code="portbuddy init {YOUR_API_TOKEN}" />
               </section>
 
               <section id="http-tunnels" className="mb-16 scroll-mt-24">
@@ -128,7 +128,7 @@ export default function Docs() {
                   HTTP is the default mode for Port Buddy. It's used for web applications and APIs.
                 </p>
                 <h3 className="text-lg font-semibold text-white mb-3">Usage</h3>
-                <CodeBlock code="port-buddy 3000" />
+                <CodeBlock code="portbuddy 3000" />
                 <p className="text-slate-400 mt-4">
                   This command will expose your local web server running on port 3000. 
                   You will receive a public URL like <code className="text-indigo-300">https://abc123.portbuddy.dev</code>.
@@ -141,7 +141,7 @@ export default function Docs() {
                   TCP mode allows you to expose any TCP-based service, such as databases or SSH.
                 </p>
                 <h3 className="text-lg font-semibold text-white mb-3">Usage</h3>
-                <CodeBlock code="port-buddy tcp 5432" />
+                <CodeBlock code="portbuddy tcp 5432" />
                 <p className="text-slate-400 mt-4">
                   This command exposes your local PostgreSQL database on port 5432. 
                   You will get an address like <code className="text-indigo-300">net-proxy-3.portbuddy.dev:43452</code>.
@@ -154,7 +154,7 @@ export default function Docs() {
                   UDP mode is useful for game servers, VoIP, and other UDP-based protocols.
                 </p>
                 <h3 className="text-lg font-semibold text-white mb-3">Usage</h3>
-                <CodeBlock code="port-buddy udp 19132" />
+                <CodeBlock code="portbuddy udp 19132" />
               </section>
 
               <section id="custom-domains" className="mb-16 scroll-mt-24">

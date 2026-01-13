@@ -135,7 +135,7 @@ public class PortBuddy {
     }
 
     private void printHelp() {
-        System.out.println("Usage: port-buddy [options] [mode] [host:][port]");
+        System.out.println("Usage: portbuddy [options] [mode] [host:][port]");
         System.out.println("Expose local ports to public network (simple ngrok alternative).");
         System.out.println();
         System.out.println("Options:");
@@ -151,13 +151,13 @@ public class PortBuddy {
         System.out.println("  init <apiToken>             Initialize CLI with API token");
         System.out.println();
         System.out.println("Examples:");
-        System.out.println("  port-buddy 3000");
-        System.out.println("  port-buddy tcp 5432");
-        System.out.println("  port-buddy --domain=my-app 8080");
+        System.out.println("  portbuddy 3000");
+        System.out.println("  portbuddy tcp 5432");
+        System.out.println("  portbuddy --domain=my-app 8080");
     }
 
     private void printVersion() {
-        System.out.println("port-buddy " + resolveCliVersion());
+        System.out.println("portbuddy " + resolveCliVersion());
     }
 
     private int init(final String apiToken) {
@@ -175,7 +175,7 @@ public class PortBuddy {
         final String modeStr;
         final String hostPortStr;
         if (positionalArgs.isEmpty()) {
-            System.err.println("Usage: port-buddy [mode] [host:][port] or [schema://]host[:port]");
+            System.err.println("Usage: portbuddy [mode] [host:][port] or [schema://]host[:port]");
             return EXIT_USAGE;
         } else if (positionalArgs.size() == 1) {
             modeStr = null; // default http
@@ -206,7 +206,7 @@ public class PortBuddy {
         final var jwt = exchangeApiTokenForJwt(config.getServerUrl(), apiKey);
         if (Objects.equals(jwt, OUTDATED)) {
             System.err.println("""
-                Your port-buddy CLI is outdated.
+                Your portbuddy CLI is outdated.
                 Please upgrade to the latest version and try again.""");
             return EXIT_ERROR;
         }
@@ -215,7 +215,7 @@ public class PortBuddy {
             System.err.println("""
                 Failed to authenticate with the provided API Key.
                 CLI must be initialized with a valid API Key.
-                Example: port-buddy init {API_TOKEN}""");
+                Example: portbuddy init {API_TOKEN}""");
             return EXIT_ERROR;
         }
 
@@ -330,7 +330,7 @@ public class PortBuddy {
                     log.warn("Expose {} failed: {} {}", tunnelType, response.code(), response.message());
                     if (response.code() == 401) {
                         System.err.println("Authentication failed. Please re-initialize CLI with a valid API Key.\n"
-                                           + "Example: port-buddy init {API_TOKEN}");
+                                           + "Example: portbuddy init {API_TOKEN}");
                     }
                     return null;
                 }
@@ -477,7 +477,7 @@ public class PortBuddy {
         Integer port = null;
 
         if (arg == null || arg.isBlank()) {
-            System.err.println("Missing [host:][port] or [schema://]host[:port]. Example: 'port-buddy 3000' or 'port-buddy https://localhost'");
+            System.err.println("Missing [host:][port] or [schema://]host[:port]. Example: 'portbuddy 3000' or 'portbuddy https://localhost'");
             return null;
         }
 
