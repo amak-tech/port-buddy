@@ -35,6 +35,7 @@ import org.shredzone.acme4j.challenge.Dns01Challenge;
 import org.shredzone.acme4j.challenge.Http01Challenge;
 import org.shredzone.acme4j.exception.AcmeException;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,6 +45,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import tech.amak.portbuddy.sslservice.client.ServerClient;
 import tech.amak.portbuddy.sslservice.domain.CertificateEntity;
 import tech.amak.portbuddy.sslservice.domain.CertificateJobEntity;
 import tech.amak.portbuddy.sslservice.domain.CertificateJobStatus;
@@ -67,6 +69,8 @@ public class AcmeCertificateService {
     private final DnsResolverService dnsResolverService;
     private final EmailService emailService;
     private final ObjectMapper objectMapper;
+    private final ServerClient serverClient;
+    private final ObjectProvider<AcmeCertificateService> self;
 
     /**
      * Submits an asynchronous job to issue or renew a certificate for the given domain.
@@ -91,12 +95,17 @@ public class AcmeCertificateService {
         job.setDomain(normalizedDomain);
         job.setStatus(CertificateJobStatus.PENDING);
         job.setManaged(managed);
-        // If we have a managed certificate record, inherit contact email for notifications
-        certificateRepository.findByDomainIgnoreCase(normalizedDomain)
-            .ifPresent(entity -> job.setContactEmail(entity.getContactEmail()));
+        // If we have a managed certificate record, inherit contact email for notifications, 
+        // otherwise use the one provided by the requester
+        final var existingCert = certificateRepository.findByDomainIgnoreCase(normalizedDomain);
+        if (existingCert.isPresent()) {
+            job.setContactEmail(existingCert.get().getContactEmail());
+        } else {
+            job.setContactEmail(requestedBy);
+        }
         final var savedJob = jobRepository.save(job);
         // Fire and forget async processing
-        processJobAsync(savedJob.getId());
+        self.getIfAvailable().processJobAsync(savedJob.getId());
         return savedJob;
     }
 
@@ -232,6 +241,7 @@ public class AcmeCertificateService {
             certificate.setDomain(domain);
         }
         certificate.setManaged(job.isManaged());
+        certificate.setContactEmail(job.getContactEmail());
 
         // Try to extract validity from leaf certificate
         final var x509 = downloaded.getCertificate();
@@ -243,6 +253,13 @@ public class AcmeCertificateService {
         certificate.setChainPath(chainPath.toAbsolutePath().toString());
         certificate.setFullChainPath(fullChainPath.toAbsolutePath().toString());
         certificateRepository.save(certificate);
+
+        // Notify server module about successful issuance
+        try {
+            serverClient.markSslActive(domain);
+        } catch (final Exception e) {
+            log.warn("Failed to notify server module about SSL activation for {}", domain, e);
+        }
 
         // Single-entity model: no separate root-domain metadata to update
 
@@ -428,6 +445,7 @@ public class AcmeCertificateService {
                 certificate.setDomain(domain);
             }
             certificate.setManaged(job.isManaged());
+            certificate.setContactEmail(job.getContactEmail());
 
             final var x509 = downloaded.getCertificate();
             certificate.setStatus(CertificateStatus.ACTIVE);
@@ -438,6 +456,13 @@ public class AcmeCertificateService {
             certificate.setChainPath(chainPath.toAbsolutePath().toString());
             certificate.setFullChainPath(fullChainPath.toAbsolutePath().toString());
             certificateRepository.save(certificate);
+
+            // Notify server module about successful issuance
+            try {
+                serverClient.markSslActive(domain);
+            } catch (final Exception e) {
+                log.warn("Failed to notify server module about SSL activation for {}", domain, e);
+            }
 
             // Single-entity model: no separate root-domain metadata to update
 

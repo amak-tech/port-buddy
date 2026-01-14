@@ -115,6 +115,8 @@ public class DomainService {
                 throw new RuntimeException("Subdomain " + newSubdomain + " is already taken");
             }
             domain.setSubdomain(newSubdomain);
+            domain.setCnameVerified(false);
+            domain.setSslActive(false);
             return domainRepository.save(domain);
         }
         return domain;
@@ -197,6 +199,7 @@ public class DomainService {
         if (!Objects.equals(domain.getCustomDomain(), customDomain)) {
             domain.setCustomDomain(customDomain);
             domain.setCnameVerified(false);
+            domain.setSslActive(false);
             return domainRepository.save(domain);
         }
         return domain;
@@ -214,6 +217,7 @@ public class DomainService {
             .orElseThrow(() -> new RuntimeException("Domain not found"));
         domain.setCustomDomain(null);
         domain.setCnameVerified(false);
+        domain.setSslActive(false);
         domainRepository.save(domain);
     }
 
@@ -277,6 +281,20 @@ public class DomainService {
             log.debug("Failed to lookup CNAME for {}", domain, e);
         }
         return false;
+    }
+
+    /**
+     * Marks the domain with the specified custom domain as SSL active.
+     *
+     * @param customDomain the custom domain name
+     */
+    @Transactional
+    public void markSslActive(final String customDomain) {
+        domainRepository.findByCustomDomain(customDomain).ifPresent(domain -> {
+            domain.setSslActive(true);
+            domainRepository.save(domain);
+            log.info("Marked domain {} as SSL active", customDomain);
+        });
     }
 
     /**

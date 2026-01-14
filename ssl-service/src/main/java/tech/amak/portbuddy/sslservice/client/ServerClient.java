@@ -7,6 +7,7 @@ package tech.amak.portbuddy.sslservice.client;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import tech.amak.portbuddy.common.dto.DnsInstructionsEmailRequest;
 
@@ -15,4 +16,7 @@ public interface ServerClient {
 
     @PostMapping("/api/internal/email/dns-instructions")
     void sendDnsInstructions(@RequestBody final DnsInstructionsEmailRequest request);
+
+    @PostMapping("/api/internal/domains/ssl-active")
+    void markSslActive(@RequestParam("domain") String domain);
 }
