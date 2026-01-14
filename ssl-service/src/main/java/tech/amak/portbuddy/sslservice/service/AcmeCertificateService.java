@@ -539,7 +539,7 @@ public class AcmeCertificateService {
         throw new IllegalStateException("Order finalization timed out");
     }
 
-    private byte[] buildCsrDer(final java.util.List<String> domains, final KeyPair keyPair)
+    private byte[] buildCsrDer(final List<String> domains, final KeyPair keyPair)
         throws OperatorCreationException, java.io.IOException {
         final var primary = domains.getFirst();
         final X500Name subject = new X500Name("CN=" + primary);
