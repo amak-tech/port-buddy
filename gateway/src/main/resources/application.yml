@@ -130,7 +130,6 @@ spring:
               order: 0
               uri: lb:ws://port-buddy-server
               predicates:
-                - Host={customDomain}
                 # Route ONLY real websocket upgrade requests to the WS upstream.
                 - Header=Upgrade, (?i)websocket
                 - Method=GET
@@ -161,7 +160,6 @@ spring:
               order: 2
               uri: lb://port-buddy-server
               predicates:
-                - Host={customDomain}
                 # Exclude main domain and subdomains to avoid overlap
                 - Header=Host, ^(?!(.*\.${app.domain}|${app.domain})$).*
               filters:

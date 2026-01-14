@@ -38,7 +38,8 @@ public class PortBuddyRewritePathGatewayFilterFactory extends RewritePathGateway
 
                 final var replacementReference = new AtomicReference<>(replacement);
 
-                ServerWebExchangeUtils.getUriTemplateVariables(exchange).forEach((key, value) -> {
+                final var uriTemplateVariables = ServerWebExchangeUtils.getUriTemplateVariables(exchange);
+                uriTemplateVariables.forEach((key, value) -> {
                     final var placeholder = "${%s}".formatted(key);
                     var cleanValue = value;
                     if ("customDomain".equals(key)) {
@@ -49,6 +50,20 @@ public class PortBuddyRewritePathGatewayFilterFactory extends RewritePathGateway
                     }
                     replacementReference.set(replacementReference.get().replace(placeholder, cleanValue));
                 });
+
+                // Fallback for customDomain and support for host if they are not in uriTemplateVariables
+                if (replacementReference.get().contains("${customDomain}")
+                    || replacementReference.get().contains("${host}")) {
+                    var host = request.getHeaders().getFirst("Host");
+                    if (host != null) {
+                        final var colonIdx = host.indexOf(':');
+                        if (colonIdx > 0) {
+                            host = host.substring(0, colonIdx);
+                        }
+                        replacementReference.set(replacementReference.get().replace("${customDomain}", host));
+                        replacementReference.set(replacementReference.get().replace("${host}", host));
+                    }
+                }
 
                 final var newPath = pattern.matcher(path).replaceAll(replacementReference.get());
 

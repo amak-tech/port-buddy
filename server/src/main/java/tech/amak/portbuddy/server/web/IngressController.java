@@ -76,7 +76,7 @@ public class IngressController {
     );
 
     // HTTP route for subdomain ingress (non-WS traffic)
-    @RequestMapping("/_/{subdomain}/**")
+    @RequestMapping("/_/{subdomain:.+}/**")
     @Transactional
     public void ingressPathBased(final @PathVariable("subdomain") String subdomain,
                                  final HttpServletRequest request,
@@ -96,7 +96,7 @@ public class IngressController {
      *                     or while setting the HTTP response.
      */
     // Path-based custom domain ingress: http://server/_custom/{customDomain}/...
-    @RequestMapping("/_custom/{customDomain}/**")
+    @RequestMapping("/_custom/{customDomain:.+}/**")
     @Transactional
     public void ingressCustomDomainPathBased(final @PathVariable("customDomain") String customDomain,
                                              final HttpServletRequest request,
