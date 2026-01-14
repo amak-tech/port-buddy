@@ -179,6 +179,7 @@ public class DomainsController {
             domain.getDomain(),
             domain.getCustomDomain(),
             domain.isCnameVerified(),
+            domain.isSslActive(),
             domain.getPasscodeHash() != null && !domain.getPasscodeHash().isBlank(),
             domain.getCreatedAt(),
             domain.getUpdatedAt()

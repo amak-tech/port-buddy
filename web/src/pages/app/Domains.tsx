@@ -11,6 +11,7 @@ interface Domain {
   domain: string
   customDomain: string | null
   cnameVerified: boolean
+  sslActive: boolean
   passcodeProtected: boolean
   createdAt: string
   updatedAt: string
@@ -433,10 +434,17 @@ export default function Domains() {
                                     <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Custom Domain:</span>
                                     <span className="text-sm text-indigo-400 font-mono">{domain.customDomain}</span>
                                     {domain.cnameVerified ? (
-                                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-400/10 text-green-400">
-                                        <CheckIcon className="w-3 h-3 mr-1" />
-                                        Verified & SSL Active
-                                      </span>
+                                      domain.sslActive ? (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-400/10 text-green-400" title="CNAME is verified and SSL certificate is active.">
+                                          <CheckIcon className="w-3 h-3 mr-1" />
+                                          Verified & SSL Active
+                                        </span>
+                                      ) : (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-400/10 text-green-400" title="CNAME is verified. SSL certificate is being provisioned.">
+                                          <CheckIcon className="w-3 h-3 mr-1" />
+                                          Verified. SSL Provisioning...
+                                        </span>
+                                      )
                                     ) : (
                                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-400/10 text-yellow-400">
                                         Pending Verification

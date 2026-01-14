@@ -48,6 +48,9 @@ public class DomainEntity {
     @Column(name = "cname_verified", nullable = false)
     private boolean cnameVerified = false;
 
+    @Column(name = "ssl_active", nullable = false)
+    private boolean sslActive = false;
+
     @Column(name = "passcode_hash")
     private String passcodeHash;
 

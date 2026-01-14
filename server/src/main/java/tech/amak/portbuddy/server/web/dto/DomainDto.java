@@ -13,6 +13,7 @@ public record DomainDto(
     String domain,
     String customDomain,
     boolean cnameVerified,
+    boolean sslActive,
     boolean passcodeProtected,
     OffsetDateTime createdAt,
     OffsetDateTime updatedAt

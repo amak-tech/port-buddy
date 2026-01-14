@@ -310,9 +310,16 @@ public class HttpTunnelClient {
                     url += "?" + message.getQuery();
                 }
                 final var builder = new Request.Builder().url(url);
+                final var publicHost = URI.create(publicBaseUrl).getHost();
+                if (publicHost != null) {
+                    builder.header("Host", publicHost);
+                }
                 if (message.getHeaders() != null) {
                     for (final var entry : message.getHeaders().entrySet()) {
                         if (entry.getKey() != null && entry.getValue() != null) {
+                            if (entry.getKey().equalsIgnoreCase("Host")) {
+                                continue;
+                            }
                             builder.addHeader(entry.getKey(), entry.getValue());
                         }
                     }
@@ -419,6 +426,11 @@ public class HttpTunnelClient {
         final var targetRequest = new Request.Builder()
             .url(url)
             .method(method, buildBody(method, requestMessage.getBodyB64(), requestMessage.getBodyContentType()));
+
+        final var publicHost = URI.create(publicBaseUrl).getHost();
+        if (publicHost != null) {
+            targetRequest.header("Host", publicHost);
+        }
 
         if (requestMessage.getHeaders() != null) {
             for (final var header : requestMessage.getHeaders().entrySet()) {

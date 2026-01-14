@@ -70,12 +70,6 @@ export default function Installation() {
                     <CodeBlock code={`brew install amak-tech/tap/portbuddy`} />
                   </Step>
                   <Step 
-                    title="Install via Script"
-                    description="Alternative installation method using shell script."
-                  >
-                    <CodeBlock code={`curl -sSL https://portbuddy.dev/install.sh | sudo bash`} />
-                  </Step>
-                  <Step 
                     title="Expose your local node.js app"
                     description="This command will create a secured HTTP tunnel for localhost:3000"
                   >
