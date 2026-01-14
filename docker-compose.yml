@@ -78,6 +78,7 @@ services:
       - ${PWD}/ssl-service/certs:/app/certs
     depends_on:
       - eureka
+      - ssl-service
     logging:
       options:
         max-size: 10M
