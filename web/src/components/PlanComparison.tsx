@@ -22,37 +22,37 @@ const comparisonData = [
 
 export default function PlanComparison() {
   return (
-    <div className="mt-24 mb-16">
-      <div className="text-center mb-12">
-        <h2 className="text-3xl font-bold text-white mb-4">Detailed Plan Comparison</h2>
-        <p className="text-slate-400">Everything you need to know about our plans.</p>
+    <div className="mt-32 mb-16">
+      <div className="text-center mb-16">
+        <h2 className="text-4xl font-black text-white mb-4 tracking-tight">Detailed <span className="text-gradient">Comparison</span></h2>
+        <p className="text-slate-400 text-lg">Choose the plan that fits your development needs.</p>
       </div>
       
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto glass rounded-3xl border border-white/5 p-4 md:p-8">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="border-b border-slate-800">
-              <th className="py-6 px-4 text-slate-400 font-medium">Feature</th>
-              <th className="py-6 px-4 text-white font-bold text-center w-1/4">Pro</th>
-              <th className="py-6 px-4 text-indigo-400 font-bold text-center w-1/4">Team</th>
+            <tr className="border-b border-white/5">
+              <th className="py-8 px-6 text-slate-500 font-bold uppercase tracking-widest text-xs">Feature</th>
+              <th className="py-8 px-6 text-white font-black text-center w-1/4 text-2xl tracking-tighter">Pro</th>
+              <th className="py-8 px-6 text-jb-blue font-black text-center w-1/4 text-2xl tracking-tighter">Team</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-white/[0.02]">
             {comparisonData.map((item, idx) => (
-              <tr key={idx} className="border-b border-slate-800/50 hover:bg-slate-900/30 transition-colors">
-                <td className="py-4 px-4 text-slate-300">{item.feature}</td>
-                <td className="py-4 px-4 text-center">
+              <tr key={idx} className="group hover:bg-white/[0.02] transition-colors">
+                <td className="py-5 px-6 text-slate-300 font-medium group-hover:text-white transition-colors">{item.feature}</td>
+                <td className="py-5 px-6 text-center">
                   {typeof item.pro === 'boolean' ? (
-                    item.pro ? <CheckIcon className="w-5 h-5 text-green-500 mx-auto" /> : <XMarkIcon className="w-5 h-5 text-slate-600 mx-auto" />
+                    item.pro ? <CheckIcon className="w-6 h-6 text-green-500 mx-auto" /> : <XMarkIcon className="w-6 h-6 text-slate-700 mx-auto" />
                   ) : (
-                    <span className="text-sm text-slate-400">{item.pro}</span>
+                    <span className="text-sm text-slate-400 font-mono">{item.pro}</span>
                   )}
                 </td>
-                <td className="py-4 px-4 text-center">
+                <td className="py-5 px-6 text-center">
                   {typeof item.team === 'boolean' ? (
-                    item.team ? <CheckIcon className="w-5 h-5 text-indigo-500 mx-auto" /> : <XMarkIcon className="w-5 h-5 text-slate-600 mx-auto" />
+                    item.team ? <CheckIcon className="w-6 h-6 text-jb-blue mx-auto" /> : <XMarkIcon className="w-6 h-6 text-slate-700 mx-auto" />
                   ) : (
-                    <span className="text-sm text-indigo-400 font-medium">{item.team}</span>
+                    <span className="text-sm text-jb-blue font-bold font-mono">{item.team}</span>
                   )}
                 </td>
               </tr>
