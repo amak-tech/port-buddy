@@ -127,8 +127,8 @@ export default function Landing() {
               
               <div className="space-y-3">
                 <div className="flex gap-10">
-                  <span className="text-slate-500 w-24">Buddy</span>
-                  <span className="text-jb-blue font-bold">Port Buddy v1.0.0</span>
+                  <span className="text-slate-500 w-24">Port Buddy</span>
+                  <span className="text-jb-blue font-bold">HTTP mode</span>
                 </div>
                 <div className="flex gap-10">
                   <span className="text-slate-500 w-24">Status</span>
