@@ -72,34 +72,36 @@ export default function Login() {
         url="https://portbuddy.dev/login"
       />
       {/* Background gradients */}
-      <div className="absolute inset-0 bg-slate-950"></div>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-900/20 via-slate-900/0 to-slate-900/0 pointer-events-none" />
+      <div className="absolute inset-0 bg-primary-950"></div>
+      <div className="absolute inset-0 bg-mesh-gradient opacity-30 pointer-events-none" />
+      <div className="absolute top-[20%] left-[20%] w-64 h-64 bg-jb-purple/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[20%] right-[20%] w-96 h-96 bg-jb-blue/10 rounded-full blur-[120px] pointer-events-none" />
       
       <div className="w-full max-w-md p-6 relative z-10">
-        <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-8 shadow-2xl backdrop-blur-sm">
-          <div className="text-center mb-8">
-            <Link to="/" className="inline-block mb-6">
-              <div className="flex items-center justify-center gap-2 text-xl font-bold text-white">
-                <span className="relative flex h-3 w-3">
-                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                   <span className="relative inline-flex rounded-full h-3 w-3 bg-indigo-500"></span>
+        <div className="glass border border-white/5 rounded-3xl p-10 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+          <div className="text-center mb-10">
+            <Link to="/" className="inline-block mb-8 group">
+              <div className="flex items-center justify-center gap-3 text-2xl font-black text-white tracking-tighter uppercase transition-transform group-hover:scale-105">
+                <span className="relative flex h-4 w-4">
+                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-jb-blue opacity-75"></span>
+                   <span className="relative inline-flex rounded-full h-4 w-4 bg-jb-blue shadow-[0_0_10px_rgba(51,204,255,0.5)]"></span>
                 </span>
                 Port Buddy
               </div>
             </Link>
-            <h1 className="text-2xl font-bold text-white mb-2">Welcome back</h1>
-            <p className="text-slate-400 text-sm">
-              Sign in to manage your tunnels and domains.
+            <h1 className="text-3xl font-black text-white mb-3 tracking-tight">Welcome back</h1>
+            <p className="text-slate-400 text-sm font-medium">
+              Manage your tunnels and domains.
             </p>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-5">
             <button 
               onClick={handleGoogleLogin} 
-              className="w-full flex items-center justify-center gap-3 bg-white hover:bg-slate-100 text-slate-900 font-medium py-3 px-4 rounded-lg transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+              className="w-full flex items-center justify-center gap-4 bg-white hover:bg-slate-100 text-slate-900 font-bold py-4 px-6 rounded-2xl transition-all transform hover:-translate-y-1 active:scale-[0.98] shadow-lg"
               aria-label="Sign in with Google"
             >
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
+              <svg className="w-6 h-6" viewBox="0 0 24 24">
                 <path
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                   fill="#4285F4"
@@ -122,75 +124,75 @@ export default function Login() {
 
             <button 
               onClick={handleGithubLogin} 
-              className="w-full flex items-center justify-center gap-3 bg-slate-800 hover:bg-slate-700 text-white font-medium py-3 px-4 rounded-lg transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+              className="w-full flex items-center justify-center gap-4 bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 px-6 rounded-2xl transition-all transform hover:-translate-y-1 active:scale-[0.98] shadow-lg border border-white/5"
               aria-label="Sign in with GitHub"
             >
-              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
                 <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.041-1.416-4.041-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
               </svg>
               Continue with GitHub
             </button>
 
-            <div className="relative py-2">
+            <div className="relative py-4">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-800"></div>
+                <div className="w-full border-t border-white/5"></div>
               </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-[#0f172a] text-slate-500">Or continue with</span>
+              <div className="relative flex justify-center text-xs">
+                <span className="px-4 bg-primary-950 text-slate-500 font-bold uppercase tracking-widest">Or continue with</span>
               </div>
             </div>
 
             <button
               onClick={() => setShowEmail(!showEmail)}
-              className="w-full flex items-center justify-center gap-2 text-slate-400 hover:text-white transition-colors text-sm"
+              className="w-full flex items-center justify-center gap-2 text-slate-400 hover:text-white transition-colors text-sm font-bold"
             >
               {showEmail ? 'Hide email login' : 'Log in with email'}
               {showEmail ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />}
             </button>
 
             {showEmail && (
-              <form onSubmit={handleEmailLogin} className="space-y-4 pt-2 animate-in slide-in-from-top-2 fade-in duration-200">
+              <form onSubmit={handleEmailLogin} className="space-y-5 pt-4 animate-in slide-in-from-top-2 fade-in duration-300">
                 {error && (
-                  <div className="bg-red-500/10 border border-red-500/50 text-red-400 text-sm p-3 rounded-lg text-center">
+                  <div className="bg-red-500/10 border border-red-500/50 text-red-400 text-sm p-4 rounded-2xl text-center font-medium">
                     {error}
                   </div>
                 )}
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">Email</label>
+                  <label className="block text-xs font-black text-slate-500 mb-2 uppercase tracking-widest">Email</label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full bg-slate-950/50 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all"
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3.5 text-white focus:outline-none focus:ring-2 focus:ring-jb-blue/50 focus:border-jb-blue/50 transition-all font-mono"
                     placeholder="name@example.com"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">Password</label>
+                  <label className="block text-xs font-black text-slate-500 mb-2 uppercase tracking-widest">Password</label>
                   <input
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="w-full bg-slate-950/50 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all"
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3.5 text-white focus:outline-none focus:ring-2 focus:ring-jb-blue/50 focus:border-jb-blue/50 transition-all font-mono"
                     placeholder="••••••••"
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 px-4 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/20"
+                  className="btn btn-primary w-full py-4 rounded-2xl text-lg font-black uppercase tracking-wider"
                 >
                   Sign in
                 </button>
-                <div className="text-center space-y-2">
-                  <Link to="/forgot-password"  className="block text-xs text-indigo-400 hover:text-indigo-300 hover:underline">
+                <div className="text-center space-y-3">
+                  <Link to="/forgot-password"  className="block text-xs text-jb-blue hover:text-jb-blue/80 font-bold uppercase tracking-widest">
                     Forgot password?
                   </Link>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-sm text-slate-400">
                     Don't have an account?{' '}
-                    <Link to="/register" className="text-indigo-400 hover:text-indigo-300 hover:underline">
+                    <Link to="/register" className="text-jb-blue hover:text-jb-blue/80 font-bold transition-colors">
                       Sign up
                     </Link>
                   </p>
@@ -199,16 +201,16 @@ export default function Login() {
             )}
           </div>
 
-          <div className="mt-8 pt-6 border-t border-slate-800 text-center">
-            <p className="text-xs text-slate-500 mb-4">
+          <div className="mt-10 pt-8 border-t border-white/5 text-center">
+            <p className="text-xs text-slate-500 mb-6 leading-relaxed">
               By continuing, you agree to our{' '}
-              <Link to="/terms" className="text-indigo-400 hover:text-indigo-300 hover:underline">Terms of Service</Link>
+              <Link to="/terms" className="text-slate-300 hover:text-white transition-colors underline decoration-white/10 underline-offset-4">Terms of Service</Link>
               {' '}and{' '}
-              <Link to="/privacy" className="text-indigo-400 hover:text-indigo-300 hover:underline">Privacy Policy</Link>.
+              <Link to="/privacy" className="text-slate-300 hover:text-white transition-colors underline decoration-white/10 underline-offset-4">Privacy Policy</Link>.
             </p>
             
-            <Link to="/" className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors group">
-              <ArrowLeftIcon className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            <Link to="/" className="inline-flex items-center gap-3 text-sm font-bold text-slate-400 hover:text-white transition-colors group">
+              <ArrowLeftIcon className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
               Back to home
             </Link>
           </div>

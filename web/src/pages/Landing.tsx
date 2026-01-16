@@ -12,7 +12,10 @@ import {
   CircleStackIcon,
   ArrowRightIcon,
   CheckIcon,
-  HeartIcon
+  HeartIcon,
+  UserIcon,
+  CloudIcon,
+  ComputerDesktopIcon
 } from '@heroicons/react/24/outline'
 import React from 'react'
 import Seo from '../components/Seo'
@@ -44,108 +47,116 @@ export default function Landing() {
         url="https://portbuddy.dev/"
       />
       {/* Hero Section */}
-      <section className="relative pt-12">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/20 via-slate-900/0 to-slate-900/0 pointer-events-none" />
+      <section className="relative pt-20 overflow-hidden">
+        {/* Background Decorative Elements */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-mesh-gradient opacity-60 pointer-events-none" />
+        <div className="absolute top-[10%] left-[10%] w-64 h-64 bg-jb-purple/10 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-[20%] right-[10%] w-96 h-96 bg-jb-blue/10 rounded-full blur-[120px] pointer-events-none" />
         
         <div className="container relative">
-          <div className="text-center max-w-3xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-medium mb-6">
+          <div className="text-center max-w-4xl mx-auto">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass border border-white/10 text-slate-300 text-xs font-medium mb-8">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-jb-blue opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-jb-blue"></span>
               </span>
-              v1.0 is now live
+              <span className="tracking-wide uppercase">Version 1.0 is now live</span>
             </div>
             
-            <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-white mb-8 leading-tight">
-              Public URLs for <br/>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">Localhost</span>
+            <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-white mb-8 leading-[1.1]">
+              Secure Tunnels for <br/>
+              <span className="text-gradient">Localhost</span>
             </h1>
             
-            <p className="text-xl text-slate-400 mb-10 leading-relaxed">
-              Expose your local web server, database, or any TCP/UDP service to the internet securely. 
-              No firewalls, no DNS configuration, just one command.
+            <p className="text-xl md:text-2xl text-slate-400 mb-12 leading-relaxed max-w-2xl mx-auto">
+              Share your local web server, database, or TCP/UDP service with the world in seconds. 
+              Built for developers who value <span className="text-white font-semibold">speed</span> and <span className="text-white font-semibold">security</span>.
             </p>
             
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
               <Link 
                 to="/install" 
-                className="w-full sm:w-auto px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20"
+                className="btn btn-primary w-full sm:w-auto text-lg py-4 px-10"
               >
-                <CommandLineIcon className="w-5 h-5" />
+                <CommandLineIcon className="w-6 h-6" />
                 Install CLI
               </Link>
               <Link 
                 to="/login" 
-                className="w-full sm:w-auto px-8 py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-semibold transition-all flex items-center justify-center gap-2 border border-slate-700"
+                className="btn w-full sm:w-auto text-lg py-4 px-10 glass hover:bg-white/5"
               >
-                Get Started for Free
-                <ArrowRightIcon className="w-4 h-4" />
+                Get Started
+                <ArrowRightIcon className="w-5 h-5" />
               </Link>
             </div>
             
-            <div className="mt-8 flex items-center justify-center gap-6">
+            <div className="mt-12 flex items-center justify-center gap-8">
               <a 
                 href="https://github.com/amak-tech/port-buddy" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors group"
+                className="flex items-center gap-3 text-slate-400 hover:text-white transition-all group"
               >
-                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
                 </svg>
-                <span className="text-sm font-medium">GitHub</span>
-                <span className="text-xs bg-slate-800 text-slate-500 py-0.5 px-1.5 rounded border border-slate-700 group-hover:border-slate-600 transition-colors">amak-tech/port-buddy</span>
+                <span className="text-sm font-semibold tracking-wide">GitHub</span>
+                <span className="text-[10px] glass px-2 py-0.5 rounded border border-white/5 group-hover:border-white/20 transition-colors">amak-tech/port-buddy</span>
               </a>
-              <div className="w-px h-4 bg-slate-800"></div>
-              <div className="inline-flex items-center gap-2 text-slate-400">
-                <HeartIcon className="w-5 h-5 text-pink-500" />
-                <span className="text-sm font-medium">Open Source</span>
+              <div className="w-px h-6 bg-white/10"></div>
+              <div className="flex items-center gap-3 text-slate-400">
+                <HeartIcon className="w-6 h-6 text-jb-pink" />
+                <span className="text-sm font-semibold tracking-wide uppercase">Open Source</span>
               </div>
             </div>
           </div>
 
           {/* Terminal Preview */}
-          <div className="mt-12 md:mt-20 mx-auto max-w-4xl bg-slate-900 rounded-xl border border-slate-800 shadow-2xl overflow-hidden">
-            <div className="flex items-center px-4 py-3 bg-slate-800/50 border-b border-slate-800 gap-2">
-              <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50"></div>
-              <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50"></div>
-              <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50"></div>
-              <div className="ml-2 text-xs text-slate-500 font-mono">bash — 80x24</div>
+          <div className="mt-20 mx-auto max-w-4xl glass rounded-2xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden transform hover:scale-[1.01] transition-transform duration-500">
+            <div className="flex items-center px-6 py-4 bg-white/5 border-b border-white/10 gap-3">
+              <div className="flex gap-2">
+                <div className="w-3.5 h-3.5 rounded-full bg-red-500/40"></div>
+                <div className="w-3.5 h-3.5 rounded-full bg-yellow-500/40"></div>
+                <div className="w-3.5 h-3.5 rounded-full bg-green-500/40"></div>
+              </div>
+              <div className="ml-4 text-xs text-slate-500 font-mono tracking-widest uppercase">Port Buddy Terminal</div>
             </div>
-            <div className="p-6 font-mono text-sm md:text-base overflow-x-auto">
-              <div className="flex items-center gap-2 text-slate-400 mb-4">
-                <span className="text-green-400">➜</span>
-                <span className="text-cyan-400">~</span>
-                <span>portbuddy 3000</span>
+            <div className="p-8 font-mono text-sm md:text-base overflow-x-auto leading-relaxed">
+              <div className="flex items-center gap-3 text-slate-400 mb-6">
+                <span className="text-jb-blue font-bold">➜</span>
+                <span className="text-jb-purple font-bold">~</span>
+                <span className="text-white">portbuddy 3000</span>
               </div>
               
-              <div className="space-y-2">
-                <div className="flex gap-8 text-slate-300">
-                  <span className="text-slate-500">Port Buddy</span>
-                  <span>Mode: http</span>
+              <div className="space-y-3">
+                <div className="flex gap-10">
+                  <span className="text-slate-500 w-24">Port Buddy</span>
+                  <span className="text-jb-blue font-bold">HTTP mode</span>
                 </div>
-                <div className="flex gap-8 text-slate-300">
-                  <span className="text-slate-500">Status</span>
-                  <span className="text-green-400 font-bold">&nbsp;Online</span>
+                <div className="flex gap-10">
+                  <span className="text-slate-500 w-24">Status</span>
+                  <span className="px-2 py-0.5 bg-green-500/20 text-green-400 rounded text-xs font-bold uppercase tracking-wider">Online</span>
                 </div>
-                <div className="flex gap-8 text-slate-300">
-                  <span className="text-slate-500">Local:</span>
-                  <span>&nbsp;http://localhost:3000</span>
-                </div>
-                <div className="flex gap-8 text-slate-300">
-                  <span className="text-slate-500">Public:</span>
-                  <span>https://my-static-subdomain.portbuddy.dev</span>
+                <div className="flex gap-10">
+                  <span className="text-slate-500 w-24">Forwarding</span>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-slate-300">Local:  <span className="text-white underline decoration-jb-blue/40">http://localhost:3000</span></span>
+                    <span className="text-slate-300">Public: <span className="text-white underline decoration-jb-pink/40">https://abc123.portbuddy.dev</span></span>
+                  </div>
                 </div>
                 
-                <div className="border-t border-slate-800 my-4"></div>
+                <div className="border-t border-white/5 my-6"></div>
                 
-                <div className="flex gap-8">
-                  <span className="text-slate-500">HTTP requests log:</span>
+                <div className="text-slate-500 mb-3 uppercase text-xs font-bold tracking-widest">Live Traffic</div>
+                <div className="flex gap-6 items-center">
+                  <span className="text-jb-blue font-bold">GET</span>
+                  <span className="text-slate-400">/api/user/profile</span>
+                  <span className="ml-auto text-green-400 font-bold">200 OK</span>
                 </div>
-                <div className="flex gap-8">
-                  <span className="text-slate-500">POST</span>
-                  <span className="text-white">200 https://my-static-subdomain.portbuddy.dev/api/webhooks/stripe</span>
+                <div className="flex gap-6 items-center">
+                  <span className="text-jb-pink font-bold">POST</span>
+                  <span className="text-slate-400">/api/webhooks/stripe</span>
+                  <span className="ml-auto text-green-400 font-bold">200 OK</span>
                 </div>
               </div>
             </div>
@@ -247,6 +258,89 @@ export default function Landing() {
               <CommandLineIcon className="w-6 h-6" />
               <span>Docker</span>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Architecture Section */}
+      <section id="architecture" className="container py-12">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            High-level <span className="text-gradient">Architecture</span>
+          </h2>
+          <p className="text-slate-400 max-w-2xl mx-auto">
+            Port Buddy creates a secure, encrypted tunnel between our edge nodes and your local environment.
+          </p>
+        </div>
+
+        <div className="relative glass rounded-3xl border border-white/5 p-8 md:p-16 overflow-hidden">
+          {/* Animated Background */}
+          <div className="absolute top-0 left-0 w-full h-full bg-jb-blue/5 opacity-30 pointer-events-none" />
+          
+          <div className="relative flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-4">
+            {/* Public Client */}
+            <div className="flex flex-col items-center text-center w-full lg:w-1/4">
+              <div className="w-20 h-20 rounded-2xl bg-slate-800 flex items-center justify-center text-slate-300 mb-6 border border-white/10 shadow-xl">
+                <UserIcon className="w-10 h-10" />
+              </div>
+              <h3 className="text-lg font-bold text-white mb-2">Public Visitor</h3>
+              <p className="text-sm text-slate-400 leading-relaxed">Accesses your app via <br/> <span className="text-jb-pink font-mono">*.portbuddy.dev</span></p>
+            </div>
+
+            {/* Arrow 1 */}
+            <div className="hidden lg:flex flex-col items-center justify-center w-1/12">
+               <div className="w-full h-0.5 bg-slate-700 relative overflow-hidden">
+                 {/* Moving Data Point */}
+                 <div className="absolute top-0 bottom-0 w-4 bg-gradient-to-r from-transparent via-jb-blue to-transparent animate-flow" />
+               </div>
+               <span className="text-[10px] text-slate-500 mt-4 uppercase tracking-widest font-bold">HTTPS/TCP</span>
+            </div>
+
+            {/* Port Buddy Cloud */}
+            <div className="flex flex-col items-center text-center w-full lg:w-1/4 p-6 rounded-2xl bg-jb-blue/5 border border-jb-blue/20 shadow-[0_0_30px_rgba(0,119,204,0.1)] relative">
+              <div className="absolute -top-3 -right-3 px-3 py-1 bg-jb-blue text-white text-[10px] font-bold rounded-full uppercase tracking-tighter shadow-lg">Edge Node</div>
+              <div className="w-20 h-20 rounded-2xl bg-jb-blue/20 flex items-center justify-center text-jb-blue mb-6 border border-jb-blue/30 shadow-xl">
+                <CloudIcon className="w-12 h-12" />
+              </div>
+              <h3 className="text-lg font-bold text-white mb-2">Port Buddy Cloud</h3>
+              <p className="text-sm text-slate-400 leading-relaxed">Auth, SSL Termination & <br/> Request Routing</p>
+            </div>
+
+            {/* Arrow 2 (The Tunnel) */}
+            <div className="hidden lg:flex flex-col items-center justify-center w-1/12">
+               <div className="w-full h-1 bg-slate-800 relative rounded-full overflow-hidden">
+                 <div className="absolute inset-0 bg-gradient-to-r from-jb-blue to-jb-purple animate-pulse" />
+                 {/* Moving Data Point */}
+                 <div className="absolute top-0 bottom-0 w-8 bg-gradient-to-r from-transparent via-white to-transparent animate-flow" />
+               </div>
+               <div className="flex items-center gap-1 mt-4">
+                 <LockClosedIcon className="w-3 h-3 text-green-400" />
+                 <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Secure Tunnel</span>
+               </div>
+            </div>
+
+            {/* Local Environment */}
+            <div className="flex flex-col items-center text-center w-full lg:w-1/4 p-6 rounded-2xl bg-white/5 border border-white/10 shadow-xl">
+              <div className="w-20 h-20 rounded-2xl bg-slate-800 flex items-center justify-center text-jb-purple mb-6 border border-white/10 shadow-xl">
+                <ComputerDesktopIcon className="w-10 h-10" />
+              </div>
+              <h3 className="text-lg font-bold text-white mb-2">Your Machine</h3>
+              <div className="flex flex-col gap-2 mt-2">
+                 <div className="px-3 py-1 bg-white/5 rounded text-[10px] font-mono text-jb-purple border border-white/5">Port Buddy CLI</div>
+                 <div className="px-3 py-1 bg-white/5 rounded text-[10px] font-mono text-slate-400 border border-white/5">Localhost:3000</div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Info Box */}
+          <div className="mt-16 pt-8 border-t border-white/5 flex flex-col md:flex-row items-center gap-6 justify-center">
+            <div className="flex items-center gap-3 px-4 py-2 bg-green-500/10 rounded-full border border-green-500/20">
+              <ShieldCheckIcon className="w-5 h-5 text-green-400" />
+              <span className="text-xs font-semibold text-green-400 uppercase tracking-wider">Zero-Config Firewall</span>
+            </div>
+            <p className="text-slate-500 text-sm italic max-w-lg text-center md:text-left">
+              Connections are established from the CLI to the Cloud, so you don't need to touch your router's port forwarding or firewall settings.
+            </p>
           </div>
         </div>
       </section>
@@ -368,19 +462,21 @@ export default function Landing() {
         <PlanComparison />
       </section>
 
-      {/* Final CTA */}
+      {/* CTA Section */}
       <section className="container pt-12">
-        <div className="bg-gradient-to-r from-indigo-900/50 to-purple-900/50 border border-indigo-500/30 rounded-2xl p-8 md:p-12 text-center relative overflow-hidden">
+        <div className="relative overflow-hidden rounded-3xl glass p-12 md:p-20 text-center border border-white/10">
+          <div className="absolute top-0 left-0 w-full h-full bg-mesh-gradient opacity-20 pointer-events-none" />
           <div className="relative z-10">
-            <h2 className="text-3xl font-bold text-white mb-4">Ready to get started?</h2>
-            <p className="text-slate-300 mb-8 max-w-xl mx-auto">
-              Join thousands of developers who use Port Buddy to accelerate their workflow.
+            <h2 className="text-4xl md:text-6xl font-black text-white mb-6 tracking-tighter">Ready to <span className="text-gradient">Share?</span></h2>
+            <p className="text-xl text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed">
+              Join thousands of developers using Port Buddy to expose their local services securely and efficiently.
             </p>
             <Link 
-              to="/install" 
-              className="inline-flex items-center justify-center px-8 py-3 bg-white text-indigo-900 rounded-lg font-bold hover:bg-slate-100 transition-colors"
+              to="/login" 
+              className="btn btn-primary text-xl py-5 px-12 rounded-2xl transition-transform hover:scale-105"
             >
-              Install Now
+              Get Started for Free
+              <ArrowRightIcon className="w-5 h-5" />
             </Link>
           </div>
         </div>
@@ -391,37 +487,45 @@ export default function Landing() {
 
 function FeatureCard({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) {
   return (
-    <div className="bg-slate-900/50 border border-slate-800 hover:border-slate-600 p-6 rounded-xl transition-all duration-300 hover:bg-slate-800/50 group">
-      <div className="mb-4 p-3 bg-slate-800 rounded-lg inline-block group-hover:scale-110 transition-transform duration-300">
-        {icon}
+    <div className="group glass p-8 rounded-2xl border border-white/5 hover:border-white/10 hover:bg-white/[0.07] transition-all duration-300">
+      <div className="w-14 h-14 rounded-xl bg-jb-blue/10 flex items-center justify-center text-jb-blue mb-6 group-hover:scale-110 group-hover:bg-jb-blue/20 transition-all duration-300">
+        <div className="w-8 h-8">
+          {icon}
+        </div>
       </div>
-      <h3 className="text-xl font-semibold text-white mb-2">{title}</h3>
-      <p className="text-slate-400 leading-relaxed">{description}</p>
+      <h3 className="text-xl font-bold text-white mb-3 group-hover:text-jb-blue transition-colors">{title}</h3>
+      <p className="text-slate-400 leading-relaxed group-hover:text-slate-300 transition-colors">
+        {description}
+      </p>
     </div>
   )
 }
 
 function Step({ number, title, description }: { number: string, title: string, description: string }) {
   return (
-    <div className="relative z-10 flex flex-col items-center text-center">
-      <div className="w-12 h-12 rounded-full bg-indigo-600 text-white font-bold text-xl flex items-center justify-center mb-4 shadow-lg shadow-indigo-500/30 border-4 border-slate-900">
-        {number}
+    <div className="relative z-10 flex flex-col items-center text-center group">
+      <div className="w-16 h-16 rounded-2xl glass text-white font-black text-2xl flex items-center justify-center mb-6 border border-white/10 group-hover:border-jb-blue/50 transition-all duration-500 transform group-hover:-rotate-6">
+        <span className="text-gradient">{number}</span>
       </div>
-      <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
-      <p className="text-slate-400 text-sm">{description}</p>
+      <h3 className="text-xl font-bold text-white mb-3 group-hover:text-jb-blue transition-colors">{title}</h3>
+      <p className="text-slate-400 leading-relaxed group-hover:text-slate-300 transition-colors">
+        {description}
+      </p>
     </div>
   )
 }
 
 function UseCaseItem({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) {
   return (
-    <div className="flex gap-4">
-      <div className="flex-shrink-0 w-12 h-12 bg-slate-800 rounded-lg flex items-center justify-center text-indigo-400">
-        {icon}
+    <div className="flex gap-6 p-6 rounded-2xl transition-all duration-300 hover:bg-white/[0.03] group">
+      <div className="flex-shrink-0 w-14 h-14 bg-white/5 rounded-xl flex items-center justify-center text-jb-blue group-hover:bg-jb-blue group-hover:text-white transition-all duration-300">
+        <div className="w-7 h-7">
+          {icon}
+        </div>
       </div>
       <div>
-        <h3 className="text-lg font-semibold text-white mb-1">{title}</h3>
-        <p className="text-slate-400 text-sm">{description}</p>
+        <h3 className="text-xl font-bold text-white mb-2 group-hover:text-jb-blue transition-colors">{title}</h3>
+        <p className="text-slate-400 leading-relaxed group-hover:text-slate-300 transition-colors">{description}</p>
       </div>
     </div>
   )

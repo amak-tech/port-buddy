@@ -42,26 +42,26 @@ export default function AppLayout() {
   const otherAccounts = accounts.filter(a => a.accountId !== user?.accountId)
 
   return (
-    <div className="min-h-screen w-full flex bg-slate-950">
+    <div className="min-h-screen w-full flex bg-primary-950">
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
         <div 
-          className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-primary-950/60 backdrop-blur-sm lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed top-0 left-0 h-screen w-64 border-r border-slate-800 bg-slate-900 z-[60] transition-transform duration-300 lg:translate-x-0 ${
+      <aside className={`fixed top-0 left-0 h-screen w-64 border-r border-white/5 glass z-[60] transition-transform duration-300 lg:translate-x-0 ${
         isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         <div className="h-full flex flex-col">
           {/* Top app title (fixed at top) */}
-          <div className="sticky top-0 z-10 border-b border-slate-800 bg-slate-900 px-6 py-5 flex items-center justify-between">
-            <Link to="/" className="flex items-center gap-3 text-lg font-bold text-white hover:opacity-90 transition-opacity">
+          <div className="sticky top-0 z-10 border-b border-white/5 px-6 py-6 flex items-center justify-between">
+            <Link to="/" className="flex items-center gap-3 text-xl font-black text-white hover:opacity-90 transition-opacity tracking-tighter">
               <span className="relative flex h-3 w-3">
-                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                 <span className="relative inline-flex rounded-full h-3 w-3 bg-indigo-500"></span>
+                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-jb-blue opacity-75"></span>
+                 <span className="relative inline-flex rounded-full h-3 w-3 bg-jb-blue"></span>
               </span>
               Port Buddy
             </Link>
@@ -74,17 +74,17 @@ export default function AppLayout() {
           </div>
 
           {/* Account Switcher */}
-          <div className="px-4 py-4 border-b border-slate-800 relative">
+          <div className="px-4 py-4 border-b border-white/5 relative">
             <button
               disabled={otherAccounts.length === 0}
               onClick={() => setShowAccountSwitcher(!showAccountSwitcher)}
-              className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-slate-800/50 text-white transition-colors border border-slate-700/50 ${
-                otherAccounts.length > 0 ? 'hover:bg-slate-800 cursor-pointer' : 'cursor-default'
+              className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl glass text-white transition-all border border-white/5 ${
+                otherAccounts.length > 0 ? 'hover:bg-white/5 cursor-pointer' : 'cursor-default'
               }`}
             >
               <div className="flex flex-col items-start min-w-0">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Account</span>
-                <span className="text-sm font-medium truncate w-full text-left">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Account</span>
+                <span className="text-sm font-bold truncate w-full text-left">
                   {user?.accountName || 'Select Account'}
                 </span>
               </div>
@@ -128,25 +128,25 @@ export default function AppLayout() {
           </nav>
 
           {/* Bottom block (fixed at bottom) */}
-          <div className="sticky bottom-0 z-10 border-t border-slate-800 bg-slate-900 px-6 py-5">
-            <div className="flex items-center justify-between gap-3 mb-4">
+          <div className="sticky bottom-0 z-10 border-t border-white/5 bg-primary-950 px-6 py-6">
+            <div className="flex items-center justify-between gap-3 mb-6">
               <Link to="/docs" className="text-slate-400 hover:text-white text-sm inline-flex items-center gap-2 transition-colors">
                 <AcademicCapIcon className="h-5 w-5" aria-hidden="true" />
-                <span>Documentation</span>
+                <span className="font-bold uppercase tracking-widest text-[10px]">Documentation</span>
               </Link>
             </div>
             <div className="flex items-center justify-between gap-3">
               <Link to="/app/profile" className="flex items-center gap-3 min-w-0 hover:opacity-80 transition-opacity" onClick={() => setIsSidebarOpen(false)}>
                 {user?.avatarUrl ? (
-                  <img src={user.avatarUrl} alt="avatar" className="w-9 h-9 rounded-full border border-slate-700" />
+                  <img src={user.avatarUrl} alt="avatar" className="w-10 h-10 rounded-xl border border-white/10" />
                 ) : (
-                  <div className="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center text-white text-sm font-bold shadow-lg shadow-indigo-500/20">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-jb-blue to-jb-purple flex items-center justify-center text-white text-sm font-black shadow-lg shadow-jb-blue/20">
                     {user?.name?.[0] || user?.email?.[0] || '?'}
                   </div>
                 )}
                 <div className="truncate">
-                  <div className="text-sm font-medium text-white truncate">{user?.name || user?.email || 'Unknown user'}</div>
-                  <div className="text-slate-500 text-xs truncate">{user?.email}</div>
+                  <div className="text-sm font-bold text-white truncate">{user?.name || user?.email || 'Unknown user'}</div>
+                  <div className="text-slate-500 text-[10px] font-mono truncate">{user?.email}</div>
                 </div>
               </Link>
               <button
@@ -154,7 +154,7 @@ export default function AppLayout() {
                 aria-label="Logout"
                 title="Logout"
                 onClick={() => void logout()}
-                className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-all"
+                className="p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all"
               >
                 <PowerIcon className="h-5 w-5" aria-hidden="true" />
               </button>
@@ -164,10 +164,10 @@ export default function AppLayout() {
       </aside>
 
       {/* Main content */}
-      <section className="flex-1 w-full min-w-0 flex flex-col min-h-0 lg:ml-64 bg-slate-950">
+      <section className="flex-1 w-full min-w-0 flex flex-col min-h-0 lg:ml-64 bg-primary-950">
         <PageHeaderProvider>
           {/* Page Header (sticky at top) */}
-          <div className="sticky top-0 z-10 border-b border-slate-800 bg-slate-950/80 backdrop-blur px-4 lg:px-8 py-5 flex items-center gap-4">
+          <div className="sticky top-0 z-10 border-b border-white/5 bg-primary-950/80 backdrop-blur px-6 lg:px-10 py-6 flex items-center gap-6">
             <button
               className="lg:hidden p-2 -ml-2 text-slate-400 hover:text-white transition-colors"
               onClick={() => setIsSidebarOpen(true)}
@@ -178,7 +178,7 @@ export default function AppLayout() {
             <HeaderTitle />
           </div>
           {/* Page body */}
-          <div className="px-4 lg:px-8 py-8 flex-1 overflow-y-auto" data-scroll-root>
+          <div className="px-6 lg:px-10 py-10 flex-1 overflow-y-auto" data-scroll-root>
             <Outlet />
           </div>
         </PageHeaderProvider>
@@ -196,15 +196,15 @@ function SideLink({ to, label, end = false, Icon, onClick }: { to: string, label
       end={end}
       onClick={onClick}
       className={({ isActive }) => 
-        `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
+        `flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 ${
           isActive 
-            ? 'bg-indigo-500/10 text-indigo-400 font-medium shadow-[inset_3px_0_0_0_rgb(99,102,241)]' 
-            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+            ? 'bg-jb-blue/10 text-jb-blue font-bold shadow-[inset_4px_0_0_0_#33ccff]' 
+            : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
         }`
       }
     >
-      {Icon ? <Icon className={`h-5 w-5 ${end ? '' : ''}`} aria-hidden="true" /> : null}
-      <span>{label}</span>
+      {Icon ? <Icon className="h-5 w-5" aria-hidden="true" /> : null}
+      <span className="text-sm tracking-tight">{label}</span>
     </NavLink>
   )
 }
@@ -212,6 +212,6 @@ function SideLink({ to, label, end = false, Icon, onClick }: { to: string, label
 function HeaderTitle() {
   const { title } = usePageHeader()
   return (
-    <div className="text-xl font-bold text-white truncate tracking-tight">{title}</div>
+    <div className="text-2xl font-black text-white truncate tracking-tighter uppercase">{title}</div>
   )
 }
