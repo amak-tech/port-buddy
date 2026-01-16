@@ -52,9 +52,14 @@ export default {
           '50%': { transform: 'translateX(-30%)' },
           '100%': { transform: 'translateX(0%)' },
         },
+        flow: {
+          '0%': { left: '-10%' },
+          '100%': { left: '110%' },
+        },
       },
       animation: {
         progress: 'progress 2s ease-in-out infinite',
+        flow: 'flow 3s linear infinite',
       },
     },
   },

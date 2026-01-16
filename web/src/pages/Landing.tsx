@@ -12,7 +12,10 @@ import {
   CircleStackIcon,
   ArrowRightIcon,
   CheckIcon,
-  HeartIcon
+  HeartIcon,
+  UserIcon,
+  CloudIcon,
+  ComputerDesktopIcon
 } from '@heroicons/react/24/outline'
 import React from 'react'
 import Seo from '../components/Seo'
@@ -255,6 +258,89 @@ export default function Landing() {
               <CommandLineIcon className="w-6 h-6" />
               <span>Docker</span>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Architecture Section */}
+      <section id="architecture" className="container py-12">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            High-level <span className="text-gradient">Architecture</span>
+          </h2>
+          <p className="text-slate-400 max-w-2xl mx-auto">
+            Port Buddy creates a secure, encrypted tunnel between our edge nodes and your local environment.
+          </p>
+        </div>
+
+        <div className="relative glass rounded-3xl border border-white/5 p-8 md:p-16 overflow-hidden">
+          {/* Animated Background */}
+          <div className="absolute top-0 left-0 w-full h-full bg-jb-blue/5 opacity-30 pointer-events-none" />
+          
+          <div className="relative flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-4">
+            {/* Public Client */}
+            <div className="flex flex-col items-center text-center w-full lg:w-1/4">
+              <div className="w-20 h-20 rounded-2xl bg-slate-800 flex items-center justify-center text-slate-300 mb-6 border border-white/10 shadow-xl">
+                <UserIcon className="w-10 h-10" />
+              </div>
+              <h3 className="text-lg font-bold text-white mb-2">Public Visitor</h3>
+              <p className="text-sm text-slate-400 leading-relaxed">Accesses your app via <br/> <span className="text-jb-pink font-mono">*.portbuddy.dev</span></p>
+            </div>
+
+            {/* Arrow 1 */}
+            <div className="hidden lg:flex flex-col items-center justify-center w-1/12">
+               <div className="w-full h-0.5 bg-slate-700 relative overflow-hidden">
+                 {/* Moving Data Point */}
+                 <div className="absolute top-0 bottom-0 w-4 bg-gradient-to-r from-transparent via-jb-blue to-transparent animate-flow" />
+               </div>
+               <span className="text-[10px] text-slate-500 mt-4 uppercase tracking-widest font-bold">HTTPS/TCP</span>
+            </div>
+
+            {/* Port Buddy Cloud */}
+            <div className="flex flex-col items-center text-center w-full lg:w-1/4 p-6 rounded-2xl bg-jb-blue/5 border border-jb-blue/20 shadow-[0_0_30px_rgba(0,119,204,0.1)] relative">
+              <div className="absolute -top-3 -right-3 px-3 py-1 bg-jb-blue text-white text-[10px] font-bold rounded-full uppercase tracking-tighter shadow-lg">Edge Node</div>
+              <div className="w-20 h-20 rounded-2xl bg-jb-blue/20 flex items-center justify-center text-jb-blue mb-6 border border-jb-blue/30 shadow-xl">
+                <CloudIcon className="w-12 h-12" />
+              </div>
+              <h3 className="text-lg font-bold text-white mb-2">Port Buddy Cloud</h3>
+              <p className="text-sm text-slate-400 leading-relaxed">Auth, SSL Termination & <br/> Request Routing</p>
+            </div>
+
+            {/* Arrow 2 (The Tunnel) */}
+            <div className="hidden lg:flex flex-col items-center justify-center w-1/12">
+               <div className="w-full h-1 bg-slate-800 relative rounded-full overflow-hidden">
+                 <div className="absolute inset-0 bg-gradient-to-r from-jb-blue to-jb-purple animate-pulse" />
+                 {/* Moving Data Point */}
+                 <div className="absolute top-0 bottom-0 w-8 bg-gradient-to-r from-transparent via-white to-transparent animate-flow" />
+               </div>
+               <div className="flex items-center gap-1 mt-4">
+                 <LockClosedIcon className="w-3 h-3 text-green-400" />
+                 <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Secure Tunnel</span>
+               </div>
+            </div>
+
+            {/* Local Environment */}
+            <div className="flex flex-col items-center text-center w-full lg:w-1/4 p-6 rounded-2xl bg-white/5 border border-white/10 shadow-xl">
+              <div className="w-20 h-20 rounded-2xl bg-slate-800 flex items-center justify-center text-jb-purple mb-6 border border-white/10 shadow-xl">
+                <ComputerDesktopIcon className="w-10 h-10" />
+              </div>
+              <h3 className="text-lg font-bold text-white mb-2">Your Machine</h3>
+              <div className="flex flex-col gap-2 mt-2">
+                 <div className="px-3 py-1 bg-white/5 rounded text-[10px] font-mono text-jb-purple border border-white/5">Port Buddy CLI</div>
+                 <div className="px-3 py-1 bg-white/5 rounded text-[10px] font-mono text-slate-400 border border-white/5">Localhost:3000</div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Info Box */}
+          <div className="mt-16 pt-8 border-t border-white/5 flex flex-col md:flex-row items-center gap-6 justify-center">
+            <div className="flex items-center gap-3 px-4 py-2 bg-green-500/10 rounded-full border border-green-500/20">
+              <ShieldCheckIcon className="w-5 h-5 text-green-400" />
+              <span className="text-xs font-semibold text-green-400 uppercase tracking-wider">Zero-Config Firewall</span>
+            </div>
+            <p className="text-slate-500 text-sm italic max-w-lg text-center md:text-left">
+              Connections are established from the CLI to the Cloud, so you don't need to touch your router's port forwarding or firewall settings.
+            </p>
           </div>
         </div>
       </section>
