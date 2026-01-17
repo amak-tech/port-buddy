@@ -104,17 +104,29 @@ export default function Installation() {
               {activeTab === 'windows' && (
                 <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                   <Step 
-                    title="Install via Scoop"
-                    description="Recommended for Windows users."
+                    title="Install via PowerShell"
+                    description="The fastest way to install Port Buddy on Windows. This script will download the executable and add it to your PATH."
                   >
-                    {/*<CodeBlock code={`scoop bucket add portbuddy https://github.com/amak-tech/scoop-bucket\nscoop install port-buddy`} />*/}
-                    <CodeBlock code={`We are working on it. Stay tuned.`} />
+                    <CodeBlock code={`iwr https://portbuddy.dev/install.ps1 -useb | iex`} />
                   </Step>
                   <Step 
-                    title="Initialize (PowerShell)"
-                    description="Link the CLI to your account."
+                    title="Direct Download"
+                    description="Download the executable manually and add it to your PATH."
                   >
-                    <CodeBlock code="portbuddy 8080 -d my-static-subdomain" />
+                    <div className="flex flex-col gap-4">
+                      <a 
+                        href="https://github.com/amak-tech/port-buddy/releases/latest" 
+                        className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-colors w-full md:w-auto"
+                      >
+                        Download latest version
+                      </a>
+                    </div>
+                  </Step>
+                  <Step 
+                    title="Quick Start"
+                    description="Link the CLI to your account and expose your first port."
+                  >
+                    <CodeBlock code="portbuddy init YOUR_API_TOKEN" />
                   </Step>
                 </div>
               )}
