@@ -68,8 +68,7 @@ export default function Login() {
       <Seo 
         title="Login | Port Buddy"
         description="Login to your Port Buddy account to manage your tunnels and domains."
-        canonical="https://portbuddy.dev/login"
-        url="https://portbuddy.dev/login"
+        path="/login"
       />
       {/* Background gradients */}
       <div className="absolute inset-0 bg-primary-950"></div>

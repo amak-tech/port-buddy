@@ -16,8 +16,8 @@ export default function Installation() {
         title="Install Port Buddy - Windows, macOS, Linux, Docker | Port Buddy CLI"
         description="Install Port Buddy CLI on your machine. Supports Homebrew (macOS), Scoop (Windows), Shell script (Linux), and Docker. Get started with secure localhost tunneling."
         keywords="install port buddy, download port buddy, port buddy cli, homebrew port buddy, scoop port buddy, linux port forwarding, docker port buddy"
-        canonical="https://portbuddy.dev/install"
-        url="https://portbuddy.dev/install"
+        path="/install"
+        image="/og-install.png"
       />
       <div className="flex-1 relative pt-12 pb-12 md:pb-20">
         {/* Background gradients */}

@@ -43,8 +43,7 @@ export default function Landing() {
         description="Securely expose your local web server, database, or TCP/UDP service to the internet. The best free ngrok alternative for developers. Supports HTTP, TCP & UDP tunneling."
         keywords="ngrok alternative, localhost tunneling, expose port, port forwarding, reverse proxy, tcp proxy, udp proxy, local development, port buddy"
         schema={softwareSchema}
-        canonical="https://portbuddy.dev/"
-        url="https://portbuddy.dev/"
+        path="/"
       />
       {/* Hero Section */}
       <section className="relative pt-20 overflow-hidden">

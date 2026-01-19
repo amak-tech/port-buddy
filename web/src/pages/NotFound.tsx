@@ -18,6 +18,7 @@ export default function NotFound() {
         title="Page Not Found | Port Buddy"
         description="The page you’re looking for doesn’t exist. Head back to the homepage or explore installation instructions."
         keywords="404, page not found, port buddy"
+        path="/404"
       />
 
       <section className="relative pt-12 md:pt-36">

@@ -55,7 +55,7 @@ export default function ResetPassword() {
   if (validToken === null) {
       return (
         <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-          <Seo title="Loading | Port Buddy" />
+          <Seo title="Loading | Port Buddy" description="Resetting your password." path="/reset-password" />
           <div className="absolute inset-0 bg-slate-950"></div>
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-900/20 via-slate-900/0 to-slate-900/0 pointer-events-none" />
           <div className="w-full max-w-md p-6 relative z-10">
@@ -69,7 +69,7 @@ export default function ResetPassword() {
   if (!validToken) {
       return (
         <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-          <Seo title="Reset Password | Port Buddy" />
+          <Seo title="Reset Password | Port Buddy" description="Resetting your password." path="/reset-password" />
           <div className="absolute inset-0 bg-slate-950"></div>
           <div className="w-full max-w-md p-6 relative z-10">
             <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-8 shadow-2xl backdrop-blur-sm text-center">
@@ -89,6 +89,7 @@ export default function ResetPassword() {
       <Seo 
         title="Set New Password | Port Buddy"
         description="Set a new password for your Port Buddy account."
+        path="/reset-password"
       />
       {/* Background gradients */}
       <div className="absolute inset-0 bg-slate-950"></div>
