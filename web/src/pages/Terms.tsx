@@ -6,8 +6,7 @@ export default function Terms() {
       <Seo 
         title="Terms and Conditions - Port Buddy"
         description="Read the terms and conditions for using Port Buddy services."
-        canonical="https://portbuddy.dev/terms"
-        url="https://portbuddy.dev/terms"
+        path="/terms"
       />
       <div className="flex-1 relative pt-12 md:pt-32 pb-20">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/10 via-slate-900/0 to-slate-900/0 pointer-events-none" />

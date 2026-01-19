@@ -4,47 +4,51 @@ import { Helmet } from 'react-helmet-async';
 interface SeoProps {
   title: string;
   description: string;
-  canonical?: string;
+  path?: string;
   type?: string;
   name?: string;
   keywords?: string;
   schema?: object;
   image?: string;
-  url?: string;
 }
 
 export default function Seo({ 
   title, 
   description, 
-  canonical, 
+  path = '', 
   type = 'website',
   name = 'Port Buddy',
   keywords,
   schema,
-  image,
-  url
+  image = '/og-image.png'
 }: SeoProps) {
+  const baseUrl = import.meta.env.VITE_CANONICAL || '';
+  const fullUrl = `${baseUrl}${path}`;
+  const fullImageUrl = `${baseUrl}${image}`;
+
   return (
     <Helmet>
       {/* Standard metadata tags */}
       <title>{title}</title>
       <meta name='description' content={description} />
       {keywords && <meta name='keywords' content={keywords} />}
-      {canonical && <link rel="canonical" href={canonical} />}
+      <link rel="canonical" href={fullUrl} />
 
       {/* Open Graph tags */}
+      <meta property="og:site_name" content={name} />
       <meta property="og:type" content={type} />
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
-      {url && <meta property="og:url" content={url} />}
-      {image && <meta property="og:image" content={image} />}
+      <meta property="og:locale" content="en_US" />
+      <meta property="og:url" content={fullUrl} />
+      <meta property="og:image" content={fullImageUrl} />
       
       {/* Twitter tags */}
-      <meta name="twitter:creator" content={name} />
-      <meta name="twitter:card" content={type === 'article' ? 'summary_large_image' : 'summary'} />
+      <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={title} />
       <meta name="twitter:description" content={description} />
-      {image && <meta name="twitter:image" content={image} />}
+      <meta name="twitter:creator" content="@anton_liashenka" />
+      <meta name="twitter:image" content={fullImageUrl} />
 
       {/* Structured Data */}
       {schema && (

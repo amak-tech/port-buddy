@@ -21,8 +21,7 @@ export default function Docs() {
         title="Documentation - Port Buddy"
         description="Learn how to use Port Buddy to expose your local services to the internet. Documentation for HTTP, TCP, and UDP tunnels."
         keywords="port buddy docs, port buddy documentation, how to use port buddy, port buddy tutorial"
-        canonical="https://portbuddy.dev/docs"
-        url="https://portbuddy.dev/docs"
+        path="/docs"
       />
       
       <div className="flex-1 relative pt-12 md:pt-20 pb-20">

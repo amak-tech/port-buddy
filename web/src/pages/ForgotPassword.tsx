@@ -36,8 +36,7 @@ export default function ForgotPassword() {
       <Seo 
         title="Forgot Password | Port Buddy"
         description="Reset your Port Buddy account password safely and securely."
-        canonical="https://portbuddy.dev/forgot-password"
-        url="https://portbuddy.dev/forgot-password"
+        path="/forgot-password"
       />
       {/* Background gradients */}
       <div className="absolute inset-0 bg-slate-950"></div>

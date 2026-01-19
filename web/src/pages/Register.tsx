@@ -56,8 +56,7 @@ export default function Register() {
       <Seo 
         title="Register | Port Buddy"
         description="Create your Port Buddy account and start sharing your local ports securely."
-        canonical="https://portbuddy.dev/register"
-        url="https://portbuddy.dev/register"
+        path="/register"
       />
       {/* Background gradients */}
       <div className="absolute inset-0 bg-slate-950"></div>
