@@ -1,5 +1,4 @@
 import React from 'react';
-import { Helmet } from 'react-helmet-async';
 
 interface SeoProps {
   title: string;
@@ -34,8 +33,8 @@ export default function Seo({
     updateMeta('og:description', description, 'property');
     updateMeta('og:url', fullUrl, 'property');
 
-    updateMeta('twitter:title', title);
-    updateMeta('twitter:description', description);
+    updateMeta('twitter:title', title, 'name');
+    updateMeta('twitter:description', description, 'name');
 
     const canonical = document.querySelector('link[rel="canonical"]');
     if (canonical) {
@@ -47,11 +46,7 @@ export default function Seo({
       schemaTag.textContent = JSON.stringify(schema);
     }
 
-  }, [title, description, keywords, fullUrl]);
+  }, [title, description, keywords, fullUrl, schema]);
 
-  return (
-    <Helmet>
-
-    </Helmet>
-  );
+  return null;
 }

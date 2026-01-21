@@ -1,5 +1,4 @@
 import { createContext, PropsWithChildren, useContext, useEffect, useMemo, useState } from 'react'
-import { Helmet } from 'react-helmet-async'
 
 type PageHeaderContextValue = {
     title: string
@@ -11,11 +10,13 @@ const PageHeaderContext = createContext<PageHeaderContextValue | undefined>(unde
 export function PageHeaderProvider({ children }: PropsWithChildren) {
     const [title, setTitle] = useState<string>('')
     const value = useMemo(() => ({ title, setTitle }), [title])
+
+    useEffect(() => {
+        document.title = title ? `${title} | Port Buddy` : 'Port Buddy'
+    }, [title])
+
     return (
         <PageHeaderContext.Provider value={value}>
-            <Helmet>
-                <title>{title ? `${title} | Port Buddy` : 'Port Buddy'}</title>
-            </Helmet>
             {children}
         </PageHeaderContext.Provider>
     )
