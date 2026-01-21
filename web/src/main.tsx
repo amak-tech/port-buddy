@@ -7,7 +7,8 @@ import './index.css'
 import { AuthProvider } from './auth/AuthContext'
 import { LoadingProvider } from './components/LoadingContext'
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+const rootElement = document.getElementById('root')!;
+const app = (
   <React.StrictMode>
     <HelmetProvider>
       <LoadingProvider>
@@ -18,5 +19,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         </AuthProvider>
       </LoadingProvider>
     </HelmetProvider>
-  </React.StrictMode>,
-)
+  </React.StrictMode>
+);
+
+if (rootElement.hasChildNodes()) {
+  ReactDOM.hydrateRoot(rootElement, app);
+} else {
+  ReactDOM.createRoot(rootElement).render(app);
+}
