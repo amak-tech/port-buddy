@@ -169,12 +169,48 @@ spring:
                     regexp: /(?<remaining>.*)
                     replacement: /_custom/$\{customDomain}/$\{remaining}
 
+            - id: static_install_route
+              enabled: ${app.spa-fallback-enabled}
+              uri: forward:/
+              order: 2
+              predicates:
+                - Path=/install
+              filters:
+                - SetPath=/install/index.html
+
+            - id: static_docs_route
+              enabled: ${app.spa-fallback-enabled}
+              uri: forward:/
+              order: 2
+              predicates:
+                - Path=/docs
+              filters:
+                - SetPath=/docs/index.html
+
+            - id: static_privacy_route
+              enabled: ${app.spa-fallback-enabled}
+              uri: forward:/
+              order: 2
+              predicates:
+                - Path=/privacy
+              filters:
+                - SetPath=/privacy/index.html
+
+            - id: static_terms_route
+              enabled: ${app.spa-fallback-enabled}
+              uri: forward:/
+              order: 2
+              predicates:
+                - Path=/terms
+              filters:
+                - SetPath=/terms/index.html
+
             - id: spa_fallback_route
               enabled: ${app.spa-fallback-enabled}
               uri: forward:/index.html
               order: 3
               predicates:
-                - Path=/install, /docs, /privacy, /terms, /register, /passcode, /app/**, /login/**, /auth/callback, /forgot-password**, /reset-password**, /404, /500
+                - Path=/, /register, /passcode, /app/**, /login/**, /auth/callback, /forgot-password**, /reset-password**, /404, /500
 
             # Dev: Proxy SPA paths to the Vite dev server
             - id: spa_frontend_route
