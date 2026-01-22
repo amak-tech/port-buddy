@@ -3,7 +3,6 @@
  */
 
 import { Link } from 'react-router-dom'
-import Seo from '../components/Seo'
 import {
   CommandLineIcon,
   GlobeAltIcon,
@@ -17,13 +16,6 @@ import {
 export default function Docs() {
   return (
     <div className="min-h-screen flex flex-col">
-      <Seo 
-        title="Documentation - Port Buddy"
-        description="Learn how to use Port Buddy to expose your local services to the internet. Documentation for HTTP, TCP, and UDP tunnels."
-        keywords="port buddy docs, port buddy documentation, how to use port buddy, port buddy tutorial"
-        path="/docs"
-      />
-      
       <div className="flex-1 relative pt-12 md:pt-20 pb-20">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/20 via-slate-900/0 to-slate-900/0 pointer-events-none" />
         

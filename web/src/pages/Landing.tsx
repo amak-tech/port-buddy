@@ -18,33 +18,11 @@ import {
   ComputerDesktopIcon
 } from '@heroicons/react/24/outline'
 import React from 'react'
-import Seo from '../components/Seo'
 import PlanComparison from '../components/PlanComparison'
 
 export default function Landing() {
-  const softwareSchema = {
-    "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    "name": "Port Buddy",
-    "operatingSystem": "Windows, macOS, Linux",
-    "applicationCategory": "DeveloperApplication",
-    "description": "Securely expose your local web server, database, or TCP/UDP service to the internet.",
-    "offers": {
-      "@type": "Offer",
-      "price": "0",
-      "priceCurrency": "USD"
-    }
-  };
-
   return (
     <div className="flex flex-col gap-16 md:gap-24 pb-16 md:pb-24">
-      <Seo 
-        title="Port Buddy - Expose Localhost to the Internet | Ngrok Alternative"
-        description="Securely expose your local web server, database, or TCP/UDP service to the internet. The best free ngrok alternative for developers. Supports HTTP, TCP & UDP tunneling."
-        keywords="ngrok alternative, localhost tunneling, expose port, port forwarding, reverse proxy, tcp proxy, udp proxy, local development, port buddy"
-        schema={softwareSchema}
-        path="/"
-      />
       {/* Hero Section */}
       <section className="relative pt-20 overflow-hidden">
         {/* Background Decorative Elements */}

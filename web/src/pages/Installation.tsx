@@ -5,19 +5,12 @@ import {
   CheckIcon,
   ComputerDesktopIcon
 } from '@heroicons/react/24/outline'
-import Seo from '../components/Seo'
 
 export default function Installation() {
   const [activeTab, setActiveTab] = useState<'macos' | 'linux' | 'windows' | 'docker'>('macos')
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Seo 
-        title="Install Port Buddy - Windows, macOS, Linux, Docker | Port Buddy CLI"
-        description="Install Port Buddy CLI on your machine. Supports Homebrew (macOS), Scoop (Windows), Shell script (Linux), and Docker. Get started with secure localhost tunneling."
-        keywords="install port buddy, download port buddy, port buddy cli, homebrew port buddy, scoop port buddy, linux port forwarding, docker port buddy"
-        path="/install"
-      />
       <div className="flex-1 relative pt-12 pb-12 md:pb-20">
         {/* Background gradients */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/20 via-slate-900/0 to-slate-900/0 pointer-events-none" />

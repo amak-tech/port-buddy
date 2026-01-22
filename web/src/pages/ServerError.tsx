@@ -5,7 +5,6 @@
 import { Link, useSearchParams } from 'react-router-dom'
 import { ArrowPathIcon, HomeIcon, WrenchScrewdriverIcon } from '@heroicons/react/24/outline'
 import React, { useEffect, useState } from 'react'
-import Seo from '../components/Seo'
 
 export default function ServerError() {
   const [searchParams] = useSearchParams()
@@ -39,13 +38,6 @@ export default function ServerError() {
   }, [searchParams])
   return (
     <div className="flex flex-col gap-16 pb-24">
-      <Seo
-        title="Server Error | Port Buddy"
-        description="Something went wrong on our side. Please try again in a moment or return to the homepage."
-        keywords="500, server error, 5xx, port buddy"
-        path="/500"
-      />
-
       <section className="relative pt-12 md:pt-36">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-red-900/15 via-slate-900/0 to-slate-900/0 pointer-events-none" />
 <div className="container relative max-w-4xl text-center">

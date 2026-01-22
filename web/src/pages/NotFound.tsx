@@ -9,18 +9,10 @@ import {
   MagnifyingGlassIcon
 } from '@heroicons/react/24/outline'
 import React from 'react'
-import Seo from '../components/Seo'
 
 export default function NotFound() {
   return (
     <div className="flex flex-col gap-16 pb-24">
-      <Seo
-        title="Page Not Found | Port Buddy"
-        description="The page you’re looking for doesn’t exist. Head back to the homepage or explore installation instructions."
-        keywords="404, page not found, port buddy"
-        path="/404"
-      />
-
       <section className="relative pt-12 md:pt-36">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/20 via-slate-900/0 to-slate-900/0 pointer-events-none" />
 <div className="container relative max-w-4xl text-center">

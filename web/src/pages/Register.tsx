@@ -6,7 +6,6 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { ArrowLeftIcon } from '@heroicons/react/24/outline'
-import Seo from '../components/Seo'
 
 export default function Register() {
   const { loading, user, loginWithGoogle, loginWithGithub, register } = useAuth()
@@ -53,11 +52,6 @@ export default function Register() {
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-      <Seo 
-        title="Register | Port Buddy"
-        description="Create your Port Buddy account and start sharing your local ports securely."
-        path="/register"
-      />
       {/* Background gradients */}
       <div className="absolute inset-0 bg-slate-950"></div>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-900/20 via-slate-900/0 to-slate-900/0 pointer-events-none" />

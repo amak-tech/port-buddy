@@ -5,7 +5,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeftIcon } from '@heroicons/react/24/outline'
-import Seo from '../components/Seo'
 import { apiJson } from '../lib/api'
 
 export default function ForgotPassword() {
@@ -33,11 +32,6 @@ export default function ForgotPassword() {
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-      <Seo 
-        title="Forgot Password | Port Buddy"
-        description="Reset your Port Buddy account password safely and securely."
-        path="/forgot-password"
-      />
       {/* Background gradients */}
       <div className="absolute inset-0 bg-slate-950"></div>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-900/20 via-slate-900/0 to-slate-900/0 pointer-events-none" />

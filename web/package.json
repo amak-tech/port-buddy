@@ -15,11 +15,13 @@
     "jwt-decode": "^4.0.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
+    "react-helmet-async": "^2.0.5",
     "react-router-dom": "6.28.0"
   },
   "devDependencies": {
     "@prerenderer/renderer-puppeteer": "^1.2.4",
     "@prerenderer/rollup-plugin": "^0.3.12",
+    "@types/react-helmet-async": "^1.0.1",
     "@vitejs/plugin-react": "4.3.3",
     "autoprefixer": "10.4.20",
     "postcss": "8.4.49",

@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { ArrowLeftIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
-import Seo from '../components/Seo'
 
 export default function Login() {
   const { user, loading, loginWithGoogle, loginWithGithub, loginWithEmail } = useAuth()
@@ -65,11 +64,6 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-      <Seo 
-        title="Login | Port Buddy"
-        description="Login to your Port Buddy account to manage your tunnels and domains."
-        path="/login"
-      />
       {/* Background gradients */}
       <div className="absolute inset-0 bg-primary-950"></div>
       <div className="absolute inset-0 bg-mesh-gradient opacity-30 pointer-events-none" />
