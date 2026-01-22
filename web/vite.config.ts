@@ -23,6 +23,11 @@ export default defineConfig(({ mode }) => {
         staticDir: path.join(__dirname, 'dist'),
         postProcess(renderedRoute) {
           const route = renderedRoute.route;
+          renderedRoute.html = renderedRoute.html.replace(
+            '<div id="root">',
+            `<div id="root" data-prerendered-route="${route}">`
+          );
+
           let templatePath = '';
           if (route === '/' || route === '/index') templatePath = 'public/pages/index.html';
           else if (route === '/install') templatePath = 'public/pages/install.html';

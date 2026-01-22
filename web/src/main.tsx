@@ -19,7 +19,15 @@ const app = (
   </React.StrictMode>
 );
 
-if (rootElement.hasChildNodes()) {
+const prerenderedRoute = rootElement.getAttribute('data-prerendered-route');
+const currentRoute = window.location.pathname.replace(/\/$/, '') || '/';
+const shouldHydrate = rootElement.hasChildNodes() && (
+  prerenderedRoute === currentRoute || 
+  (currentRoute === '/' && prerenderedRoute === '/index') ||
+  (currentRoute === '/index' && prerenderedRoute === '/')
+);
+
+if (shouldHydrate) {
   ReactDOM.hydrateRoot(rootElement, app);
 } else {
   ReactDOM.createRoot(rootElement).render(app);
