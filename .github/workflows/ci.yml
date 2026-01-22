@@ -117,6 +117,15 @@ jobs:
           push: true
           tags: cr.yandex/${{ vars.CR_REGISTRY }}/port-buddy-ssl-service:latest
 
+      - name: Build and push Web App
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile-web
+          platforms: linux/amd64
+          push: true
+          tags: cr.yandex/${{ vars.CR_REGISTRY }}/port-buddy-web-app:latest
+
   build-portbuddy-docker:
     name: Build and Push CLI Images
     needs: build

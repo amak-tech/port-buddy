@@ -64,6 +64,13 @@ services:
       options:
         max-size: 100M
 
+  web-app:
+    image: cr.yandex/crpop0r0f81mcsvg9kei/port-buddy-web-app:latest
+    container_name: pb-web-app
+    restart: no
+    volumes:
+      - ${PWD}/web-app:/app/pb-web
+
   gateway:
     image: cr.yandex/crpop0r0f81mcsvg9kei/port-buddy-gateway:latest
     container_name: pb-gateway
@@ -76,7 +83,9 @@ services:
       - ${PWD}/gateway/config:/app/config
       - ${PWD}/gateway/logs:/app/log
       - ${PWD}/ssl-service/certs:/app/certs
+      - ${PWD}/web-app:/app/web/dist
     depends_on:
+      - web-app
       - eureka
       - ssl-service
     logging:
