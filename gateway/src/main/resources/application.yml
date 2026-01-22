@@ -221,6 +221,12 @@ spring:
                 - Path=/**
               filters:
                 - PreserveHostHeader
+  web:
+    resources:
+      static-locations: file:./web/dist/
+      cache:
+        use-last-modified: true
+        period: 3600
 
 logging:
   level:
