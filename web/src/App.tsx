@@ -28,6 +28,7 @@ import Profile from './pages/app/Profile'
 import AdminPanel from './pages/app/AdminPanel'
 import Terms from './pages/Terms'
 import Privacy from './pages/Privacy'
+import Contacts from './pages/Contacts'
 import NotFound from './pages/NotFound'
 import ServerError from './pages/ServerError'
 import Passcode from './pages/Passcode'
@@ -252,6 +253,7 @@ export default function App() {
           <Route path="/passcode" element={<Passcode/>} />
           <Route path="/terms" element={<Terms/>} />
           <Route path="/privacy" element={<Privacy/>} />
+          <Route path="/contacts" element={<Contacts/>} />
           {/* App area with sidebar layout */}
           <Route path="/app" element={<ProtectedRoute><AppLayout/></ProtectedRoute>}>
             <Route index element={<Tunnels/>} />
@@ -324,6 +326,7 @@ export default function App() {
             </div>
             <a href="/#use-cases" className="text-slate-400 hover:text-indigo-400 transition-colors">Use Cases</a>
             <Link to="/docs" className="text-slate-400 hover:text-indigo-400 transition-colors">Documentation</Link>
+            <Link to="/contacts" className="text-slate-400 hover:text-indigo-400 transition-colors">Contacts</Link>
             <Link to="/terms" className="text-slate-400 hover:text-indigo-400 transition-colors">Terms</Link>
             <Link to="/privacy" className="text-slate-400 hover:text-indigo-400 transition-colors">Privacy</Link>
           </div>
