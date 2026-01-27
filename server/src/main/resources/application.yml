@@ -112,8 +112,8 @@ spring:
             user-info-uri: https://api.github.com/user
             user-name-attribute: id
   mail:
-    host: ${SMTP_HOST:postbox.cloud.yandex.net}
-    port: ${SMTP_PORT:587}
+    host: ${SMTP_HOST:}
+    port: ${SMTP_PORT:}
     username: ${SMTP_USERNAME:}
     password: ${SMTP_PASSWORD:}
     protocol: smtp
