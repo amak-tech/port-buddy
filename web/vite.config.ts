@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       Prerender({
-        routes: ['/', '/index', '/install', '/docs', '/privacy', '/terms'],
+        routes: ['/', '/index', '/install', '/docs', '/privacy', '/terms', '/contacts'],
         renderer: new Renderer({
           renderAfterDocumentEvent: 'render-event',
         }),
@@ -34,6 +34,7 @@ export default defineConfig(({ mode }) => {
           else if (route === '/docs') templatePath = 'public/pages/docs.html';
           else if (route === '/privacy') templatePath = 'public/pages/privacy.html';
           else if (route === '/terms') templatePath = 'public/pages/terms.html';
+          else if (route === '/contacts') templatePath = 'public/pages/contacts.html';
 
           if (templatePath) {
             let template = fs.readFileSync(path.join(__dirname, templatePath), 'utf8');

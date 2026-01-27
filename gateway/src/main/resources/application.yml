@@ -205,6 +205,15 @@ spring:
               filters:
                 - SetPath=/terms/index.html
 
+            - id: static_contacts_route
+              enabled: ${app.spa-fallback-enabled}
+              uri: forward:/
+              order: 2
+              predicates:
+                - Path=/contacts
+              filters:
+                - SetPath=/contacts/index.html
+
             - id: spa_fallback_route
               enabled: ${app.spa-fallback-enabled}
               uri: forward:/index.html

@@ -40,4 +40,9 @@
     <priority>0.3</priority>
     <changefreq>monthly</changefreq>
   </url>
+  <url>
+    <loc>https://portbuddy.dev/contacts</loc>
+    <priority>0.3</priority>
+    <changefreq>monthly</changefreq>
+  </url>
 </urlset>
