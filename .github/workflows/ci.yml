@@ -6,6 +6,7 @@ on:
     tags:
       - 'v*'
       - 'be*'
+      - 'fe*'
   workflow_dispatch:
 
 jobs:
@@ -36,7 +37,7 @@ jobs:
   build-backend:
     name: Build and Push Docker Images to YC CR
     needs: build
-    if: startsWith(github.ref, 'refs/tags/be')
+    if: startsWith(github.ref, 'refs/tags/be') || startsWith(github.ref, 'refs/tags/fe')
     runs-on: ubuntu-latest
 
     steps:
@@ -74,6 +75,7 @@ jobs:
 
       - name: Build and push Server
         uses: docker/build-push-action@v6
+        if: startsWith(github.ref, 'refs/tags/be')
         with:
           context: .
           file: Dockerfile-server
@@ -83,6 +85,7 @@ jobs:
 
       - name: Build and push Gateway
         uses: docker/build-push-action@v6
+        if: startsWith(github.ref, 'refs/tags/be')
         with:
           context: .
           file: Dockerfile-gateway
@@ -92,6 +95,7 @@ jobs:
 
       - name: Build and push Eureka
         uses: docker/build-push-action@v6
+        if: startsWith(github.ref, 'refs/tags/be')
         with:
           context: .
           file: Dockerfile-eureka
@@ -101,6 +105,7 @@ jobs:
 
       - name: Build and push Net Proxy
         uses: docker/build-push-action@v6
+        if: startsWith(github.ref, 'refs/tags/be')
         with:
           context: .
           file: Dockerfile-net-proxy
@@ -110,6 +115,7 @@ jobs:
 
       - name: Build and push SSL Service
         uses: docker/build-push-action@v6
+        if: startsWith(github.ref, 'refs/tags/be')
         with:
           context: .
           file: Dockerfile-ssl-service
@@ -119,6 +125,7 @@ jobs:
 
       - name: Build and push Web App
         uses: docker/build-push-action@v6
+        if: startsWith(github.ref, 'refs/tags/fe')
         with:
           context: .
           file: Dockerfile-web

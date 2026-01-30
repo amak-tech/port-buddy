@@ -60,6 +60,7 @@ export default {
       animation: {
         progress: 'progress 2s ease-in-out infinite',
         flow: 'flow 3s linear infinite',
+        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
       },
     },
   },
