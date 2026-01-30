@@ -174,52 +174,44 @@ export default function Landing() {
         
         <div className="container relative z-10">
           <div className="text-center max-w-5xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass border border-white/10 text-slate-300 text-xs font-medium mb-10 hover:bg-white/5 transition-colors cursor-default">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-jb-blue opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-jb-blue"></span>
-              </span>
-              <span className="tracking-wide uppercase font-bold text-slate-400">v1.0 is live</span>
-              <span className="w-px h-3 bg-white/20 mx-1"></span>
-              <span className="text-indigo-300">Trusted by 5,000+ developers</span>
-            </div>
-            
+
+
             <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-white mb-8 leading-[1.1]">
               Secure Tunnels for <br/>
-              <TypewriterText />
+              <TypewriterText/>
             </h1>
-            
+
             <p className="text-xl md:text-2xl text-slate-400 mb-12 leading-relaxed max-w-3xl mx-auto font-light">
               Expose your local server to the internet in seconds. <br/>
               Production-ready security, developer-friendly experience.
             </p>
-            
+
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-              <Link 
-                to="/install" 
+              <Link
+                to="/install"
                 className="btn btn-primary w-full sm:w-auto text-lg py-4 px-10 shadow-[0_0_40px_-10px_rgba(99,102,241,0.5)] hover:shadow-[0_0_60px_-10px_rgba(99,102,241,0.6)]"
               >
-                <CommandLineIcon className="w-6 h-6" />
+                <CommandLineIcon className="w-6 h-6"/>
                 Install CLI
               </Link>
-              <Link 
-                to="/login" 
+              <Link
+                to="/login"
                 className="btn w-full sm:w-auto text-lg py-4 px-10 glass hover:bg-white/5 border border-white/10"
               >
                 Get Started
-                <ArrowRightIcon className="w-5 h-5" />
+                <ArrowRightIcon className="w-5 h-5"/>
               </Link>
             </div>
-            
+
             <div className="mt-12 flex items-center justify-center gap-8 text-sm font-medium">
-               <div className="flex items-center gap-2 text-slate-400">
-                 <CheckIcon className="w-5 h-5 text-green-400" />
-                 <span>No credit card required</span>
-               </div>
-               <div className="flex items-center gap-2 text-slate-400">
-                 <CheckIcon className="w-5 h-5 text-green-400" />
-                 <span>Free tier available</span>
-               </div>
+              <div className="flex items-center gap-2 text-slate-400">
+                <CheckIcon className="w-5 h-5 text-green-400"/>
+                <span>No credit card required</span>
+              </div>
+              <div className="flex items-center gap-2 text-slate-400">
+                <CheckIcon className="w-5 h-5 text-green-400"/>
+                <span>Free tier available</span>
+              </div>
             </div>
           </div>
 
