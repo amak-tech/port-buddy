@@ -120,7 +120,7 @@ function ChevronDownIcon({ className }: { className?: string }) {
 }
 
 function TypewriterText() {
-  const words = ["Localhost", "Databases", "Webhooks", "APIs", "Everything"]
+  const words = ["Localhost", "Databases", "Webhooks", "APIs", "Game Servers", "Everything"]
   const [index, setIndex] = useState(0)
   const [subIndex, setSubIndex] = useState(0)
   const [reverse, setReverse] = useState(false)
