@@ -34,7 +34,6 @@ public class GatewaySecurityConfig {
                 // Public endpoints (static, SPA, OAuth callbacks, JWKS, etc.)
                 .pathMatchers(
                     "/", "/index.html", "/assets/**", "/favicon.*",
-                    "/install", "/docs", "/privacy", "/terms", "/register", "/passcode",
                     "/app/**", "/login/**", "/auth/callback",
                     "/forgot-password**", "/reset-password**",
                     "/oauth2/**", "/login/oauth2/**",
