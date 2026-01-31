@@ -56,6 +56,7 @@ export default function DocsLayout() {
                   <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 px-2">How-to Guides</h3>
                   <nav className="space-y-1">
                     <SidebarLink to="/docs/guides/minecraft-server" label="Minecraft Server" active={location.pathname === '/docs/guides/minecraft-server'} />
+                    <SidebarLink to="/docs/guides/hytale-server" label="Hytale Server" active={location.pathname === '/docs/guides/hytale-server'} />
                   </nav>
                 </div>
               </div>

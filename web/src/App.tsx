@@ -6,6 +6,7 @@ import Installation from './pages/Installation'
 import DocsLayout from './pages/docs/DocsLayout'
 import DocsOverview from './pages/docs/DocsOverview'
 import MinecraftGuide from './pages/docs/guides/MinecraftGuide'
+import HytaleGuide from './pages/docs/guides/HytaleGuide'
 import AcceptInvite from './pages/AcceptInvite'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -248,6 +249,7 @@ export default function App() {
           <Route path="/docs" element={<DocsLayout/>}>
             <Route index element={<DocsOverview/>} />
             <Route path="guides/minecraft-server" element={<MinecraftGuide/>} />
+            <Route path="guides/hytale-server" element={<HytaleGuide/>} />
           </Route>
           <Route path="/login" element={<Login/>} />
           <Route path="/register" element={<Register/>} />

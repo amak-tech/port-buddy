@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       Prerender({
-        routes: ['/', '/index', '/install', '/docs', '/docs/guides/minecraft-server', '/privacy', '/terms', '/contacts'],
+        routes: ['/', '/index', '/install', '/docs', '/docs/guides/minecraft-server', '/docs/guides/hytale-server', '/privacy', '/terms', '/contacts'],
         renderer: new Renderer({
           renderAfterDocumentEvent: 'render-event',
         }),
