@@ -3,7 +3,9 @@ import { useEffect, useState } from 'react'
 import { Bars3Icon, ChevronDownIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import Landing from './pages/Landing'
 import Installation from './pages/Installation'
-import Docs from './pages/Docs'
+import DocsLayout from './pages/docs/DocsLayout'
+import DocsOverview from './pages/docs/DocsOverview'
+import MinecraftGuide from './pages/docs/guides/MinecraftGuide'
 import AcceptInvite from './pages/AcceptInvite'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -243,7 +245,10 @@ export default function App() {
           <Route path="/" element={<Landing/>} />
           <Route path="/index" element={<Navigate to="/" replace />} />
           <Route path="/install" element={<Installation/>} />
-          <Route path="/docs" element={<Docs/>} />
+          <Route path="/docs" element={<DocsLayout/>}>
+            <Route index element={<DocsOverview/>} />
+            <Route path="guides/minecraft-server" element={<MinecraftGuide/>} />
+          </Route>
           <Route path="/login" element={<Login/>} />
           <Route path="/register" element={<Register/>} />
           <Route path="/forgot-password" element={<ForgotPassword/>} />

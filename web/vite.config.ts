@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       Prerender({
-        routes: ['/', '/index', '/install', '/docs', '/privacy', '/terms', '/contacts'],
+        routes: ['/', '/index', '/install', '/docs', '/docs/guides/minecraft-server', '/privacy', '/terms', '/contacts'],
         renderer: new Renderer({
           renderAfterDocumentEvent: 'render-event',
         }),
@@ -29,12 +29,24 @@ export default defineConfig(({ mode }) => {
           );
 
           let templatePath = '';
-          if (route === '/' || route === '/index') templatePath = 'public/pages/index.html';
-          else if (route === '/install') templatePath = 'public/pages/install.html';
-          else if (route === '/docs') templatePath = 'public/pages/docs.html';
-          else if (route === '/privacy') templatePath = 'public/pages/privacy.html';
-          else if (route === '/terms') templatePath = 'public/pages/terms.html';
-          else if (route === '/contacts') templatePath = 'public/pages/contacts.html';
+
+          // Check for specific guide html files
+          if (route.startsWith('/docs/guides/')) {
+            const guideName = route.substring('/docs/guides/'.length);
+            const potentialPath = `public/pages/docs/guides/${guideName}.html`;
+            if (fs.existsSync(path.join(__dirname, potentialPath))) {
+              templatePath = potentialPath;
+            }
+          }
+
+          if (!templatePath) {
+            if (route === '/' || route === '/index') templatePath = 'public/pages/index.html';
+            else if (route === '/install') templatePath = 'public/pages/install.html';
+            else if (route === '/docs' || route.startsWith('/docs/')) templatePath = 'public/pages/docs.html';
+            else if (route === '/privacy') templatePath = 'public/pages/privacy.html';
+            else if (route === '/terms') templatePath = 'public/pages/terms.html';
+            else if (route === '/contacts') templatePath = 'public/pages/contacts.html';
+          }
 
           if (templatePath) {
             let template = fs.readFileSync(path.join(__dirname, templatePath), 'utf8');
