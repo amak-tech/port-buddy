@@ -187,6 +187,15 @@ spring:
               filters:
                 - SetPath=/docs/index.html
 
+            - id: static_guides_route
+              enabled: ${app.spa-fallback-enabled}
+              uri: forward:/
+              order: 2
+              predicates:
+                - Path=/docs/guides/{guide}
+              filters:
+                - SetPath=/docs/guides/{guide}/index.html
+
             - id: static_privacy_route
               enabled: ${app.spa-fallback-enabled}
               uri: forward:/
