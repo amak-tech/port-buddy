@@ -8,7 +8,6 @@ import { LoadingProvider } from './components/LoadingContext'
 
 const rootElement = document.getElementById('root')!;
 const app = (
-  <React.StrictMode>
     <LoadingProvider>
       <AuthProvider>
         <BrowserRouter>
@@ -16,7 +15,6 @@ const app = (
         </BrowserRouter>
       </AuthProvider>
     </LoadingProvider>
-  </React.StrictMode>
 );
 
 const prerenderedRoute = rootElement.getAttribute('data-prerendered-route');
