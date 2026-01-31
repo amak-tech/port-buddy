@@ -45,4 +45,14 @@
     <priority>0.3</priority>
     <changefreq>monthly</changefreq>
   </url>
+  <url>
+    <loc>https://portbuddy.dev/docs/guides/minecraft-server</loc>
+    <priority>0.8</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://portbuddy.dev/docs/guides/hytale-server</loc>
+    <priority>0.8</priority>
+    <changefreq>monthly</changefreq>
+  </url>
 </urlset>
