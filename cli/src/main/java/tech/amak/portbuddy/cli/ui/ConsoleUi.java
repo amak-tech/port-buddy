@@ -144,7 +144,11 @@ public class ConsoleUi implements HttpLogSink, NetTrafficSink {
         if (config.isLogEnabled()) {
             out.println("----------------------------------------------");
             out.println();
-            out.println("HTTP requests log:");
+            if (tunnelType == TunnelType.HTTP) {
+                out.println("HTTP requests log:");
+            } else {
+                out.println(tunnelType + " traffic:");
+            }
             out.flush();
 
             renderThread = new Thread(this::renderLoop, "port-buddy-ui");
@@ -257,7 +261,7 @@ public class ConsoleUi implements HttpLogSink, NetTrafficSink {
         } else {
             final var inKb = inBytes.get() / 1024.0;
             final var outKb = outBytes.get() / 1024.0;
-            out.printf("TCP traffic: IN %.2f KB | OUT %.2f KB%n", inKb, outKb);
+            out.printf("IN %.2f KB | OUT %.2f KB%n", inKb, outKb);
         }
 
         out.flush();
