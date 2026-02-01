@@ -47,6 +47,7 @@ export default function DocsLayout() {
                 <div>
                   <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 px-2">Advanced</h3>
                   <nav className="space-y-1">
+                    <SidebarLink to="/docs#run-as-service" label="Run as Service" active={location.hash === '#run-as-service'} />
                     <SidebarLink to="/docs#custom-domains" label="Custom Domains" active={location.hash === '#custom-domains'} />
                     <SidebarLink to="/docs#private-tunnels" label="Private Tunnels" active={location.hash === '#private-tunnels'} />
                     <SidebarLink to="/docs#pricing-limits" label="Pricing & Limits" active={location.hash === '#pricing-limits'} />

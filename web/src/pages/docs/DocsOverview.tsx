@@ -123,6 +123,47 @@ export default function DocsOverview() {
         <CodeBlock code="portbuddy udp 19132" />
       </section>
 
+      <section id="run-as-service" className="mb-16 scroll-mt-24">
+        <h2 className="text-2xl font-bold text-white mb-6">Run as Service</h2>
+        <p className="text-slate-400 mb-6">
+          You can configure Port Buddy to run as a systemd service (daemon). This ensures that your tunnel starts automatically on system boot and restarts if it fails.
+        </p>
+        <p className="text-slate-400 mb-6">
+          We provide a helper script to set this up easily. You can run this script multiple times to set up different tunnels.
+        </p>
+        <h3 className="text-lg font-semibold text-white mb-3">Usage</h3>
+        <CodeBlock code="curl -sSL https://portbuddy.dev/setup-portbuddy-service.sh | sudo bash -s -- [options] <mode> <port> [host]" />
+
+        <h3 className="text-lg font-semibold text-white mb-3 mt-6">Options</h3>
+        <ul className="list-disc list-inside text-slate-400 mb-4 space-y-1">
+            <li><code className="text-indigo-300">--name &lt;name&gt;</code> - Custom name for the service.</li>
+        </ul>
+        
+        <h3 className="text-lg font-semibold text-white mb-3 mt-6">Example</h3>
+        <p className="text-slate-400 mb-4">
+          To expose port 22 (SSH) over TCP and run it as a service:
+        </p>
+        <CodeBlock code="curl -sSL https://portbuddy.dev/setup-portbuddy-service.sh | sudo bash -s -- tcp 22" />
+        
+        <p className="text-slate-400 mt-4 mb-4">
+          By default, the service name follows the pattern <code className="text-indigo-300">portbuddy-&lt;mode&gt;-&lt;port&gt;</code>.
+          In this example, the service will be named <code className="text-indigo-300">portbuddy-tcp-22</code>.
+        </p>
+        <CodeBlock code={`sudo systemctl status portbuddy-tcp-22
+sudo systemctl stop portbuddy-tcp-22
+sudo systemctl start portbuddy-tcp-22`} />
+
+        <h3 className="text-lg font-semibold text-white mb-3 mt-6">Custom Service Name</h3>
+        <p className="text-slate-400 mb-4">
+            You can provide a custom name for your service:
+        </p>
+        <CodeBlock code="curl -sSL https://portbuddy.dev/setup-portbuddy-service.sh | sudo bash -s -- --name my-ssh-service tcp 22" />
+        <p className="text-slate-400 mt-4 mb-4">
+            This will create a service named <code className="text-indigo-300">my-ssh-service</code>.
+        </p>
+        <CodeBlock code={`sudo systemctl status my-ssh-service`} />
+      </section>
+
       <section id="custom-domains" className="mb-16 scroll-mt-24">
         <h2 className="text-2xl font-bold text-white mb-6">Custom Domains</h2>
         <p className="text-slate-400 mb-6">
