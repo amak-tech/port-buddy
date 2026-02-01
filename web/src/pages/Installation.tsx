@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { 
-  CommandLineIcon, 
+  CommandLineIcon,
   ClipboardDocumentIcon, 
   CheckIcon,
   ComputerDesktopIcon
@@ -90,6 +91,11 @@ export default function Installation() {
                   >
                     <CodeBlock code="portbuddy tcp 5432" />
                   </Step>
+                  <div className="pt-2">
+                    <p className="text-slate-400">
+                      Need to run in background? <Link to="/docs#run-as-service" className="text-indigo-400 hover:text-indigo-300 transition-colors">Run as a Service guide &rarr;</Link>
+                    </p>
+                  </div>
                 </div>
               )}
 
@@ -120,6 +126,11 @@ export default function Installation() {
                   >
                     <CodeBlock code="portbuddy init YOUR_API_TOKEN" />
                   </Step>
+                  <div className="pt-2">
+                    <p className="text-slate-400">
+                      Need to run in background? <Link to="/docs#run-as-service" className="text-indigo-400 hover:text-indigo-300 transition-colors">Run as a Service guide &rarr;</Link>
+                    </p>
+                  </div>
                 </div>
               )}
 
@@ -170,6 +181,7 @@ export default function Installation() {
               description="Smart defaults mean you rarely need to touch a config file. It just works."
             />
           </div>
+
         </div>
       </div>
     </div>
