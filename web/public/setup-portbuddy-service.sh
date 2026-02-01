@@ -98,7 +98,7 @@ After=network.target
 [Service]
 Type=simple
 User=$REAL_USER
-ExecStart=$PORTBUDDY_BIN $MODE $TARGET
+ExecStart=$PORTBUDDY_BIN $MODE $TARGET -n
 Restart=on-failure
 RestartSec=5
 Environment=HOME=$REAL_USER_HOME
