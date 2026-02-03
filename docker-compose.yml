@@ -106,6 +106,7 @@ services:
       - ${PWD}/net-proxy/logs:/app/log
     depends_on:
       - eureka
+      - ssl-service
     logging:
       options:
         max-size: 10M
