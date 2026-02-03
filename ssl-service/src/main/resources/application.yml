@@ -27,7 +27,7 @@ eureka:
     registryFetchIntervalSeconds: 2
     eurekaServiceUrlPollIntervalSeconds: 60
     service-url:
-      defaultZone: http://localhost:8761/eureka
+      defaultZone: ${EUREKA_ZONE:http://portbuddy:portbuddy@localhost:8761/eureka}
 
 management:
   endpoints:
