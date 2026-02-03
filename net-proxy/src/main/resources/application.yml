@@ -10,6 +10,8 @@ eureka:
   instance:
     metadata-map:
       public-host: ${app.public-host}
+      region: ${NET_PROXY_REGION:Netherlands/Amsterdam}
+      coordinates: ${NET_PROXY_COORDINATES:52.378,4.9}
 
 spring:
   application:
