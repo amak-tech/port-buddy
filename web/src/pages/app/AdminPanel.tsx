@@ -33,10 +33,10 @@ export default function AdminPanel() {
           <p className="text-3xl font-bold text-indigo-400">{stats ? stats.totalUsers : '---'}</p>
         </Link>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl">
+        <Link to="/app/admin/tunnels" className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl hover:bg-slate-800/50 transition-colors">
           <h3 className="text-lg font-semibold text-white mb-2">Active Tunnels</h3>
           <p className="text-3xl font-bold text-emerald-400">{stats ? stats.activeTunnels : '---'}</p>
-        </div>
+        </Link>
       </div>
 
       <div className="mt-8 bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-xl">

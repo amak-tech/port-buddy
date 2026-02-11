@@ -31,6 +31,7 @@ import tech.amak.portbuddy.server.db.entity.DomainEntity;
 import tech.amak.portbuddy.server.db.entity.PortReservationEntity;
 import tech.amak.portbuddy.server.db.entity.TunnelEntity;
 import tech.amak.portbuddy.server.db.entity.TunnelStatus;
+import tech.amak.portbuddy.server.web.admin.dto.AdminTunnelRow;
 
 @Repository
 public interface TunnelRepository extends JpaRepository<TunnelEntity, UUID> {
@@ -88,4 +89,26 @@ public interface TunnelRepository extends JpaRepository<TunnelEntity, UUID> {
                   AND (last_heartbeat_at IS NULL OR last_heartbeat_at < :cutoff)""",
         nativeQuery = true)
     int closeStaleConnected(@Param("cutoff") final OffsetDateTime cutoff);
+
+    @Query(value = """
+        SELECT t.id AS id,
+               t.type AS type,
+               CONCAT(t.local_host, ':', t.local_port) AS local_address,
+               COALESCE(t.public_url, CONCAT(t.public_host, ':', t.public_port)) AS public_address,
+               t.last_heartbeat_at AS last_activity,
+               CONCAT(u.first_name, ' ', u.last_name) AS user_name,
+               t.user_id AS user_id,
+               t.account_id AS account_id
+        FROM tunnels t
+        LEFT JOIN users u ON u.id = t.user_id
+        WHERE t.status = 'CONNECTED'
+          AND (:search IS NULL 
+               OR t.public_url ILIKE CONCAT('%', :search, '%') 
+               OR t.public_host ILIKE CONCAT('%', :search, '%')
+               OR u.email ILIKE CONCAT('%', :search, '%')
+               OR u.first_name ILIKE CONCAT('%', :search, '%')
+               OR u.last_name ILIKE CONCAT('%', :search, '%'))
+        ORDER BY t.last_heartbeat_at DESC NULLS LAST, t.created_at DESC
+        """, nativeQuery = true)
+    List<AdminTunnelRow> findAdminActiveTunnels(@Param("search") String search);
 }
