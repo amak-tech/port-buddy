@@ -33,6 +33,7 @@ import { Link } from 'react-router-dom'
 import { EllipsisHorizontalIcon, LockClosedIcon, LockOpenIcon, CheckCircleIcon, XCircleIcon, ClipboardIcon } from '@heroicons/react/24/outline'
 import { apiJson } from '../../lib/api'
 import { usePageTitle } from '../../components/PageHeader'
+import { formatDateTime } from '../../lib/utils'
 
 export type AdminUserRow = {
   id: string
@@ -135,7 +136,7 @@ export default function AdminUsers() {
                   <td className="px-6 py-3 text-white">{r.name}</td>
                   <td className="px-6 py-3 text-slate-300">{r.email}</td>
                   <td className="px-6 py-3 text-slate-300">{r.activeTunnels}</td>
-                  <td className="px-6 py-3 text-slate-400">{new Date(r.createdAt).toLocaleString()}</td>
+                  <td className="px-6 py-3 text-slate-400">{formatDateTime(r.createdAt)}</td>
                   <td className="px-6 py-3 text-right">
                     <div className="relative inline-block text-left" data-menu-root>
                       <button

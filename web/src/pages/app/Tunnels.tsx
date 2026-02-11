@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { apiJson } from '../../lib/api'
+import { formatDateTime } from '../../lib/utils'
 import { useAuth } from '../../auth/AuthContext'
 import { usePageTitle } from '../../components/PageHeader'
 import { ArrowTopRightOnSquareIcon, GlobeAltIcon, ServerIcon } from '@heroicons/react/24/outline'
@@ -99,9 +100,7 @@ export default function Tunnels() {
 
   function formatDate(iso: string | null | undefined): string {
     if (!iso) return '-'
-    const d = new Date(iso)
-    if (Number.isNaN(d.getTime())) return '-'
-    return d.toLocaleString()
+    return formatDateTime(iso)
   }
 
   return (

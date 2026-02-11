@@ -226,6 +226,6 @@ function SideLink({ to, label, end = false, Icon, onClick }: { to: string, label
 function HeaderTitle() {
   const { title } = usePageHeader()
   return (
-    <div className="text-2xl font-black text-white truncate tracking-tighter uppercase">{title}</div>
+    <div className="text-xl font-black text-white truncate tracking-tighter uppercase">{title}</div>
   )
 }

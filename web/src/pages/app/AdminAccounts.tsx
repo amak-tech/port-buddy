@@ -15,9 +15,10 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { EllipsisHorizontalIcon, LockClosedIcon, LockOpenIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline'
+import { EllipsisHorizontalIcon, LockClosedIcon, LockOpenIcon, CheckCircleIcon, XCircleIcon, ClipboardIcon } from '@heroicons/react/24/outline'
 import { apiJson } from '../../lib/api'
 import { usePageTitle } from '../../components/PageHeader'
+import { formatDateTime } from '../../lib/utils'
 
 export type AdminAccountRow = {
   accountId: string
@@ -68,6 +69,11 @@ export default function AdminAccounts() {
     } finally {
       setOpenMenuId(null)
     }
+  }
+
+  const copyToClipboard = (text: string) => {
+    void navigator.clipboard.writeText(text)
+    setOpenMenuId(null)
   }
 
   const data = useMemo(() => rows ?? [], [rows])
@@ -125,7 +131,7 @@ export default function AdminAccounts() {
                       <div className="inline-flex items-center gap-1 text-emerald-400"><CheckCircleIcon className="w-4 h-4"/> <span>No</span></div>
                     )}
                   </td>
-                  <td className="px-6 py-3 text-slate-400">{new Date(r.createdAt).toLocaleString()}</td>
+                  <td className="px-6 py-3 text-slate-400">{formatDateTime(r.createdAt)}</td>
                   <td className="px-6 py-3 text-right">
                     <div className="relative inline-block text-left" data-menu-root>
                       <button
@@ -137,6 +143,13 @@ export default function AdminAccounts() {
                       </button>
                       {openMenuId === r.accountId && (
                         <div className="absolute right-0 mt-2 w-56 rounded-xl border border-slate-800 bg-slate-900 shadow-2xl p-1 z-20">
+                          <button
+                            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-slate-300 hover:text-white hover:bg-slate-800"
+                            onClick={() => copyToClipboard(r.accountId)}
+                          >
+                            <ClipboardIcon className="w-4 h-4"/> Copy ID
+                          </button>
+                          <div className="my-1 border-t border-slate-800" />
                           <button
                             className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-slate-300 hover:text-white hover:bg-slate-800"
                             onClick={() => onToggleBlock(r)}
