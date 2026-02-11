@@ -10,7 +10,7 @@ import { apiJson } from '../../lib/api'
 type SystemStats = { totalUsers: number, activeTunnels: number }
 
 export default function AdminPanel() {
-  usePageTitle('Admin Panel')
+  usePageTitle('Admin Control Center')
 
   const [stats, setStats] = useState<SystemStats | null>(null)
 
@@ -22,14 +22,6 @@ export default function AdminPanel() {
 
   return (
     <div className="flex flex-col max-w-6xl">
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-          <ShieldCheckIcon className="h-8 w-8 text-indigo-500" />
-          Admin Control Center
-        </h2>
-        <p className="text-slate-400 mt-1">Manage system-wide settings and monitor all user activity.</p>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl">
           <h3 className="text-lg font-semibold text-white mb-2">Total Users</h3>
