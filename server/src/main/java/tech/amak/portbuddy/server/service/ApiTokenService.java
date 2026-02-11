@@ -142,9 +142,9 @@ public class ApiTokenService {
         entity.setLastUsedAt(OffsetDateTime.now());
         apiKeyRepository.save(entity);
         return Optional.of(new ValidatedApiKey(
-            entity.getUserId().toString(),
-            entity.getAccountId().toString(),
-            entity.getId().toString()));
+            entity.getUserId(),
+            entity.getAccountId(),
+            entity.getId()));
     }
 
     private String generateRawToken() {
@@ -169,7 +169,7 @@ public class ApiTokenService {
     public record TokenView(String id, String label, Instant createdAt, boolean revoked, Instant lastUsedAt) {
     }
 
-    public record ValidatedApiKey(String userId, String accountId, String apiKeyId) {
+    public record ValidatedApiKey(UUID userId, UUID accountId, UUID apiKeyId) {
     }
 
     private static Instant toInstant(final OffsetDateTime odt) {

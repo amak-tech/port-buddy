@@ -12,16 +12,21 @@
  * limitations under the License.
  */
 
-package tech.amak.portbuddy.eureka;
+package tech.amak.portbuddy.server.web.admin.dto;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+import java.time.Instant;
+import java.util.UUID;
 
-@SpringBootTest
-class EurekaApplicationTests {
-
-    @Test
-    void contextLoads() {
-    }
-
+/**
+ * Projection row for admin accounts list.
+ * Used with a native SQL query in {@code AccountRepository}.
+ */
+public record AdminAccountRow(
+    UUID accountId,
+    String name,
+    String plan,
+    int extraTunnels,
+    long activeTunnels,
+    boolean blocked,
+    Instant createdAt) {
 }

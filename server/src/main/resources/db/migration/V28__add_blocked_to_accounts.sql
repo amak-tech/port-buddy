@@ -10,18 +10,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
 
-package tech.amak.portbuddy.eureka;
-
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-
-@SpringBootTest
-class EurekaApplicationTests {
-
-    @Test
-    void contextLoads() {
-    }
-
-}
+ALTER TABLE accounts ADD COLUMN blocked BOOLEAN NOT NULL DEFAULT FALSE;

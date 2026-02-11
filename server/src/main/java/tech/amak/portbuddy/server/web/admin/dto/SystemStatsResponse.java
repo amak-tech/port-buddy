@@ -12,16 +12,13 @@
  * limitations under the License.
  */
 
-package tech.amak.portbuddy.eureka;
+package tech.amak.portbuddy.server.web.admin.dto;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-
-@SpringBootTest
-class EurekaApplicationTests {
-
-    @Test
-    void contextLoads() {
-    }
-
-}
+/**
+ * System-wide statistics for the admin control center.
+ *
+ * @param totalUsers     total number of registered users in the system
+ * @param activeTunnels  total number of currently active (connected) tunnels in the system
+ * @param totalAccounts  total number of accounts in the system
+ */
+public record SystemStatsResponse(long totalUsers, long activeTunnels, long totalAccounts) { }

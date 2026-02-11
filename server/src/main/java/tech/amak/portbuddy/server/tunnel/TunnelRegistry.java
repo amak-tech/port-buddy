@@ -33,6 +33,7 @@ import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import tech.amak.portbuddy.common.tunnel.ControlMessage;
 import tech.amak.portbuddy.common.tunnel.HttpTunnelMessage;
 import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
 import tech.amak.portbuddy.server.db.entity.TunnelEntity;
@@ -61,7 +62,7 @@ public class TunnelRegistry {
      */
     public boolean register(final TunnelEntity tunnelEntity, final WebSocketSession session) {
         final var tunnel = register(tunnelEntity.getDomain().getSubdomain(), tunnelEntity.getId(),
-                tunnelEntity.getAccountId());
+            tunnelEntity.getAccountId());
         tunnel.setSession(session);
         log.info("Registered tunnel {} with session {}", tunnel.tunnelId(), session.getId());
         return true;
@@ -251,6 +252,32 @@ public class TunnelRegistry {
             return null;
         }
         return tunnel.browserByConnection().get(connectionId);
+    }
+
+    /**
+     * Closes the WebSocket session associated with the specified tunnel ID after sending an EXIT control message.
+     *
+     * @param tunnelId the unique identifier of the tunnel to close
+     */
+    public void closeTunnel(final UUID tunnelId) {
+        final var tunnel = byTunnelId.remove(tunnelId);
+        if (tunnel == null) {
+            return;
+        }
+        // Remove from bySubdomain if exists
+        bySubdomain.values().removeIf(t -> t.tunnelId().equals(tunnelId));
+
+        if (tunnel.isOpen()) {
+            try {
+                final var exitMsg = new ControlMessage();
+                exitMsg.setType(ControlMessage.Type.EXIT);
+                exitMsg.setTs(System.currentTimeMillis());
+                tunnel.session().sendMessage(new TextMessage(mapper.writeValueAsString(exitMsg)));
+                tunnel.session().close();
+            } catch (final IOException e) {
+                log.warn("Failed to close tunnel WS session: {}", e.toString());
+            }
+        }
     }
 
     @Data

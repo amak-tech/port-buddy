@@ -145,7 +145,7 @@ export default function Team() {
 
   if (!isTeamPlan) {
     return (
-      <div className="max-w-4xl">
+      <div className="max-w-6xl">
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center">
           <UserGroupIcon className="w-12 h-12 text-slate-500 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-white mb-2">Team plan required</h2>

@@ -38,6 +38,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import tech.amak.portbuddy.common.Plan;
 import tech.amak.portbuddy.common.TunnelType;
 import tech.amak.portbuddy.common.dto.ExposeRequest;
+import tech.amak.portbuddy.server.client.NetProxyClient;
 import tech.amak.portbuddy.server.config.AppProperties;
 import tech.amak.portbuddy.server.db.entity.AccountEntity;
 import tech.amak.portbuddy.server.db.entity.DomainEntity;
@@ -45,6 +46,7 @@ import tech.amak.portbuddy.server.db.entity.TunnelEntity;
 import tech.amak.portbuddy.server.db.entity.TunnelStatus;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.TunnelRepository;
+import tech.amak.portbuddy.server.tunnel.TunnelRegistry;
 
 @ExtendWith(MockitoExtension.class)
 class TunnelServiceTest {
@@ -53,6 +55,10 @@ class TunnelServiceTest {
     private TunnelRepository tunnelRepository;
     @Mock
     private AccountRepository accountRepository;
+    @Mock
+    private TunnelRegistry tunnelRegistry;
+    @Mock
+    private NetProxyClient netProxyClient;
 
     private TunnelService tunnelService;
     private AccountEntity account;
@@ -68,7 +74,8 @@ class TunnelServiceTest {
                     Map.of(Plan.PRO, 1, Plan.TEAM, 10), Map.of(Plan.PRO, 1, Plan.TEAM, 5))),
             null
         );
-        tunnelService = new TunnelService(tunnelRepository, accountRepository, properties);
+        tunnelService = new TunnelService(
+            tunnelRepository, accountRepository, properties, tunnelRegistry, netProxyClient);
         account = new AccountEntity();
         account.setId(UUID.randomUUID());
         account.setPlan(Plan.PRO);

@@ -12,16 +12,21 @@
  * limitations under the License.
  */
 
-package tech.amak.portbuddy.eureka;
+package tech.amak.portbuddy.server.web.admin.dto;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+import java.sql.Date;
 
-@SpringBootTest
-class EurekaApplicationTests {
-
-    @Test
-    void contextLoads() {
-    }
-
-}
+/**
+ * Daily statistics for the admin control center.
+ *
+ * @param date           the date of the statistics
+ * @param newUsersCount  number of users created on this date
+ * @param tunnelsCount   number of tunnels created on this date
+ * @param paymentEvents  number of stripe events created on this date
+ */
+public record AdminStatsRow(
+        Date date,
+        long newUsersCount,
+        long tunnelsCount,
+        long paymentEvents
+) { }
