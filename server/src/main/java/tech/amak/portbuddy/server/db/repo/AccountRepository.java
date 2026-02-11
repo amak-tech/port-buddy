@@ -42,8 +42,9 @@ public interface AccountRepository extends JpaRepository<AccountEntity, UUID> {
                a.created_at AS created_at
         FROM accounts a
         LEFT JOIN tunnels t ON t.account_id = a.id
+        WHERE (:search IS NULL OR a.name ILIKE CONCAT('%', :search, '%') OR CAST(a.id AS TEXT) ILIKE CONCAT('%', :search, '%'))
         GROUP BY a.id, a.name, a.plan, a.extra_tunnels, a.blocked, a.created_at
         ORDER BY active_tunnels DESC, a.created_at DESC
         """, nativeQuery = true)
-    List<AdminAccountRow> findAdminAccounts();
+    List<AdminAccountRow> findAdminAccounts(@Param("search") String search);
 }

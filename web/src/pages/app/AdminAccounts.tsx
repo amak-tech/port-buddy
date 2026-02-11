@@ -34,9 +34,11 @@ export default function AdminAccounts() {
 
   const [rows, setRows] = useState<AdminAccountRow[] | null>(null)
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const [search, setSearch] = useState<string>('')
 
-  const refresh = () => {
-    void apiJson<AdminAccountRow[]>('/api/admin/accounts')
+  const refresh = (s?: string) => {
+    const qs = s && s.trim().length > 0 ? `?search=${encodeURIComponent(s.trim())}` : ''
+    void apiJson<AdminAccountRow[]>(`/api/admin/accounts${qs}`)
       .then(setRows)
       .catch(() => setRows([]))
   }
@@ -50,6 +52,11 @@ export default function AdminAccounts() {
     document.addEventListener('click', onDocClick)
     return () => document.removeEventListener('click', onDocClick)
   }, [])
+
+  useEffect(() => {
+    const h = setTimeout(() => refresh(search), 300)
+    return () => clearTimeout(h)
+  }, [search])
 
   const onToggleBlock = async (row: AdminAccountRow) => {
     const path = row.blocked
@@ -73,8 +80,17 @@ export default function AdminAccounts() {
       </div>
 
       <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
-        <div className="px-6 py-4 border-b border-slate-800 bg-slate-800/50 flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-slate-800 bg-slate-800/50 flex items-center justify-between gap-4">
           <div className="font-semibold text-white">Accounts ({data.length})</div>
+          <div className="ml-auto">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name or ID..."
+              className="w-72 rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
         </div>
 
         <div className="overflow-x-auto">
