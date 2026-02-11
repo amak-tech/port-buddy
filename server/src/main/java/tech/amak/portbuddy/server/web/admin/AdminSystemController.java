@@ -27,6 +27,7 @@ import lombok.RequiredArgsConstructor;
 import tech.amak.portbuddy.server.db.entity.TunnelStatus;
 import tech.amak.portbuddy.server.db.repo.TunnelRepository;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
+import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.web.admin.dto.SystemStatsResponse;
 
 /**
@@ -39,6 +40,7 @@ public class AdminSystemController {
 
     private final UserRepository userRepository;
     private final TunnelRepository tunnelRepository;
+    private final AccountRepository accountRepository;
 
     /**
      * Returns system-wide statistics for the admin control center.
@@ -51,6 +53,7 @@ public class AdminSystemController {
     public SystemStatsResponse getSystemStats() {
         final var totalUsers = userRepository.count();
         final var activeTunnels = tunnelRepository.countByStatusIn(List.of(TunnelStatus.CONNECTED));
-        return new SystemStatsResponse(totalUsers, activeTunnels);
+        final var totalAccounts = accountRepository.count();
+        return new SystemStatsResponse(totalUsers, activeTunnels, totalAccounts);
     }
 }

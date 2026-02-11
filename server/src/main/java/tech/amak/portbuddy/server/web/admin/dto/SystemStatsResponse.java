@@ -18,7 +18,8 @@ package tech.amak.portbuddy.server.web.admin.dto;
 /**
  * System-wide statistics for the admin control center.
  *
- * @param totalUsers    total number of registered users in the system
- * @param activeTunnels total number of currently active (connected) tunnels in the system
+ * @param totalUsers     total number of registered users in the system
+ * @param activeTunnels  total number of currently active (connected) tunnels in the system
+ * @param totalAccounts  total number of accounts in the system
  */
-public record SystemStatsResponse(long totalUsers, long activeTunnels) { }
+public record SystemStatsResponse(long totalUsers, long activeTunnels, long totalAccounts) { }
