@@ -239,7 +239,7 @@ export default function Domains() {
   }
 
   return (
-    <div className="max-w-5xl">
+    <div className="max-w-6xl">
       <AlertModal 
         isOpen={alertState.isOpen} 
         onClose={() => setAlertState({ ...alertState, isOpen: false })}

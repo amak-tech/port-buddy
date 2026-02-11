@@ -2,11 +2,23 @@
  * Copyright (c) 2025 AMAK Inc. All rights reserved.
  */
 
+import { useEffect, useState } from 'react'
 import { usePageTitle } from '../../components/PageHeader'
 import { ShieldCheckIcon } from '@heroicons/react/24/outline'
+import { apiJson } from '../../lib/api'
+
+type SystemStats = { totalUsers: number, activeTunnels: number }
 
 export default function AdminPanel() {
   usePageTitle('Admin Panel')
+
+  const [stats, setStats] = useState<SystemStats | null>(null)
+
+  useEffect(() => {
+    void apiJson<SystemStats>('/api/admin/stats')
+      .then(setStats)
+      .catch(() => setStats(null))
+  }, [])
 
   return (
     <div className="flex flex-col max-w-6xl">
@@ -21,11 +33,11 @@ export default function AdminPanel() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl">
           <h3 className="text-lg font-semibold text-white mb-2">Total Users</h3>
-          <p className="text-3xl font-bold text-indigo-400">---</p>
+          <p className="text-3xl font-bold text-indigo-400">{stats ? stats.totalUsers : '---'}</p>
         </div>
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl">
           <h3 className="text-lg font-semibold text-white mb-2">Active Tunnels</h3>
-          <p className="text-3xl font-bold text-emerald-400">---</p>
+          <p className="text-3xl font-bold text-emerald-400">{stats ? stats.activeTunnels : '---'}</p>
         </div>
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl">
           <h3 className="text-lg font-semibold text-white mb-2">System Load</h3>
