@@ -26,6 +26,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.Plan;
 import tech.amak.portbuddy.common.dto.ExposeRequest;
+import tech.amak.portbuddy.common.TunnelType;
+import tech.amak.portbuddy.server.client.NetProxyClient;
 import tech.amak.portbuddy.server.config.AppProperties;
 import tech.amak.portbuddy.server.db.entity.AccountEntity;
 import tech.amak.portbuddy.server.db.entity.DomainEntity;
@@ -34,6 +36,7 @@ import tech.amak.portbuddy.server.db.entity.TunnelEntity;
 import tech.amak.portbuddy.server.db.entity.TunnelStatus;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.TunnelRepository;
+import tech.amak.portbuddy.server.tunnel.TunnelRegistry;
 
 @Service
 @RequiredArgsConstructor
@@ -45,6 +48,8 @@ public class TunnelService {
     private final TunnelRepository tunnelRepository;
     private final AccountRepository accountRepository;
     private final AppProperties properties;
+        private final TunnelRegistry tunnelRegistry;
+        private final NetProxyClient netProxyClient;
 
     /**
      * Creates a new HTTP tunnel using the database entity id as the tunnel id.
@@ -167,7 +172,17 @@ public class TunnelService {
 
             for (int i = 0; i < toClose; i++) {
                 final var tunnel = activeTunnels.get(i);
-                log.info("Closing tunnel: tunnelId={} accountId={}", tunnel.getId(), account.getId());
+                final var tunnelId = tunnel.getId();
+                log.info("Closing tunnel: tunnelId={} accountId={} type={}", tunnelId, account.getId(), tunnel.getType());
+                try {
+                    if (tunnel.getType() == TunnelType.HTTP) {
+                        tunnelRegistry.closeTunnel(tunnelId);
+                    } else {
+                        netProxyClient.closeTunnel(tunnelId);
+                    }
+                } catch (final Exception e) {
+                    log.warn("Failed to close active tunnel {}: {}", tunnelId, e.toString());
+                }
                 tunnel.setStatus(TunnelStatus.CLOSED);
                 tunnelRepository.save(tunnel);
             }

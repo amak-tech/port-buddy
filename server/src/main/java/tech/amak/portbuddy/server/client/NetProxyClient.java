@@ -39,6 +39,9 @@ public interface NetProxyClient {
                               @RequestParam("type") String protocol,
                               @RequestParam(value = "desiredPort", required = false) Integer desiredPort);
 
+    @PostMapping("/api/net-proxy/close")
+    void closeTunnel(@RequestParam("tunnelId") UUID tunnelId);
+
     class Configuration {
 
         @Bean

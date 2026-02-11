@@ -40,6 +40,7 @@ public class ControlMessage {
 
     public enum Type {
         PING,
-        PONG
+        PONG,
+        EXIT
     }
 }

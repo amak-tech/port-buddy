@@ -14,8 +14,6 @@
 
 package tech.amak.portbuddy.server.web;
 
-import java.util.UUID;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
@@ -30,7 +28,6 @@ import tech.amak.portbuddy.common.TunnelType;
 import tech.amak.portbuddy.server.db.entity.TunnelEntity;
 import tech.amak.portbuddy.server.db.entity.TunnelStatus;
 import tech.amak.portbuddy.server.db.repo.TunnelRepository;
-import tech.amak.portbuddy.server.db.repo.UserRepository;
 import tech.amak.portbuddy.server.security.JwtService;
 
 @RestController
@@ -39,7 +36,6 @@ import tech.amak.portbuddy.server.security.JwtService;
 public class TunnelsController {
 
     private final TunnelRepository tunnelRepository;
-    private final UserRepository userRepository;
 
     /**
      * Retrieves a paginated list of tunnels associated with the authenticated user's account, ordered by
@@ -87,10 +83,6 @@ public class TunnelsController {
             tunnel.getLastHeartbeatAt() == null ? null : tunnel.getLastHeartbeatAt().toString(),
             tunnel.getCreatedAt() == null ? null : tunnel.getCreatedAt().toString()
         );
-    }
-
-    private UUID extractUserId(final Jwt jwt) {
-        return UUID.fromString(jwt.getSubject());
     }
 
     public record TunnelView(
