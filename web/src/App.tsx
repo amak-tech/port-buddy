@@ -30,6 +30,7 @@ import Ports from './pages/app/Ports'
 import Profile from './pages/app/Profile'
 import AdminPanel from './pages/app/AdminPanel'
 import AdminAccounts from './pages/app/AdminAccounts'
+import AdminUsers from './pages/app/AdminUsers'
 import Terms from './pages/Terms'
 import Privacy from './pages/Privacy'
 import Contacts from './pages/Contacts'
@@ -276,6 +277,7 @@ export default function App() {
             <Route path="profile" element={<Profile/>} />
             <Route path="admin" element={<ProtectedRoute role="ADMIN"><AdminPanel/></ProtectedRoute>} />
             <Route path="admin/accounts" element={<ProtectedRoute role="ADMIN"><AdminAccounts/></ProtectedRoute>} />
+            <Route path="admin/users" element={<ProtectedRoute role="ADMIN"><AdminUsers/></ProtectedRoute>} />
             {/* Unknown app routes redirect to dashboard */}
             <Route path="*" element={<Navigate to="/app" replace />} />
           </Route>

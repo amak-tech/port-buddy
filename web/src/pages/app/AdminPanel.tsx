@@ -28,10 +28,10 @@ export default function AdminPanel() {
           <p className="text-3xl font-bold text-amber-400">{stats ? stats.totalAccounts : '---'}</p>
         </Link>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl">
+        <Link to="/app/admin/users" className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl hover:bg-slate-800/50 transition-colors">
           <h3 className="text-lg font-semibold text-white mb-2">Total Users</h3>
           <p className="text-3xl font-bold text-indigo-400">{stats ? stats.totalUsers : '---'}</p>
-        </div>
+        </Link>
 
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl">
           <h3 className="text-lg font-semibold text-white mb-2">Active Tunnels</h3>
