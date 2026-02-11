@@ -15,7 +15,7 @@
 
 package tech.amak.portbuddy.server.web.admin.dto;
 
-import java.time.LocalDate;
+import java.sql.Date;
 
 /**
  * Daily statistics for the admin control center.
@@ -26,7 +26,7 @@ import java.time.LocalDate;
  * @param paymentEvents  number of stripe events created on this date
  */
 public record AdminStatsRow(
-        LocalDate date,
+        Date date,
         long newUsersCount,
         long tunnelsCount,
         long paymentEvents
