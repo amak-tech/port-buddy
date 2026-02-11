@@ -56,8 +56,8 @@ class AdminAccountControllerTest {
 
     @Test
     void blockAccount_shouldSetBlockedTrueAndSaveAndCloseTunnels() throws Exception {
-        UUID accountId = UUID.randomUUID();
-        AccountEntity account = new AccountEntity();
+        final var accountId = UUID.randomUUID();
+        final var account = new AccountEntity();
         account.setId(accountId);
         account.setBlocked(false);
 
@@ -68,6 +68,6 @@ class AdminAccountControllerTest {
 
         verify(accountRepository).save(account);
         verify(tunnelService).closeAllTunnels(account);
-        assert(account.isBlocked());
+        assert (account.isBlocked());
     }
 }

@@ -74,7 +74,8 @@ class TunnelServiceTest {
                     Map.of(Plan.PRO, 1, Plan.TEAM, 10), Map.of(Plan.PRO, 1, Plan.TEAM, 5))),
             null
         );
-        tunnelService = new TunnelService(tunnelRepository, accountRepository, properties, tunnelRegistry, netProxyClient);
+        tunnelService = new TunnelService(
+            tunnelRepository, accountRepository, properties, tunnelRegistry, netProxyClient);
         account = new AccountEntity();
         account.setId(UUID.randomUUID());
         account.setPlan(Plan.PRO);

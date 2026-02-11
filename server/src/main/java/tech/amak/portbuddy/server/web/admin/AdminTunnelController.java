@@ -10,7 +10,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
  */
 
 package tech.amak.portbuddy.server.web.admin;
@@ -52,7 +51,8 @@ public class AdminTunnelController {
      */
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public List<AdminTunnelRow> listActiveTunnels(final @RequestParam(value = "search", required = false) String search) {
+    public List<AdminTunnelRow> listActiveTunnels(
+        final @RequestParam(value = "search", required = false) String search) {
         return tunnelRepository.findAdminActiveTunnels(search);
     }
 
