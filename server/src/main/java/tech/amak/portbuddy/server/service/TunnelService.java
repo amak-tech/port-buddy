@@ -89,6 +89,9 @@ public class TunnelService {
     }
 
     private void checkSubscriptionStatus(final AccountEntity account) {
+        if (account.isBlocked()) {
+            throw new IllegalStateException("Account is blocked. Please contact support.");
+        }
         final var status = account.getSubscriptionStatus();
         if (status == null) {
             // Allow Pro plan with 0 extra tunnels without an active subscription record

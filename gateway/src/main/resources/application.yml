@@ -30,7 +30,7 @@ eureka:
     # Poll interval for refreshing Eureka server URLs (keep modest, default is 5 minutes)
     eurekaServiceUrlPollIntervalSeconds: 60
     service-url:
-      defaultZone: http://localhost:8761/eureka
+      defaultZone: ${EUREKA_ZONE:http://portbuddy:portbuddy@localhost:8761/eureka}
 
 spring:
   application:
