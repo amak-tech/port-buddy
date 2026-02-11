@@ -15,11 +15,13 @@
 
 package tech.amak.portbuddy.server.web.admin;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -30,6 +32,7 @@ import org.springframework.web.server.ResponseStatusException;
 import lombok.RequiredArgsConstructor;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.service.TunnelService;
+import tech.amak.portbuddy.server.web.admin.dto.AdminAccountRow;
 
 @RestController
 @RequestMapping(path = "/api/admin/accounts", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -38,6 +41,19 @@ public class AdminAccountController {
 
     private final AccountRepository accountRepository;
     private final TunnelService tunnelService;
+
+    /**
+     * Returns a list of accounts for the admin page using a single native SQL query.
+     * The list is ordered by number of active tunnels (DESC) and creation time (DESC).
+     * Accessible only for users with ADMIN role.
+     *
+     * @return list of account rows for admin table
+     */
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<AdminAccountRow> listAccounts() {
+        return accountRepository.findAdminAccounts();
+    }
 
     /**
      * Blocks the specified account. Only users with the ADMIN role can invoke this endpoint.
@@ -56,6 +72,23 @@ public class AdminAccountController {
             account.setBlocked(true);
             accountRepository.save(account);
             tunnelService.closeAllTunnels(account);
+        }
+    }
+
+    /**
+     * Unblocks the specified account. Only users with the ADMIN role can invoke this endpoint.
+     *
+     * @param accountId the unique identifier of the account to unblock
+     */
+    @PostMapping("/{accountId}/unblock")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('ADMIN')")
+    public void unblockAccount(final @PathVariable("accountId") UUID accountId) {
+        final var account = accountRepository.findById(accountId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found"));
+        if (account.isBlocked()) {
+            account.setBlocked(false);
+            accountRepository.save(account);
         }
     }
 }
