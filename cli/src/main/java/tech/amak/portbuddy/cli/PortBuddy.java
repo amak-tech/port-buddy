@@ -124,6 +124,8 @@ public class PortBuddy {
                 }
             } else if (arg.startsWith("--passcode=")) {
                 this.passcode = arg.substring("--passcode=".length());
+            } else if ("-n".equals(arg) || "--no-request-log".equals(arg)) {
+                configurationService.getConfig().setLogEnabled(false);
             } else if ("init".equals(arg)) {
                 if (++i < args.length) {
                     return init(args[i]);
@@ -153,6 +155,7 @@ public class PortBuddy {
         System.out.println("  -pr, --port-reservation=<host:port>");
         System.out.println("                              Use specific port reservation host:port for TCP/UDP");
         System.out.println("  -pc, --passcode=<passcode>  Passcode to secure HTTP tunnel (temporary for this tunnel)");
+        System.out.println("  -n, --no-request-log        Disable request logging");
         System.out.println("  -v, --verbose               Verbose logging");
         System.out.println("  -h, --help                  Show this help message and exit.");
         System.out.println("  -V, --version               Print version information and exit.");
