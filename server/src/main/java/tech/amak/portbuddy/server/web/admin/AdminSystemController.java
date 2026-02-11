@@ -25,9 +25,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
 import tech.amak.portbuddy.server.db.entity.TunnelStatus;
+import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.TunnelRepository;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
-import tech.amak.portbuddy.server.db.repo.AccountRepository;
+import tech.amak.portbuddy.server.web.admin.dto.AdminStatsRow;
 import tech.amak.portbuddy.server.web.admin.dto.SystemStatsResponse;
 
 /**
@@ -55,5 +56,17 @@ public class AdminSystemController {
         final var activeTunnels = tunnelRepository.countByStatusIn(List.of(TunnelStatus.CONNECTED));
         final var totalAccounts = accountRepository.count();
         return new SystemStatsResponse(totalUsers, activeTunnels, totalAccounts);
+    }
+
+    /**
+     * Returns daily system statistics for the last 30 days.
+     * Only users with the ADMIN role can invoke this endpoint.
+     *
+     * @return list of {@link AdminStatsRow} sorted by date in descending order
+     */
+    @GetMapping("/stats/daily")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<AdminStatsRow> getDailyStats() {
+        return accountRepository.findDailyStats();
     }
 }
