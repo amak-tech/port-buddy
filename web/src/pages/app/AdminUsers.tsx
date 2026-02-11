@@ -34,6 +34,7 @@ import { EllipsisHorizontalIcon, LockClosedIcon, LockOpenIcon, CheckCircleIcon, 
 import { apiJson } from '../../lib/api'
 import { usePageTitle } from '../../components/PageHeader'
 import { formatDateTime } from '../../lib/utils'
+import { ConfirmModal } from '../../components/Modal'
 
 export type AdminUserRow = {
   id: string
@@ -51,6 +52,7 @@ export default function AdminUsers() {
   const [rows, setRows] = useState<AdminUserRow[] | null>(null)
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const [search, setSearch] = useState<string>('')
+  const [confirmBlock, setConfirmBlock] = useState<AdminUserRow | null>(null)
 
   const refresh = (s?: string) => {
     const qs = s && s.trim().length > 0 ? `?search=${encodeURIComponent(s.trim())}` : ''
@@ -163,7 +165,7 @@ export default function AdminUsers() {
                           <div className="my-1 border-t border-slate-800" />
                           <button
                             className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-slate-300 hover:text-white hover:bg-slate-800"
-                            onClick={() => onToggleBlock(r)}
+                            onClick={() => r.blocked ? onToggleBlock(r) : setConfirmBlock(r)}
                           >
                             {r.blocked ? (
                               <><LockOpenIcon className="w-4 h-4"/> Unblock account</>
@@ -181,6 +183,17 @@ export default function AdminUsers() {
           </table>
         </div>
       </div>
+      {confirmBlock && (
+        <ConfirmModal
+          isOpen={!!confirmBlock}
+          onClose={() => setConfirmBlock(null)}
+          onConfirm={() => onToggleBlock(confirmBlock)}
+          title="Block account?"
+          message={`Are you sure you want to block the account for user \"${confirmBlock.name}\". Users will lose access until it is unblocked.`}
+          confirmText="Block account"
+          isDangerous
+        />
+      )}
     </div>
   )
 }
