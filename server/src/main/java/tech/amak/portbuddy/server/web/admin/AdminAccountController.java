@@ -29,6 +29,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import lombok.RequiredArgsConstructor;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
+import tech.amak.portbuddy.server.service.TunnelService;
 
 @RestController
 @RequestMapping(path = "/api/admin/accounts", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -36,6 +37,7 @@ import tech.amak.portbuddy.server.db.repo.AccountRepository;
 public class AdminAccountController {
 
     private final AccountRepository accountRepository;
+    private final TunnelService tunnelService;
 
     /**
      * Blocks the specified account. Only users with the ADMIN role can invoke this endpoint.
@@ -47,12 +49,13 @@ public class AdminAccountController {
     @PostMapping("/{accountId}/block")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasRole('ADMIN')")
-    public void blockAccount(final @PathVariable UUID accountId) {
+    public void blockAccount(final @PathVariable("accountId") UUID accountId) {
         final var account = accountRepository.findById(accountId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found"));
         if (!account.isBlocked()) {
             account.setBlocked(true);
             accountRepository.save(account);
+            tunnelService.closeAllTunnels(account);
         }
     }
 }
