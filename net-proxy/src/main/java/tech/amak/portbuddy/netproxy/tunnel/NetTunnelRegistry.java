@@ -46,10 +46,31 @@ import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
 @RequiredArgsConstructor
 public class NetTunnelRegistry {
 
+    private static final int MIN_PORT = 10000;
+    private static final int MAX_PORT = 65535;
+
     private final Map<UUID, Tunnel> byTunnelId = new ConcurrentHashMap<>();
     private final ExecutorService ioPool = Executors.newCachedThreadPool();
 
     private final ObjectMapper mapper;
+
+    /**
+     * Finds and closes a tunnel that is using the specified port for TCP or UDP.
+     *
+     * @param port the port to check
+     */
+    private void closeTunnelUsingPort(final int port) {
+        for (final var tunnel : byTunnelId.values()) {
+            final var tcpPort = tunnel.serverSocket != null ? tunnel.serverSocket.getLocalPort() : -1;
+            final var udpPort = tunnel.udpSocket != null ? tunnel.udpSocket.getLocalPort() : -1;
+
+            if (tcpPort == port || udpPort == port) {
+                log.info("Closing existing tunnel {} using port {}", tunnel.tunnelId, port);
+                closeTunnel(tunnel.tunnelId);
+                break;
+            }
+        }
+    }
 
     /**
      * Exposes a network tunnel for either TCP or UDP based on tunnelType parameter.
@@ -59,8 +80,14 @@ public class NetTunnelRegistry {
      * @return exposed public port info
      * @throws IOException on IO errors
      */
-    public ExposedPort expose(final UUID tunnelId, final TunnelType tunnelType, final Integer desiredPort)
+    public ExposedPort expose(final UUID tunnelId, final TunnelType tunnelType, final int desiredPort)
         throws IOException {
+        if (desiredPort <= MIN_PORT) {
+            throw new IllegalArgumentException("desiredPort must be greater than " + MIN_PORT);
+        }
+        if (desiredPort > MAX_PORT) {
+            throw new IllegalArgumentException("desiredPort must be less than " + MAX_PORT);
+        }
         return switch (tunnelType) {
             case UDP -> exposeUdp(tunnelId, desiredPort);
             case TCP -> exposeTcp(tunnelId, desiredPort);
@@ -77,19 +104,20 @@ public class NetTunnelRegistry {
             return new ExposedPort(tunnel.serverSocket.getLocalPort());
         }
         final ServerSocket serverSocket;
-        if (desiredPort != null && desiredPort > 0) {
-            ServerSocket sock;
+        ServerSocket sock;
+        try {
+            sock = new ServerSocket(desiredPort);
+        } catch (final IOException bindEx) {
+            log.info("TCP port {} is busy. Trying to close existing tunnel and retry.", desiredPort);
+            closeTunnelUsingPort(desiredPort);
             try {
                 sock = new ServerSocket(desiredPort);
-            } catch (final IOException bindEx) {
-                // Requested port is busy; fallback to a random available port
-                log.info("TCP port {} is busy. Falling back to a random port.", desiredPort);
-                sock = new ServerSocket(0);
+            } catch (final IOException secondBindEx) {
+                log.error("TCP port {} is still busy.", desiredPort);
+                throw secondBindEx;
             }
-            serverSocket = sock;
-        } else {
-            serverSocket = new ServerSocket(0);
         }
+        serverSocket = sock;
         tunnel.serverSocket = serverSocket;
         ioPool.execute(() -> acceptLoop(tunnel));
         return new ExposedPort(serverSocket.getLocalPort());
@@ -99,25 +127,27 @@ public class NetTunnelRegistry {
      * Expose UDP by binding a datagram socket and starting a receive loop that forwards
      * datagrams over the control WebSocket using binary frames.
      */
-    private ExposedPort exposeUdp(final UUID tunnelId, final Integer desiredPort) throws IOException {
+    private ExposedPort exposeUdp(final UUID tunnelId, final int desiredPort) throws IOException {
+
         final var tunnel = byTunnelId.computeIfAbsent(tunnelId, Tunnel::new);
         if (tunnel.udpSocket != null && !tunnel.udpSocket.isClosed()) {
             return new ExposedPort(tunnel.udpSocket.getLocalPort());
         }
         final DatagramSocket socket;
-        if (desiredPort != null && desiredPort > 0) {
-            DatagramSocket sock;
+        DatagramSocket sock;
+        try {
+            sock = new DatagramSocket(desiredPort);
+        } catch (final IOException bindEx) {
+            log.info("UDP port {} is busy. Trying to close existing tunnel and retry.", desiredPort);
+            closeTunnelUsingPort(desiredPort);
             try {
                 sock = new DatagramSocket(desiredPort);
-            } catch (final IOException bindEx) {
-                // Requested port is busy; fallback to a random available port
-                log.info("UDP port {} is busy. Falling back to a random port.", desiredPort);
-                sock = new DatagramSocket(0);
+            } catch (final IOException secondBindEx) {
+                log.error("UDP port {} is still busy.", desiredPort);
+                throw secondBindEx;
             }
-            socket = sock;
-        } else {
-            socket = new DatagramSocket(0);
         }
+        socket = sock;
         tunnel.udpSocket = socket;
         ioPool.execute(() -> udpReceiveLoop(tunnel));
         return new ExposedPort(socket.getLocalPort());

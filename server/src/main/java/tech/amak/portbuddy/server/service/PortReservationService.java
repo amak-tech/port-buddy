@@ -135,8 +135,8 @@ public class PortReservationService {
 
     /**
      * Resolve a port reservation for a NET (TCP/UDP) expose request according to rules:
-     * - If explicit reservation host:port provided, ensure it belongs to the account and is not used by any active
-     * tunnel.
+     * - If explicit reservation (host:port or port) provided, ensure it belongs to the account and is not used by
+     * any active tunnel. If multiple reservations found for the same port, take the first one.
      * - Otherwise, if there was a previous tunnel for the same local resource that used a reservation
      * and it's free, reuse it.
      * - Otherwise, pick the first existing reservation of the account that is not in use by any active tunnel.
@@ -150,17 +150,30 @@ public class PortReservationService {
                                                      final String explicitHostPort) {
         // 1) Explicit reservation
         if (explicitHostPort != null && !explicitHostPort.isBlank()) {
-            final var hp = explicitHostPort.trim();
-            final int colon = hp.lastIndexOf(':');
-            if (colon <= 0 || colon == hp.length() - 1) {
-                throw new IllegalArgumentException("Invalid --port-reservation value, expected host:port");
+            final var hostPort = explicitHostPort.trim();
+            final int colon = hostPort.lastIndexOf(':');
+            final PortReservationEntity reservation;
+            if (colon > 0 && colon < hostPort.length() - 1) {
+                // public_host:port format
+                final var host = hostPort.substring(0, colon);
+                final var port = Integer.parseInt(hostPort.substring(colon + 1));
+                reservation = repository.findByAccountAndPublicHostAndPublicPort(account, host, port)
+                    .orElseThrow(() ->
+                        new IllegalArgumentException("Port reservation not found for this account: " + hostPort));
+            } else if (colon == -1) {
+                // only port format
+                final var port = Integer.parseInt(hostPort);
+                final var reservations = repository.findAllByAccountAndPublicPort(account, port);
+                if (reservations.isEmpty()) {
+                    throw new IllegalArgumentException("Port reservation not found for this account and port: " + port);
+                }
+                reservation = reservations.getFirst();
+            } else {
+                throw new IllegalArgumentException("Invalid --port-reservation value, expected host:port or port");
             }
-            final String host = hp.substring(0, colon);
-            final Integer port = Integer.parseInt(hp.substring(colon + 1));
-            final var reservation = repository.findByAccountAndPublicHostAndPublicPort(account, host, port)
-                .orElseThrow(() -> new IllegalArgumentException("Port reservation not found for this account: " + hp));
+
             if (isReservationInUse(reservation)) {
-                throw new IllegalStateException("Port reservation is currently in use: " + hp);
+                throw new IllegalStateException("Port reservation is currently in use: " + hostPort);
             }
             return reservation;
         }

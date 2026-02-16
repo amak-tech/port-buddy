@@ -42,6 +42,8 @@ public interface PortReservationRepository extends JpaRepository<PortReservation
                                                                             String host,
                                                                             Integer port);
 
+    List<PortReservationEntity> findAllByAccountAndPublicPort(AccountEntity account, Integer port);
+
     /**
      * Finds the minimal free public port for the specified host within the provided inclusive range
      * using a single SQL query. Only non-deleted reservations are considered busy.
