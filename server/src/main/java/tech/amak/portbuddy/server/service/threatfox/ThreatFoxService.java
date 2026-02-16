@@ -1,3 +1,17 @@
+/*
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package tech.amak.portbuddy.server.service.threatfox;
 
 import java.util.HashSet;
@@ -26,6 +40,22 @@ public class ThreatFoxService {
     private final ThreatFoxClient client;
     private Set<String> cache = new HashSet<>();
 
+    /**
+     * Fetches threat intelligence data and processes it to update the internal cache.
+     * This method is scheduled to run periodically, determined by the configuration value
+     * specified in the {@code threatfox.fetch-interval} property. It makes a request to
+     * retrieve Indicators of Compromise (IOCs) from the ThreatFox API and processes the
+     * response to extract and normalize relevant data. The normalized data is stored in a
+     * cache, which can later be used to identify and block potential threats.
+     * If the fetch operation fails for any reason, an error message is logged to assist
+     * in diagnosing the issue.
+     * The scheduling configuration specifies the following:
+     * - {@code fixedDelayString}: Configured interval between method executions in milliseconds.
+     * - {@code initialDelay}: Delay before the first invocation, set to 0.
+     * Logs are generated for both successful and failed fetch operations.
+     *
+     * @throws RuntimeException If an unhandled exception occurs during the fetch or processing.
+     */
     @Scheduled(
         fixedDelayString = "${threatfox.fetch-interval}",
         initialDelay = 0
@@ -65,18 +95,18 @@ public class ThreatFoxService {
         return normalize(iocValue);
     }
 
-    private String extractDomain(final String url) {
-        final var doubleSlashIndex = url.indexOf("//");
-        final var start = doubleSlashIndex == -1 ? 0 : doubleSlashIndex + 2;
-        final var lastSlashIndex = url.indexOf("/", start);
-        return url.substring(start, lastSlashIndex == -1 ? url.length() : lastSlashIndex);
-    }
-
     private String normalize(final String ioc) {
         if (ioc == null || ioc.isBlank()) {
             return null;
         }
         return ioc.toLowerCase().trim();
+    }
+
+    private String extractDomain(final String url) {
+        final var doubleSlashIndex = url.indexOf("//");
+        final var start = doubleSlashIndex == -1 ? 0 : doubleSlashIndex + 2;
+        final var lastSlashIndex = url.indexOf("/", start);
+        return url.substring(start, lastSlashIndex == -1 ? url.length() : lastSlashIndex);
     }
 
     private boolean isBlacklisted(final String target) {
