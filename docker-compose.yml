@@ -58,6 +58,8 @@ services:
       JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
       JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
       EUREKA_ZONE: ${EUREKA_ZONE}
+      THREATFOX_ENABLED: ${THREATFOX_ENABLED}
+      THREATFOX_AUTH_KEY: ${THREATFOX_AUTH_KEY}
       JVM_OPTS: -Dspring.profiles.active=prod,default
     volumes:
       - ${PWD}/server/config:/app/config

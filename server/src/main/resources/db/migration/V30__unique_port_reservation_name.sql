@@ -10,17 +10,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
 
-package tech.amak.portbuddy.server.web.dto;
-
-/**
- * Request body to update a port reservation.
- * Both fields are optional; if a field is null, it will not be changed.
- */
-public record PortReservationUpdateRequest(
-    String publicHost,
-    Integer publicPort,
-    String name
-) {
-}
+-- Ensure port reservation name is unique within account
+-- We use a partial index to only enforce uniqueness for non-deleted reservations and non-null names
+CREATE UNIQUE INDEX idx_port_reservations_account_id_name_unique 
+ON port_reservations (account_id, name) 
+WHERE deleted = false AND name IS NOT NULL;

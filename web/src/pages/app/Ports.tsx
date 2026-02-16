@@ -13,6 +13,7 @@ interface PortReservation {
   id: string
   publicHost: string
   publicPort: number
+  name: string
   createdAt: string
   updatedAt: string
 }
@@ -32,6 +33,7 @@ export default function Ports() {
   const [selectedHost, setSelectedHost] = useState<string>('')
   const [portRange, setPortRange] = useState<{ min: number, max: number } | null>(null)
   const [editPort, setEditPort] = useState<string>('')
+  const [editName, setEditName] = useState<string>('')
 
   // Dialogs
   const [alertState, setAlertState] = useState<{ isOpen: boolean, title: string, message: string }>({
@@ -66,6 +68,7 @@ export default function Ports() {
 
   const startEdit = async (res: PortReservation) => {
     setEditingId(res.id)
+    setEditName(res.name || '')
     try {
       const hs = await fetchHosts()
       if (hs.length <= 1) {
@@ -90,6 +93,7 @@ export default function Ports() {
     setPortRange(null)
     setSelectedHost('')
     setEditPort('')
+    setEditName('')
   }
 
   const saveEdit = async (id: string) => {
@@ -97,11 +101,16 @@ export default function Ports() {
       const body: any = {}
       if (hosts.length > 1) body.publicHost = selectedHost
       body.publicPort = Number(editPort)
+      body.name = editName
       const updated = await apiJson<PortReservation>(`/api/ports/${id}`, { method: 'PUT', body: JSON.stringify(body) })
       setItems(items.map(i => i.id === id ? updated : i))
       cancelEdit()
     } catch (e: any) {
-      setAlertState({ isOpen: true, title: 'Error', message: e.message || 'Failed to update reservation' })
+      let msg = e.message || 'Failed to update reservation'
+      if (e.status === 400 && msg.includes('already exists')) {
+        msg = 'This name is already taken. Please choose a different name.'
+      }
+      setAlertState({ isOpen: true, title: 'Update failed', message: msg })
     }
   }
 
@@ -180,17 +189,33 @@ export default function Ports() {
                 </div>
                 <div>
                   {editingId === item.id ? (
-                    <div className="flex items-center gap-3">
-                      {hosts.length > 1 && (
-                        <select value={selectedHost} onChange={async (e) => { setSelectedHost(e.target.value); await fetchRange(e.target.value) }} className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
-                          {hosts.map(h => <option key={h} value={h}>{h}</option>)}
-                        </select>
-                      )}
-                      <input type="number" inputMode="numeric" value={editPort} onChange={(e) => setEditPort(e.target.value)} className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white w-32" placeholder={portHint} />
-                      {portRange && <div className="text-xs text-slate-400">{portHint}</div>}
+                    <div className="flex flex-col gap-2">
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white w-full"
+                        placeholder="Reservation name (optional)"
+                      />
+                      <div className="flex items-center gap-3">
+                        {hosts.length > 1 && (
+                          <select value={selectedHost} onChange={async (e) => { setSelectedHost(e.target.value); await fetchRange(e.target.value) }} className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+                            {hosts.map(h => <option key={h} value={h}>{h}</option>)}
+                          </select>
+                        )}
+                        <input type="number" inputMode="numeric" value={editPort} onChange={(e) => setEditPort(e.target.value)} className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white w-32" placeholder={portHint} />
+                        {portRange && <div className="text-xs text-slate-400">{portHint}</div>}
+                      </div>
                     </div>
                   ) : (
-                    <div className="text-white font-medium">{item.publicHost}:{item.publicPort}</div>
+                    <>
+                      <div className="text-white font-medium">
+                        {item.name ? <span className="mr-2">{item.name}</span> : null}
+                        <span className={item.name ? "text-slate-400 text-sm font-normal" : ""}>
+                          {item.publicHost}:{item.publicPort}
+                        </span>
+                      </div>
+                    </>
                   )}
                   <div className="text-slate-500 text-sm mt-1">Created on {new Date(item.createdAt).toLocaleDateString()}</div>
                 </div>
