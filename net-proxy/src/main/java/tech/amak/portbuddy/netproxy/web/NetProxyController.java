@@ -39,10 +39,20 @@ public class NetProxyController {
     @PostMapping("/expose")
     public ExposeResponse expose(final @RequestParam("tunnelId") UUID tunnelId,
                                  final @RequestParam("type") TunnelType type,
-                                 final @RequestParam(value = "desiredPort", required = false) Integer desiredPort)
+                                 final @RequestParam(value = "desiredPort") int desiredPort)
         throws Exception {
         final var exposedPort = registry.expose(tunnelId, type, desiredPort);
         return new ExposeResponse(null, null, properties.publicHost(), exposedPort.getPort(), tunnelId, null);
     }
 
+    /**
+     * Closes a TCP/UDP tunnel by its ID. Invoked by the server when an account is blocked
+     * or when an admin explicitly closes a tunnel.
+     *
+     * @param tunnelId unique identifier of the tunnel to close
+     */
+    @PostMapping("/close")
+    public void close(final @RequestParam("tunnelId") UUID tunnelId) {
+        registry.closeTunnel(tunnelId);
+    }
 }

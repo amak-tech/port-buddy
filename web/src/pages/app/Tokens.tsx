@@ -73,7 +73,7 @@ export default function Tokens() {
   }
 
   return (
-    <div className="max-w-4xl">
+    <div className="max-w-6xl">
       <ConfirmModal
         isOpen={!!revokeId}
         onClose={() => setRevokeId(null)}

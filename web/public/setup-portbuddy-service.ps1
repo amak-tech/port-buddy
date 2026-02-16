@@ -64,7 +64,7 @@ if (-not $PortBuddyBin) {
 Write-Host "Setting up Port Buddy service..." -ForegroundColor Cyan
 Write-Host "Service Name: $ServiceName"
 Write-Host "Binary: $PortBuddyBin"
-Write-Host "Command: $PortBuddyBin $Mode $Target"
+Write-Host "Command: $PortBuddyBin $Mode $Target -n"
 Write-Host "User Profile: $env:USERPROFILE"
 
 # Create Scheduled Task Action

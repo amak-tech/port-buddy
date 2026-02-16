@@ -179,6 +179,20 @@ export default function AppLayout() {
           </div>
           {/* Page body */}
           <div className="px-6 lg:px-10 py-10 flex-1 overflow-y-auto" data-scroll-root>
+            {user?.blocked && (
+              <div className="mb-8 rounded-xl bg-red-500/10 border border-red-500/20 p-6 flex items-start gap-4">
+                <div className="p-3 rounded-lg bg-red-500/10 text-red-400">
+                   <LockClosedIcon className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-red-200">Account Blocked</h3>
+                  <p className="mt-1 text-slate-300">
+                    Your account is currently blocked. Access to services is restricted. 
+                    Please contact support for assistance.
+                  </p>
+                </div>
+              </div>
+            )}
             <Outlet />
           </div>
         </PageHeaderProvider>
@@ -212,6 +226,6 @@ function SideLink({ to, label, end = false, Icon, onClick }: { to: string, label
 function HeaderTitle() {
   const { title } = usePageHeader()
   return (
-    <div className="text-2xl font-black text-white truncate tracking-tighter uppercase">{title}</div>
+    <div className="text-xl font-black text-white truncate tracking-tighter uppercase">{title}</div>
   )
 }

@@ -20,6 +20,9 @@ services:
     container_name: pb-eureka
     restart: unless-stopped
     network_mode: host
+    environment:
+      EUREKA_USERNAME: ${EUREKA_USERNAME}
+      EUREKA_PASSWORD: ${EUREKA_PASSWORD}
     volumes:
       - ${PWD}/eureka/config:/app/config
       - ${PWD}/eureka/logs:/app/log
@@ -54,6 +57,7 @@ services:
       APP_DOMAIN: ${APP_DOMAIN}
       JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
       JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
+      EUREKA_ZONE: ${EUREKA_ZONE}
       JVM_OPTS: -Dspring.profiles.active=prod,default
     volumes:
       - ${PWD}/server/config:/app/config
@@ -80,6 +84,7 @@ services:
     network_mode: host
     environment:
       APP_DOMAIN: ${APP_DOMAIN}
+      EUREKA_ZONE: ${EUREKA_ZONE}
       JVM_OPTS: -Dspring.profiles.active=prod,default
     volumes:
       - ${PWD}/gateway/config:/app/config
@@ -101,11 +106,15 @@ services:
     network_mode: host
     environment:
       NET_PROXY_PUBLIC_HOST: ${NET_PROXY_PUBLIC_HOST}
+      NET_PROXY_REGION: ${NET_PROXY_REGION}
+      NET_PROXY_COORDINATES: ${NET_PROXY_COORDINATES}
+      EUREKA_ZONE: ${EUREKA_ZONE}
     volumes:
       - ${PWD}/net-proxy/config:/app/config
       - ${PWD}/net-proxy/logs:/app/log
     depends_on:
       - eureka
+      - ssl-service
     logging:
       options:
         max-size: 10M
@@ -119,6 +128,7 @@ services:
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
+      EUREKA_ZONE: ${EUREKA_ZONE}
     volumes:
       - ${PWD}/ssl-service/config:/app/config
       - ${PWD}/ssl-service/logs:/app/log

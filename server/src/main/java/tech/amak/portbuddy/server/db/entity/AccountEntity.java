@@ -65,6 +65,9 @@ public class AccountEntity {
     @Column(name = "subscription_status")
     private String subscriptionStatus;
 
+    @Column(name = "blocked", nullable = false)
+    private boolean blocked = false;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;

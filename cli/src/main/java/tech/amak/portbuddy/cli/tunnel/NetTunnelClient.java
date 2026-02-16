@@ -46,6 +46,7 @@ import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
 import okio.ByteString;
 import tech.amak.portbuddy.cli.config.ConfigurationService;
+import tech.amak.portbuddy.cli.ui.ConsoleUi;
 import tech.amak.portbuddy.cli.ui.NetTrafficSink;
 import tech.amak.portbuddy.cli.utils.HttpUtils;
 import tech.amak.portbuddy.common.TunnelType;
@@ -274,7 +275,18 @@ public class NetTunnelClient {
             try {
                 final var env = MAPPER.readValue(text, MessageEnvelope.class);
                 if (env.getKind() != null && env.getKind().equals("CTRL")) {
-                    // Ignore CTRL (e.g., PONG) messages
+                    final var ctrl = MAPPER.readValue(text, ControlMessage.class);
+                    if (ctrl.getType() == ControlMessage.Type.EXIT) {
+                        log.info("Received EXIT control message. Shutting down...");
+                        try {
+                            NetTunnelClient.this.webSocket.close(1000, "Server requested exit");
+                        } catch (final Exception ignore) {
+                            // ignore
+                        }
+                        if (trafficSink instanceof ConsoleUi ui) {
+                            ui.stop();
+                        }
+                    }
                     return;
                 }
                 if (env.getKind() != null && env.getKind().equals("WS")) {

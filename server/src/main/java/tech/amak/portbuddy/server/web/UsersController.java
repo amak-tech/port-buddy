@@ -284,6 +284,7 @@ public class UsersController {
         dto.setActiveTunnels((int) tunnelRepository.countByAccountIdAndStatusIn(
             account.getId(), TunnelService.ACTIVE_STATUSES));
         dto.setStripeCustomerId(account.getStripeCustomerId());
+        dto.setBlocked(account.isBlocked());
         return dto;
     }
 
@@ -335,6 +336,7 @@ public class UsersController {
         private String subscriptionStatus;
         private String stripeCustomerId;
         private String checkoutUrl;
+        private boolean blocked;
     }
 
     @Data

@@ -6,10 +6,12 @@ eureka:
     registryFetchIntervalSeconds: 2
     eurekaServiceUrlPollIntervalSeconds: 60
     service-url:
-      defaultZone: http://localhost:8761/eureka
+      defaultZone: ${EUREKA_ZONE:http://portbuddy:portbuddy@localhost:8761/eureka}
   instance:
     metadata-map:
       public-host: ${app.public-host}
+      region: ${NET_PROXY_REGION:Netherlands/Amsterdam}
+      coordinates: ${NET_PROXY_COORDINATES:52.378,4.9}
 
 spring:
   application:

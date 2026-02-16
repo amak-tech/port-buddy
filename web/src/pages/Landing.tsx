@@ -279,30 +279,30 @@ export default function Landing() {
       </section>
 
       {/* Stats Section (Trust Builder) */}
-      <section className="container">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
-          <StatCard 
-            icon={<GlobeAltIcon className="w-6 h-6" />}
-            value="50+"
-            label="Regions"
-          />
-           <StatCard 
-            icon={<CpuChipIcon className="w-6 h-6" />}
-            value="99.9%"
-            label="Uptime"
-          />
-           <StatCard 
-            icon={<UserIcon className="w-6 h-6" />}
-            value="10k+"
-            label="Users"
-          />
-           <StatCard 
-            icon={<ShieldCheckIcon className="w-6 h-6" />}
-            value="AES-256"
-            label="Encryption"
-          />
-        </div>
-      </section>
+      {/*<section className="container">*/}
+      {/*  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">*/}
+      {/*    <StatCard */}
+      {/*      icon={<GlobeAltIcon className="w-6 h-6" />}*/}
+      {/*      value="50+"*/}
+      {/*      label="Regions"*/}
+      {/*    />*/}
+      {/*     <StatCard */}
+      {/*      icon={<CpuChipIcon className="w-6 h-6" />}*/}
+      {/*      value="99.9%"*/}
+      {/*      label="Uptime"*/}
+      {/*    />*/}
+      {/*     <StatCard */}
+      {/*      icon={<UserIcon className="w-6 h-6" />}*/}
+      {/*      value="10k+"*/}
+      {/*      label="Users"*/}
+      {/*    />*/}
+      {/*     <StatCard */}
+      {/*      icon={<ShieldCheckIcon className="w-6 h-6" />}*/}
+      {/*      value="AES-256"*/}
+      {/*      label="Encryption"*/}
+      {/*    />*/}
+      {/*  </div>*/}
+      {/*</section>*/}
 
       {/* Features Grid */}
       <section id="features" className="container">

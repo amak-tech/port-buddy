@@ -12,18 +12,21 @@
  * limitations under the License.
  */
 
-package tech.amak.portbuddyeureka;
+package tech.amak.portbuddy.server.web.admin.dto;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.cloud.netflix.eureka.server.EnableEurekaServer;
+import java.sql.Date;
 
-@SpringBootApplication
-@EnableEurekaServer
-public class EurekaApplication {
-
-    public static void main(final String[] args) {
-        SpringApplication.run(EurekaApplication.class, args);
-    }
-
-}
+/**
+ * Daily statistics for the admin control center.
+ *
+ * @param date           the date of the statistics
+ * @param newUsersCount  number of users created on this date
+ * @param tunnelsCount   number of tunnels created on this date
+ * @param paymentEvents  number of stripe events created on this date
+ */
+public record AdminStatsRow(
+        Date date,
+        long newUsersCount,
+        long tunnelsCount,
+        long paymentEvents
+) { }

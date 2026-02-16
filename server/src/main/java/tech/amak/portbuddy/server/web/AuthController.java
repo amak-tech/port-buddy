@@ -35,6 +35,7 @@ import tech.amak.portbuddy.common.dto.auth.RegisterResponse;
 import tech.amak.portbuddy.common.dto.auth.TokenExchangeRequest;
 import tech.amak.portbuddy.common.dto.auth.TokenExchangeResponse;
 import tech.amak.portbuddy.server.config.AppProperties;
+import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.UserAccountRepository;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
 import tech.amak.portbuddy.server.security.JwtService;
@@ -59,6 +60,7 @@ public class AuthController {
     private final PasswordResetService passwordResetService;
     private final AppProperties properties;
     private final UserAccountRepository userAccountRepository;
+    private final AccountRepository accountRepository;
 
     /**
      * Exchanges a valid API token for a short-lived JWT suitable for authenticating API and WebSocket calls.
@@ -80,12 +82,18 @@ public class AuthController {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid API token");
         }
         final var validated = validatedOpt.get();
+        final var accountId = validated.accountId();
+        final var account = accountRepository.findById(accountId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Account not found"));
+        if (account.isBlocked()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Account is blocked");
+        }
         final var userId = validated.userId();
         final var claims = new HashMap<String, Object>();
         claims.put("typ", "cli");
-        claims.put("akid", validated.apiKeyId());
-        claims.put("aid", validated.accountId());
-        final var jwt = jwtService.createToken(claims, userId);
+        claims.put("akid", validated.apiKeyId().toString());
+        claims.put("aid", validated.accountId().toString());
+        final var jwt = jwtService.createToken(claims, userId.toString());
         return new TokenExchangeResponse(jwt, "Bearer");
     }
 
@@ -177,6 +185,10 @@ public class AuthController {
 
         final var userAccount = userAccountRepository.findLatestUsedByUserId(user.getId())
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "User has no accounts"));
+
+        if (userAccount.getAccount().isBlocked()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Account is blocked");
+        }
 
         claims.put("aid", userAccount.getAccount().getId().toString());
         claims.put("uid", user.getId().toString());

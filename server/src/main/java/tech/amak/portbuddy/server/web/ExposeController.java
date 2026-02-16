@@ -34,6 +34,8 @@ import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.dto.ExposeRequest;
 import tech.amak.portbuddy.common.dto.ExposeResponse;
 import tech.amak.portbuddy.server.config.AppProperties;
+import tech.amak.portbuddy.server.db.entity.AccountEntity;
+import tech.amak.portbuddy.server.db.entity.UserEntity;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
 import tech.amak.portbuddy.server.service.DomainService;
@@ -68,12 +70,9 @@ public class ExposeController {
     @Transactional
     public ExposeResponse exposeHttp(final @AuthenticationPrincipal Jwt jwt,
                                      final @RequestBody ExposeRequest request) {
-        final var userId = resolveUserId(jwt);
-        final var accountId = resolveAccountId(jwt);
-        final var user = userRepository.findById(userId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
-        final var account = accountRepository.findById(accountId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Account not found"));
+        final var validatedUser = validateUser(jwt);
+        final var account = validatedUser.account();
+        final var user = validatedUser.user();
 
         final var domain = domainService.resolveDomain(
             account, request.domain(), request.host(), request.port());
@@ -115,14 +114,12 @@ public class ExposeController {
     @Transactional
     public ExposeResponse exposeNet(final @AuthenticationPrincipal Jwt jwt,
                                     final @RequestBody ExposeRequest request) {
-        final var userId = resolveUserId(jwt);
-        final var accountId = resolveAccountId(jwt);
-        final var user = userRepository.findById(userId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
-        final var account = accountRepository.findById(accountId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Account not found"));
 
-        final var apiKeyId = extractApiKeyId(jwt);
+        final var validatedUser = validateUser(jwt);
+        final var account = validatedUser.account();
+        final var user = validatedUser.user();
+        final var apiKeyId = validatedUser.apiKeyId();
+
         // Pre-create tunnel and use its DB id as tunnelId
         final var tunnel = tunnelService.createNetTunnel(account, user.getId(), apiKeyId, request);
         final var tunnelId = tunnel.getId();
@@ -151,5 +148,24 @@ public class ExposeController {
     private String extractApiKeyId(final Jwt jwt) {
         final var claim = jwt.getClaimAsString("akid");
         return claim == null || claim.isBlank() ? null : claim;
+    }
+
+    private ValidatedUser validateUser(final Jwt jwt) {
+        final var userId = resolveUserId(jwt);
+        final var accountId = resolveAccountId(jwt);
+        final var user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+        final var account = accountRepository.findById(accountId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Account not found"));
+        if (account.isBlocked()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Account is blocked");
+        }
+
+        final var apiKeyId = extractApiKeyId(jwt);
+
+        return new ValidatedUser(user, account, apiKeyId);
+    }
+
+    private record ValidatedUser(UserEntity user, AccountEntity account, String apiKeyId) {
     }
 }
