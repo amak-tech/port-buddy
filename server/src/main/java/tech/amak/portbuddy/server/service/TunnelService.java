@@ -36,6 +36,7 @@ import tech.amak.portbuddy.server.db.entity.TunnelEntity;
 import tech.amak.portbuddy.server.db.entity.TunnelStatus;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.TunnelRepository;
+import tech.amak.portbuddy.server.service.threatfox.ThreatFoxService;
 import tech.amak.portbuddy.server.tunnel.TunnelRegistry;
 
 @Service
@@ -48,6 +49,7 @@ public class TunnelService {
     private final TunnelRepository tunnelRepository;
     private final AccountRepository accountRepository;
     private final AppProperties properties;
+    private final Optional<ThreatFoxService> threatfoxService;
     private final TunnelRegistry tunnelRegistry;
     private final NetProxyClient netProxyClient;
 
@@ -196,6 +198,10 @@ public class TunnelService {
                                       final ExposeRequest request,
                                       final String publicUrl,
                                       final DomainEntity domain) {
+
+        threatfoxService.ifPresent(threatfox ->
+            threatfox.checkThreat(request.host(), request.port()));
+
         final var tunnel = new TunnelEntity();
 
         tunnel.setId(UUID.randomUUID());

@@ -150,6 +150,12 @@ logging:
       total-size-cap: 1000MB
       max-file-size: 100MB
 
+threatfox:
+  enabled: ${THREATFOX_ENABLED:false}
+  url: https://threatfox-api.abuse.ch
+  auth-key: ${THREATFOX_AUTH_KEY:}
+  fetch-interval: 1h
+
 ---
 spring:
   config:
