@@ -34,6 +34,7 @@ import tech.amak.portbuddy.server.db.entity.TunnelEntity;
 import tech.amak.portbuddy.server.db.entity.TunnelStatus;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.TunnelRepository;
+import tech.amak.portbuddy.server.service.threatfox.ThreatFoxService;
 
 @Service
 @RequiredArgsConstructor
@@ -45,7 +46,7 @@ public class TunnelService {
     private final TunnelRepository tunnelRepository;
     private final AccountRepository accountRepository;
     private final AppProperties properties;
-    private final ThreatFoxService threatfoxservice;
+    private final Optional<ThreatFoxService> threatfoxService;
 
     /**
      * Creates a new HTTP tunnel using the database entity id as the tunnel id.
@@ -178,7 +179,9 @@ public class TunnelService {
                                       final ExposeRequest request,
                                       final String publicUrl,
                                       final DomainEntity domain) {
-        threatfoxservice.checkthreat(request.host(), request.port());
+
+        threatfoxService.ifPresent(threatfox ->
+            threatfox.checkThreat(request.host(), request.port()));
 
         final var tunnel = new TunnelEntity();
 

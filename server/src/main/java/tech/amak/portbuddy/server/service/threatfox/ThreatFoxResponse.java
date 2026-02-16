@@ -12,18 +12,16 @@
  * limitations under the License.
  */
 
-package tech.amak.portbuddy.server.config;
+package tech.amak.portbuddy.server.service.threatfox;
 
-import java.time.Duration;
+import java.util.List;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-@ConditionalOnProperty(name = "threatfox.enabled", havingValue = "true")
-@ConfigurationProperties(prefix = "threatfox")
-public record ThreatFoxProperties(
-    boolean enabled,
-    String authKey,
-    Duration fetchInterval
+@JsonIgnoreProperties(ignoreUnknown = true)
+public record ThreatFoxResponse(
+    @JsonProperty("query_status") String queryStatus,
+    @JsonProperty("data") List<ThreatFoxIoc> data
 ) {
 }
