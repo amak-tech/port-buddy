@@ -75,7 +75,7 @@ class TunnelServiceTest {
             null
         );
         tunnelService = new TunnelService(
-            tunnelRepository, accountRepository, properties, tunnelRegistry, netProxyClient);
+            tunnelRepository, accountRepository, properties, Optional.empty(), tunnelRegistry, netProxyClient);
         account = new AccountEntity();
         account.setId(UUID.randomUUID());
         account.setPlan(Plan.PRO);
