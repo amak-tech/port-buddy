@@ -217,6 +217,7 @@ logging:
     io.netty.handler.codec.http.websocketx: warn
     org.springframework.cloud.gateway: warn
     org.springframework.cloud.gateway.route.RouteDefinitionRouteLocator: warn
+    com.netflix.discovery: warn
   file:
     name: log/app.log
   logback:
