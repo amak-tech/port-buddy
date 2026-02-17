@@ -14,6 +14,8 @@
 
 package tech.amak.portbuddy.server.web;
 
+import java.util.Optional;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
@@ -25,6 +27,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
 import tech.amak.portbuddy.common.TunnelType;
+import tech.amak.portbuddy.server.db.entity.DomainEntity;
+import tech.amak.portbuddy.server.db.entity.PortReservationEntity;
 import tech.amak.portbuddy.server.db.entity.TunnelEntity;
 import tech.amak.portbuddy.server.db.entity.TunnelStatus;
 import tech.amak.portbuddy.server.db.repo.TunnelRepository;
@@ -70,8 +74,13 @@ public class TunnelsController {
             publicEndpoint = host == null || port == null ? null : host + ":" + port;
         }
 
-        final var subdomain = tunnel.getDomain() == null ? null : tunnel.getDomain().getSubdomain();
-        final var portReservationName = tunnel.getPortReservation() == null ? null : tunnel.getPortReservation().getName();
+        final var subdomain = Optional.ofNullable(tunnel.getDomain())
+            .map(DomainEntity::getSubdomain)
+            .orElse(null);
+
+        final var portReservationName = Optional.ofNullable(tunnel.getPortReservation())
+            .map(PortReservationEntity::getName)
+            .orElse(null);
 
         return new TunnelView(
             tunnel.getId().toString(),
