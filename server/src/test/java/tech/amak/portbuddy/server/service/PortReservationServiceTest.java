@@ -81,6 +81,22 @@ class PortReservationServiceTest {
     }
 
     @Test
+    void resolveForNetExpose_ExplicitName_Success() {
+        final String name = "my-reservation";
+        final var reservation = new PortReservationEntity();
+        reservation.setName(name);
+
+        when(repository.findByAccountAndNameIgnoreCase(account, name))
+            .thenReturn(Optional.of(reservation));
+        when(tunnelRepository.existsByPortReservationAndStatusNot(reservation, TunnelStatus.CLOSED))
+            .thenReturn(false);
+
+        final var result = service.resolveForNetExpose(account, user, "localhost", 8080, name);
+
+        assertEquals(reservation, result);
+    }
+
+    @Test
     void resolveForNetExpose_ExplicitPortOnly_MultipleFound_TakesFirst() {
         final int port = 12345;
         final String explicit = String.valueOf(port);
@@ -113,5 +129,33 @@ class PortReservationServiceTest {
 
         assertThrows(IllegalArgumentException.class, () ->
             service.resolveForNetExpose(account, user, "localhost", 8080, explicit));
+    }
+
+    @Test
+    void updateReservation_DuplicateName_ThrowsException() {
+        final UUID id = UUID.randomUUID();
+        final String name = "duplicate-name";
+        final var existing = new PortReservationEntity();
+        existing.setName("old-name");
+
+        when(repository.findByIdAndAccount(id, account)).thenReturn(Optional.of(existing));
+        when(repository.existsByAccountAndName(account, name)).thenReturn(true);
+
+        assertThrows(IllegalArgumentException.class, () ->
+            service.updateReservation(account, id, null, null, name));
+    }
+
+    @Test
+    void updateReservation_SameName_Success() {
+        final UUID id = UUID.randomUUID();
+        final String name = "same-name";
+        final var existing = new PortReservationEntity();
+        existing.setName(name);
+
+        when(repository.findByIdAndAccount(id, account)).thenReturn(Optional.of(existing));
+        when(repository.saveAndFlush(existing)).thenReturn(existing);
+
+        final var result = service.updateReservation(account, id, null, null, name);
+        assertEquals(name, result.getName());
     }
 }

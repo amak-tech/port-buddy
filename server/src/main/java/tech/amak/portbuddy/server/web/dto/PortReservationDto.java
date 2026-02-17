@@ -21,6 +21,7 @@ public record PortReservationDto(
     UUID id,
     String publicHost,
     Integer publicPort,
+    String name,
     OffsetDateTime createdAt,
     OffsetDateTime updatedAt
 ) {

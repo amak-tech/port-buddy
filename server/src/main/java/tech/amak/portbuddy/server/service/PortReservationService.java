@@ -161,13 +161,25 @@ public class PortReservationService {
                     .orElseThrow(() ->
                         new IllegalArgumentException("Port reservation not found for this account: " + hostPort));
             } else if (colon == -1) {
-                // only port format
-                final var port = Integer.parseInt(hostPort);
-                final var reservations = repository.findAllByAccountAndPublicPort(account, port);
-                if (reservations.isEmpty()) {
-                    throw new IllegalArgumentException("Port reservation not found for this account and port: " + port);
-                }
-                reservation = reservations.getFirst();
+                // Try as name first (lookup by account and port reservation name case insensitive)
+                reservation = repository.findByAccountAndNameIgnoreCase(account, hostPort)
+                    .or(() -> {
+                        try {
+                            final var port = Integer.parseInt(hostPort);
+                            final var reservations = repository.findAllByAccountAndPublicPort(account, port);
+                            if (reservations.isEmpty()) {
+                                throw new IllegalArgumentException(
+                                    "Port reservation not found for this account and port: " + port);
+                            }
+                            return Optional.of(reservations.getFirst());
+                        } catch (final NumberFormatException e) {
+                            throw new IllegalArgumentException(
+                                "Port reservation name or port not found for this account: " + hostPort);
+                        }
+                    })
+                    .orElseThrow(() ->
+                        new IllegalArgumentException("Port reservation not found for this account: " + hostPort));
+
             } else {
                 throw new IllegalArgumentException("Invalid --port-reservation value, expected host:port or port");
             }
@@ -211,7 +223,8 @@ public class PortReservationService {
     public PortReservationEntity updateReservation(final AccountEntity account,
                                                    final UUID id,
                                                    final String host,
-                                                   final Integer port) {
+                                                   final Integer port,
+                                                   final String name) {
         final var entity = repository.findByIdAndAccount(id, account)
             .orElseThrow(() -> new RuntimeException("Reservation not found"));
         if (isReservationInUse(entity)) {
@@ -232,6 +245,13 @@ public class PortReservationService {
                 throw new IllegalArgumentException("Port is out of allowed range");
             }
             entity.setPublicPort(port);
+        }
+
+        if (name != null && !name.equals(entity.getName())) {
+            if (repository.existsByAccountAndName(account, name)) {
+                throw new IllegalArgumentException("Reservation with name '" + name + "' already exists");
+            }
+            entity.setName(name);
         }
 
         // Trigger unique check on save

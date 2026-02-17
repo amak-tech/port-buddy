@@ -36,6 +36,7 @@ app:
 logging:
   level:
     root: info
+    com.netflix.discovery: warn
   file:
     name: log/app.log
   logback:

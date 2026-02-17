@@ -115,7 +115,8 @@ public class PortsController {
                                      final @RequestBody PortReservationUpdateRequest body) {
         final var account = getAccount(principal);
         try {
-            final var updated = reservationService.updateReservation(account, id, body.publicHost(), body.publicPort());
+            final var updated = reservationService
+                .updateReservation(account, id, body.publicHost(), body.publicPort(), body.name());
             return toDto(updated);
         } catch (final IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
@@ -158,6 +159,7 @@ public class PortsController {
             e.getId(),
             e.getPublicHost(),
             e.getPublicPort(),
+            e.getName(),
             e.getCreatedAt(),
             e.getUpdatedAt()
         );

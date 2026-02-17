@@ -60,6 +60,9 @@ public class PortReservationEntity {
     @Column(name = "public_port", nullable = false)
     private Integer publicPort;
 
+    @Column(name = "name")
+    private String name;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;

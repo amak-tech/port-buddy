@@ -27,8 +27,8 @@ app:
       max: 60000
 
   tunnels:
-    heartbeat-timeout: 2m
-    check-interval: 30s
+    heartbeat-timeout: 20s
+    check-interval: 5s
   subscriptions:
     grace-period: 3d
     check-interval: 1h
@@ -142,6 +142,8 @@ logging:
     root: info
     tech.amak.portbuddy: debug
     org.springframework.web: info
+    com.netflix.discovery: warn
+    tech.amak.portbuddy.server.service.StaleTunnelsReaper: info
   file:
     name: log/app.log
   logback:

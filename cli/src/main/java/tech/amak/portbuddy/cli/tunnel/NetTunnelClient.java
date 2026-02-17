@@ -231,6 +231,10 @@ public class NetTunnelClient {
             }
             // allow reporting CLOSED again for future disconnects after a successful reconnect
             closedReported.set(false);
+
+            final var config = ConfigurationService.INSTANCE.getConfig();
+            final var intervalSec = Math.max(1, config.getHealthcheckIntervalSec());
+
             try {
                 final var existing = heartbeatTask;
                 if (existing != null && !existing.isCancelled()) {
@@ -242,19 +246,17 @@ public class NetTunnelClient {
                     } catch (final Exception e) {
                         log.debug("NET heartbeat failed: {}", e.toString());
                     }
-                }, 0, 20, TimeUnit.SECONDS);
+                }, 1, intervalSec, TimeUnit.SECONDS);
             } catch (final Exception e) {
                 log.debug("Failed to start NET heartbeat: {}", e.toString());
             }
-
             // Start WS application-level heartbeat (PING/PONG)
             try {
                 final var existingWs = wsHeartbeatTask;
                 if (existingWs != null && !existingWs.isCancelled()) {
                     existingWs.cancel(true);
                 }
-                final var config = ConfigurationService.INSTANCE.getConfig();
-                final var intervalSec = Math.max(1, config.getHealthcheckIntervalSec());
+
                 wsHeartbeatTask = scheduler.scheduleAtFixedRate(() -> {
                     try {
                         final var ping = new ControlMessage();
