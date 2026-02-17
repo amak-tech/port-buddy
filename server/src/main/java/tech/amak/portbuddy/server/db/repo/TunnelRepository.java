@@ -58,12 +58,12 @@ public interface TunnelRepository extends JpaRepository<TunnelEntity, UUID> {
         UUID accountId, String localHost, Integer localPort);
 
     @Query(value = """
-        SELECT *
-        FROM tunnels t
-        WHERE t.account_id = :accountId
-        ORDER BY (t.last_heartbeat_at IS NULL), t.last_heartbeat_at DESC, t.created_at DESC""",
-        countQuery = "SELECT COUNT(1) FROM tunnels t WHERE t.account_id = :accountId",
-        nativeQuery = true)
+        SELECT t
+        FROM TunnelEntity t
+        LEFT JOIN FETCH t.portReservation
+        LEFT JOIN FETCH t.domain
+        WHERE t.accountId = :accountId
+        ORDER BY t.lastHeartbeatAt DESC NULLS LAST, t.createdAt DESC""")
     Page<TunnelEntity> pageByAccountOrderByLastHeartbeatDescNullsLast(
         @Param("accountId") UUID accountId, Pageable pageable);
 

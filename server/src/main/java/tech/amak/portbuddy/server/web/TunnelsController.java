@@ -70,6 +70,9 @@ public class TunnelsController {
             publicEndpoint = host == null || port == null ? null : host + ":" + port;
         }
 
+        final var subdomain = tunnel.getDomain() == null ? null : tunnel.getDomain().getSubdomain();
+        final var portReservationName = tunnel.getPortReservation() == null ? null : tunnel.getPortReservation().getName();
+
         return new TunnelView(
             tunnel.getId().toString(),
             tunnel.getType(),
@@ -79,7 +82,8 @@ public class TunnelsController {
             tunnel.getPublicUrl(), // keep original http URL if any
             tunnel.getPublicHost(),
             tunnel.getPublicPort(),
-            null,
+            subdomain,
+            portReservationName,
             tunnel.getLastHeartbeatAt() == null ? null : tunnel.getLastHeartbeatAt().toString(),
             tunnel.getCreatedAt() == null ? null : tunnel.getCreatedAt().toString()
         );
@@ -95,6 +99,7 @@ public class TunnelsController {
         String publicHost,
         Integer publicPort,
         String subdomain,
+        String portReservationName,
         String lastHeartbeatAt,
         String createdAt
     ) {

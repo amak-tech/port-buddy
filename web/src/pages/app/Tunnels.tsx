@@ -8,7 +8,7 @@ import { ArrowTopRightOnSquareIcon, GlobeAltIcon, ServerIcon } from '@heroicons/
 type TunnelView = {
   id: string
   tunnelId: string
-  type: 'HTTP' | 'TCP'
+  type: 'HTTP' | 'TCP' | 'UDP'
   status: 'PENDING' | 'CONNECTED' | 'CLOSED'
   local: string | null
   publicEndpoint: string | null
@@ -16,6 +16,7 @@ type TunnelView = {
   publicHost: string | null
   publicPort: number | null
   subdomain: string | null
+  portReservationName: string | null
   lastHeartbeatAt: string | null
   createdAt: string | null
 }
@@ -131,6 +132,7 @@ export default function Tunnels() {
                 <thead className="bg-slate-900 text-slate-400 uppercase font-medium tracking-wider">
                   <tr>
                     <th className="px-6 py-4">Type</th>
+                    <th className="px-6 py-4">Name</th>
                     <th className="px-6 py-4">Local Address</th>
                     <th className="px-6 py-4">Public URL</th>
                     <th className="px-6 py-4">Status</th>
@@ -152,6 +154,17 @@ export default function Tunnels() {
                             {t.type === 'HTTP' ? <GlobeAltIcon className="w-3 h-3" /> : <ServerIcon className="w-3 h-3" />}
                             {t.type}
                           </div>
+                        </td>
+                        <td className="px-6 py-4 text-slate-300 font-medium">
+                          {t.type === 'HTTP' && t.subdomain ? (
+                            <span className="text-indigo-400 font-mono text-xs">{t.subdomain}</span>
+                          ) : t.portReservationName ? (
+                            <span className="text-indigo-400">{t.portReservationName}</span>
+                          ) : (t.type === 'TCP' || t.type === 'UDP') && t.publicPort ? (
+                            <span className="text-indigo-400 font-mono text-xs">{t.publicPort}</span>
+                          ) : (
+                            <span className="text-slate-500 italic text-xs">unnamed</span>
+                          )}
                         </td>
                         <td className="px-6 py-4 text-slate-300 font-mono text-xs">{t.local || '-'}</td>
                         <td className="px-6 py-4">
