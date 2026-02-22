@@ -199,11 +199,20 @@ public class HttpTunnelClient {
             if (task != null) {
                 task.cancel(true);
             }
+            scheduler.shutdownNow();
             requestExecutor.shutdownNow();
             if (webSocket != null) {
                 webSocket.close(1000, "Client exit");
                 log.debug("Websocket closed: 1000 OK");
             }
+            localWebsocketMap.values().forEach(ws -> {
+                try {
+                    ws.close(1000, "Tunnel closed");
+                } catch (final Exception ignore) {
+                    // ignore
+                }
+            });
+            localWebsocketMap.clear();
         } catch (final Exception ignore) {
             log.debug("HTTP tunnel close error: {}", ignore.toString());
         }
@@ -306,6 +315,14 @@ public class HttpTunnelClient {
             if (task != null) {
                 task.cancel(true);
             }
+            localWebsocketMap.values().forEach(ws -> {
+                try {
+                    ws.close(1000, "Tunnel closed");
+                } catch (final Exception ignore) {
+                    // ignore
+                }
+            });
+            localWebsocketMap.clear();
             closed.countDown();
         }
 
@@ -316,6 +333,14 @@ public class HttpTunnelClient {
             if (task != null) {
                 task.cancel(true);
             }
+            localWebsocketMap.values().forEach(ws -> {
+                try {
+                    ws.close(1000, "Tunnel failure");
+                } catch (final Exception ignore) {
+                    // ignore
+                }
+            });
+            localWebsocketMap.clear();
             closed.countDown();
         }
     }
