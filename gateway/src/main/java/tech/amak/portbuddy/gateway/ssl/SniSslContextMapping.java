@@ -14,6 +14,8 @@
 
 package tech.amak.portbuddy.gateway.ssl;
 
+import org.springframework.stereotype.Component;
+
 import io.netty.handler.ssl.SslContext;
 import io.netty.util.AsyncMapping;
 import io.netty.util.concurrent.Future;
@@ -21,6 +23,7 @@ import io.netty.util.concurrent.Promise;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+@Component
 @RequiredArgsConstructor
 @Slf4j
 public class SniSslContextMapping implements AsyncMapping<String, SslContext> {

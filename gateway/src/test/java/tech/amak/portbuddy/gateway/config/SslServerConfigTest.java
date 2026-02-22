@@ -33,6 +33,7 @@ import io.netty.handler.ssl.util.SelfSignedCertificate;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 import tech.amak.portbuddy.gateway.ssl.DynamicSslProvider;
+import tech.amak.portbuddy.gateway.ssl.SniSslContextMapping;
 
 class SslServerConfigTest {
 
@@ -40,6 +41,7 @@ class SslServerConfigTest {
     void shouldInvokeDynamicSslProviderOnSniHandshake() throws Exception {
         // Given
         final var sslProvider = mock(DynamicSslProvider.class);
+        final var sniMapping = new SniSslContextMapping(sslProvider);
         final var properties = mock(AppProperties.class);
         final var sslProperties = mock(AppProperties.Ssl.class);
         final var httpHandler = mock(HttpHandler.class);
@@ -54,7 +56,7 @@ class SslServerConfigTest {
         when(sslProvider.getSslContext(anyString())).thenReturn(Mono.just(fallbackContext));
         when(httpHandler.handle(any(), any())).thenReturn(Mono.empty());
 
-        final var sslServerConfig = new SslServerConfig(properties, sslProvider, httpHandler);
+        final var sslServerConfig = new SslServerConfig(properties, sslProvider, sniMapping, httpHandler);
         final var customizer = sslServerConfig.sslCustomizer();
 
         final var factory = new NettyReactiveWebServerFactory(0);
