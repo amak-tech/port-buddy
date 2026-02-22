@@ -267,6 +267,24 @@ public class TunnelRegistry {
         // Remove from bySubdomain if exists
         bySubdomain.values().removeIf(t -> t.tunnelId().equals(tunnelId));
 
+        // Close all browser sessions associated with this tunnel
+        tunnel.browserByConnection().values().forEach(session -> {
+            if (session.isOpen()) {
+                try {
+                    session.close();
+                } catch (final IOException e) {
+                    log.warn("Failed to close browser WS session: {}", e.toString());
+                }
+            }
+        });
+        tunnel.browserByConnection().clear();
+        tunnel.browserReverse().clear();
+
+        // Fail all pending HTTP requests and clear
+        tunnel.pending().forEach((id, future) ->
+            future.completeExceptionally(new IllegalStateException("Tunnel closed")));
+        tunnel.pending().clear();
+
         if (tunnel.isOpen()) {
             try {
                 final var exitMsg = new ControlMessage();

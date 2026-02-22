@@ -23,10 +23,13 @@ import org.springframework.stereotype.Service;
 
 import com.github.benmanes.caffeine.cache.AsyncCache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.RemovalCause;
 
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
+import io.netty.util.ReferenceCountUtil;
+import jakarta.annotation.PreDestroy;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
@@ -57,8 +60,26 @@ public class DynamicSslProvider {
         this.sslContextCache = Caffeine.newBuilder()
             .maximumSize(1000)
             .expireAfterWrite(Duration.ofHours(1))
+            .removalListener((String key, SslContext context, RemovalCause cause) -> {
+                if (context != null) {
+                    log.debug("Evicted SSL context for {}. Releasing resources.", key);
+                    ReferenceCountUtil.release(context);
+                }
+            })
             .buildAsync();
         this.fallbackSslContext = createFallbackSslContext();
+    }
+
+    /**
+     * Releases fallback SSL context and clears the cache on shutdown to prevent resource leaks.
+     */
+    @PreDestroy
+    public void shutdown() {
+        log.info("Shutting down DynamicSslProvider. Releasing resources.");
+        sslContextCache.synchronous().invalidateAll();
+        if (fallbackSslContext != null) {
+            ReferenceCountUtil.release(fallbackSslContext);
+        }
     }
 
     private SslContext createFallbackSslContext() {

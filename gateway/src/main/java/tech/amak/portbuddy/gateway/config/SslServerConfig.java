@@ -32,7 +32,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.netty.DisposableServer;
 import reactor.netty.http.server.HttpServer;
-import tech.amak.portbuddy.gateway.ssl.DynamicSslProvider;
 import tech.amak.portbuddy.gateway.ssl.SniSslContextMapping;
 
 @Configuration
@@ -41,7 +40,7 @@ import tech.amak.portbuddy.gateway.ssl.SniSslContextMapping;
 public class SslServerConfig {
 
     private final AppProperties properties;
-    private final DynamicSslProvider sslProvider;
+    private final SniSslContextMapping sniSslContextMapping;
     private final HttpHandler httpHandler;
     private DisposableServer httpServer;
 
@@ -59,7 +58,7 @@ public class SslServerConfig {
                 // We use doOnChannelInit to configure the pipeline at the transport level.
                 // This ensures SniHandler is added before any data is read and enables dynamic SSL via SNI.
                 server = server.doOnChannelInit((observer, channel, remoteAddress) -> {
-                    channel.pipeline().addFirst("sni-handler", new SniHandler(new SniSslContextMapping(sslProvider)));
+                    channel.pipeline().addFirst("sni-handler", new SniHandler(sniSslContextMapping));
                 });
             }
 

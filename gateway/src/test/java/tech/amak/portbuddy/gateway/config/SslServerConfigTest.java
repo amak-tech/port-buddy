@@ -22,6 +22,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
+import javax.net.ssl.SNIHostName;
 import javax.net.ssl.SSLException;
 
 import org.junit.jupiter.api.Test;
@@ -29,10 +30,12 @@ import org.springframework.boot.web.embedded.netty.NettyReactiveWebServerFactory
 import org.springframework.http.server.reactive.HttpHandler;
 
 import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 import tech.amak.portbuddy.gateway.ssl.DynamicSslProvider;
+import tech.amak.portbuddy.gateway.ssl.SniSslContextMapping;
 
 class SslServerConfigTest {
 
@@ -40,6 +43,7 @@ class SslServerConfigTest {
     void shouldInvokeDynamicSslProviderOnSniHandshake() throws Exception {
         // Given
         final var sslProvider = mock(DynamicSslProvider.class);
+        final var sniMapping = new SniSslContextMapping(sslProvider);
         final var properties = mock(AppProperties.class);
         final var sslProperties = mock(AppProperties.Ssl.class);
         final var httpHandler = mock(HttpHandler.class);
@@ -54,7 +58,7 @@ class SslServerConfigTest {
         when(sslProvider.getSslContext(anyString())).thenReturn(Mono.just(fallbackContext));
         when(httpHandler.handle(any(), any())).thenReturn(Mono.empty());
 
-        final var sslServerConfig = new SslServerConfig(properties, sslProvider, httpHandler);
+        final var sslServerConfig = new SslServerConfig(properties, sniMapping, httpHandler);
         final var customizer = sslServerConfig.sslCustomizer();
 
         final var factory = new NettyReactiveWebServerFactory(0);
@@ -72,9 +76,9 @@ class SslServerConfigTest {
                 .secure(spec -> {
                     try {
                         spec.sslContext(SslContextBuilder.forClient()
-                                .trustManager(io.netty.handler.ssl.util.InsecureTrustManagerFactory.INSTANCE)
+                                .trustManager(InsecureTrustManagerFactory.INSTANCE)
                                 .build())
-                            .serverNames(new javax.net.ssl.SNIHostName("test.portbuddy.dev"));
+                            .serverNames(new SNIHostName("test.portbuddy.dev"));
                     } catch (final SSLException e) {
                         throw new RuntimeException(e);
                     }

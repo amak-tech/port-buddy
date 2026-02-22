@@ -178,9 +178,14 @@ public class NetTunnelClient {
             if (wsTask != null) {
                 wsTask.cancel(true);
             }
+            scheduler.shutdownNow();
             if (webSocket != null) {
                 webSocket.close(1000, "Client exit");
             }
+            locals.values().forEach(this::close);
+            locals.clear();
+            udpLocals.values().forEach(this::close);
+            udpLocals.clear();
             reportClosedSafe();
         } catch (final Exception ignore) {
             log.debug("TCP tunnel close error: {}", ignore.toString());
@@ -366,15 +371,12 @@ public class NetTunnelClient {
             if (wsTask != null) {
                 wsTask.cancel(true);
             }
+            locals.values().forEach(NetTunnelClient.this::close);
+            locals.clear();
+            udpLocals.values().forEach(NetTunnelClient.this::close);
+            udpLocals.clear();
             reportClosedSafe();
             closed.countDown();
-            // Close UDP sockets
-            if (tunnelType == TunnelType.UDP) {
-                for (final var entry : udpLocals.entrySet()) {
-                    close(entry.getValue());
-                }
-                udpLocals.clear();
-            }
         }
 
         @Override
@@ -388,14 +390,12 @@ public class NetTunnelClient {
             if (wsTask != null) {
                 wsTask.cancel(true);
             }
+            locals.values().forEach(NetTunnelClient.this::close);
+            locals.clear();
+            udpLocals.values().forEach(NetTunnelClient.this::close);
+            udpLocals.clear();
             reportClosedSafe();
             closed.countDown();
-            if (tunnelType == TunnelType.UDP) {
-                for (final var entry : udpLocals.entrySet()) {
-                    close(entry.getValue());
-                }
-                udpLocals.clear();
-            }
         }
     }
 
