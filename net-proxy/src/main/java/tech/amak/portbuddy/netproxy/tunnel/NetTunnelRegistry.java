@@ -15,6 +15,9 @@
 package tech.amak.portbuddy.netproxy.tunnel;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.PushbackInputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
@@ -49,9 +52,23 @@ public class NetTunnelRegistry {
     private static final int MIN_PORT = 10000;
     private static final int MAX_PORT = 65535;
 
-    private final Map<UUID, Tunnel> byTunnelId = new ConcurrentHashMap<>();
+    private static final String[] HTTP_METHODS = {
+        "GET ", "POST ", "PUT ", "DELETE ", "HEAD ", "OPTIONS ", "PATCH ", "TRACE ", "CONNECT "
+    };
+
+    /**
+     * Map of tunnels by their ID.
+     */
+    final Map<UUID, Tunnel> byTunnelId = new ConcurrentHashMap<>();
+
+    /**
+     * Pool for IO operations.
+     */
     private final ExecutorService ioPool = Executors.newCachedThreadPool();
 
+    /**
+     * Jackson object mapper.
+     */
     private final ObjectMapper mapper;
 
     /**
@@ -222,20 +239,56 @@ public class NetTunnelRegistry {
         try {
             while (!tunnel.serverSocket.isClosed()) {
                 final var socket = tunnel.serverSocket.accept();
-                final var connId = UUID.randomUUID().toString();
-                final var connection = new Connection(connId, socket);
-                tunnel.connections.put(connId, connection);
-                sendOpen(tunnel, connId);
-                // Wait for client OPEN_OK before starting to pump data from public socket
+                ioPool.execute(() -> handleNewConnection(tunnel, socket));
             }
         } catch (final Exception e) {
             log.info("Accept loop ended for tunnel {}: {}", tunnel.tunnelId, e.toString());
         }
     }
 
+    /**
+     * Handles a new TCP connection by peeking at the initial bytes to detect HTTP requests.
+     * If an HTTP request is detected, the connection is closed.
+     *
+     * @param tunnel the tunnel associated with the connection
+     * @param socket the newly accepted socket
+     */
+    private void handleNewConnection(final Tunnel tunnel, final Socket socket) {
+        try {
+            final var connId = UUID.randomUUID().toString();
+            final var pushbackIn = new PushbackInputStream(socket.getInputStream(), 16);
+            final var connection = new Connection(connId, socket, pushbackIn);
+            tunnel.connections.put(connId, connection);
+            sendOpen(tunnel, connId);
+        } catch (final Exception e) {
+            log.error("Failed to handle new connection for tunnel {}: {}", tunnel.tunnelId, e.toString());
+            try {
+                socket.close();
+            } catch (final IOException ignore) {
+                // ignore
+            }
+        }
+    }
+
     private void pumpFromPublic(final Tunnel tunnel, final Connection connection) {
         final var buffer = new byte[8192];
         try {
+            // Peek at initial bytes to detect HTTP requests
+            final var peekBuffer = new byte[16];
+            final var bytesRead = connection.in.read(peekBuffer);
+            if (bytesRead != -1) {
+                final var prefix = new String(peekBuffer, 0, bytesRead);
+                for (final var method : HTTP_METHODS) {
+                    if (prefix.startsWith(method)) {
+                        log.warn("Blocking HTTP request on TCP tunnel {}: {}", tunnel.tunnelId, prefix.trim());
+                        connection.socket.close();
+                        return;
+                    }
+                }
+                // If not HTTP, send the peeked bytes and continue
+                sendBinaryToClient(tunnel, connection.connectionId, peekBuffer, 0, bytesRead);
+            }
+
             while (true) {
                 final var next = connection.in.read(buffer);
                 if (next == -1) {
@@ -415,7 +468,7 @@ public class NetTunnelRegistry {
     }
 
     @Data
-    private static class Tunnel {
+    static class Tunnel {
         private final UUID tunnelId;
         private volatile WebSocketSession session;
         private volatile ServerSocket serverSocket;
@@ -431,13 +484,13 @@ public class NetTunnelRegistry {
     private static class Connection {
         final String connectionId;
         final Socket socket;
-        final java.io.InputStream in;
-        final java.io.OutputStream out;
+        final InputStream in;
+        final OutputStream out;
 
-        Connection(final String connectionId, final Socket socket) throws IOException {
+        Connection(final String connectionId, final Socket socket, final InputStream in) throws IOException {
             this.connectionId = connectionId;
             this.socket = socket;
-            this.in = socket.getInputStream();
+            this.in = in;
             this.out = socket.getOutputStream();
         }
     }
