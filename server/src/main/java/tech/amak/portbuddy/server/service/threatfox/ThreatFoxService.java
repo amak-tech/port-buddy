@@ -35,7 +35,7 @@ public class ThreatFoxService {
 
     private static final String IOC_TYPE_URL = "url";
     private static final Set<String> IOC_TYPES = Set.of("domain", "ip:port", IOC_TYPE_URL);
-    private static final ThreatFoxRequest FETCH_IOC_REQUEST = new ThreatFoxRequest("get_iocs", 1);
+    private static final ThreatFoxRequest FETCH_IOC_REQUEST = new ThreatFoxRequest("get_iocs", 7);
 
     private final ThreatFoxClient client;
     private Set<String> cache = new HashSet<>();
