@@ -281,7 +281,8 @@ public class TunnelRegistry {
         tunnel.browserReverse().clear();
 
         // Fail all pending HTTP requests and clear
-        tunnel.pending().forEach((id, future) -> future.completeExceptionally(new IllegalStateException("Tunnel closed")));
+        tunnel.pending().forEach((id, future) ->
+            future.completeExceptionally(new IllegalStateException("Tunnel closed")));
         tunnel.pending().clear();
 
         if (tunnel.isOpen()) {

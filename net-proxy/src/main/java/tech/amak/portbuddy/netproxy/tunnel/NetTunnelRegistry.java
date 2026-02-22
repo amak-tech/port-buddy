@@ -184,7 +184,8 @@ public class NetTunnelRegistry {
     public void detachSession(final WebSocketSession session) {
         for (final var tunnel : byTunnelId.values()) {
             if (tunnel.session == session) {
-                tunnel.session = null;
+                log.info("Session detached for tunnel {}. Closing tunnel.", tunnel.tunnelId);
+                closeTunnel(tunnel.tunnelId);
                 break;
             }
         }
@@ -255,11 +256,27 @@ public class NetTunnelRegistry {
      */
     private void handleNewConnection(final Tunnel tunnel, final Socket socket) {
         try {
+            socket.setSoTimeout(30000); // 30s timeout for initial handshake
             final var connId = UUID.randomUUID().toString();
             final var pushbackIn = new PushbackInputStream(socket.getInputStream(), 16);
             final var connection = new Connection(connId, socket, pushbackIn);
             tunnel.connections.put(connId, connection);
             sendOpen(tunnel, connId);
+
+            // Start a task to cleanup this connection if it's not opened within a reasonable time
+            ioPool.execute(() -> {
+                try {
+                    Thread.sleep(60000); // Wait 60s for OPEN_OK
+                    final var conn = tunnel.connections.get(connId);
+                    if (conn != null && conn.socket != null && !conn.socket.isClosed() && !conn.pumpStarted) {
+                        log.warn("Connection {} for tunnel {} was not opened by client within 60s. Closing.",
+                            connId, tunnel.tunnelId);
+                        onClientClose(tunnel.tunnelId, connId);
+                    }
+                } catch (final InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            });
         } catch (final Exception e) {
             log.error("Failed to handle new connection for tunnel {}: {}", tunnel.tunnelId, e.toString());
             try {
@@ -342,6 +359,7 @@ public class NetTunnelRegistry {
         if (connection == null) {
             return;
         }
+        connection.pumpStarted = true;
         ioPool.execute(() -> pumpFromPublic(tunnel, connection));
     }
 
@@ -486,6 +504,7 @@ public class NetTunnelRegistry {
         final Socket socket;
         final InputStream in;
         final OutputStream out;
+        volatile boolean pumpStarted = false;
 
         Connection(final String connectionId, final Socket socket, final InputStream in) throws IOException {
             this.connectionId = connectionId;
