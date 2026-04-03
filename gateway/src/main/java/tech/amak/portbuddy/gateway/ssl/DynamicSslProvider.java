@@ -64,18 +64,21 @@ public class DynamicSslProvider {
             .expireAfterWrite(Duration.ofMinutes(30))
             .removalListener((String key, Object value, RemovalCause cause) -> {
                 if (value instanceof CompletableFuture<?> future) {
-                    future.thenAccept(context -> {
-                        if (context instanceof SslContext sslContext && sslContext != fallbackSslContext) {
-                            log.debug("Evicted SSL context for {}. Releasing resources.", key);
-                            ReferenceCountUtil.release(sslContext);
-                        }
+                    future.whenComplete((context, ex) -> {
+                        releaseSslContext(context, key);
                     });
-                } else if (value instanceof SslContext sslContext && sslContext != fallbackSslContext) {
-                    log.debug("Evicted SSL context for {}. Releasing resources.", key);
-                    ReferenceCountUtil.release(sslContext);
+                } else {
+                    releaseSslContext(value, key);
                 }
             })
             .buildAsync();
+    }
+
+    private void releaseSslContext(final Object context, final String key) {
+        if (context instanceof SslContext sslContext && sslContext != fallbackSslContext) {
+            log.debug("Evicted SSL context for {}. Releasing resources.", key);
+            ReferenceCountUtil.release(sslContext);
+        }
     }
 
     /**
@@ -85,6 +88,7 @@ public class DynamicSslProvider {
     public void shutdown() {
         log.info("Shutting down DynamicSslProvider. Releasing resources.");
         sslContextCache.synchronous().invalidateAll();
+        sslContextCache.synchronous().cleanUp();
         if (fallbackSslContext != null) {
             ReferenceCountUtil.release(fallbackSslContext);
         }
@@ -171,6 +175,9 @@ public class DynamicSslProvider {
                             new File(cert.certificatePath()),
                             new File(cert.privateKeyPath())
                         ).build();
+                    }
+                    if (context != null) {
+                        ReferenceCountUtil.retain(context);
                     }
                     return Mono.just(context);
                 } catch (final Exception e) {
