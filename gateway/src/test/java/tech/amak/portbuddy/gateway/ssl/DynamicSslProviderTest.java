@@ -15,19 +15,28 @@
 package tech.amak.portbuddy.gateway.ssl;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.util.SelfSignedCertificate;
 import reactor.core.publisher.Mono;
 import tech.amak.portbuddy.gateway.client.SslServiceClient;
 import tech.amak.portbuddy.gateway.config.AppProperties;
+import tech.amak.portbuddy.gateway.dto.CertificateResponse;
 
 @ExtendWith(MockitoExtension.class)
 class DynamicSslProviderTest {
@@ -40,6 +49,9 @@ class DynamicSslProviderTest {
 
     @Mock
     private AppProperties.Ssl sslProperties;
+
+    @TempDir
+    File tempDir;
 
     private DynamicSslProvider sslProvider;
 
@@ -70,5 +82,27 @@ class DynamicSslProviderTest {
 
         // Then
         assertNotNull(context);
+    }
+
+    @Test
+    void shouldLoadSslContextFromFile() throws Exception {
+        // Given
+        final SelfSignedCertificate ssc = new SelfSignedCertificate();
+        final String hostname = "test.portbuddy.dev";
+        final CertificateResponse response = new CertificateResponse(
+            hostname,
+            ssc.certificate().getAbsolutePath(),
+            ssc.privateKey().getAbsolutePath(),
+            null,
+            null
+        );
+        when(sslServiceClient.getCertificate("*.portbuddy.dev")).thenReturn(Mono.just(response));
+
+        // When
+        final SslContext context = sslProvider.getSslContext(hostname).block();
+
+        // Then
+        assertNotNull(context);
+        assertTrue(context.isServer());
     }
 }

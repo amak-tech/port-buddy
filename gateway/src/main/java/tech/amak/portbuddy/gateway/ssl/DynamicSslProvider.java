@@ -18,6 +18,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.SequenceInputStream;
 import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
 
 import org.springframework.stereotype.Service;
 
@@ -61,10 +62,17 @@ public class DynamicSslProvider {
         this.sslContextCache = Caffeine.newBuilder()
             .maximumSize(500)
             .expireAfterWrite(Duration.ofMinutes(30))
-            .removalListener((String key, SslContext context, RemovalCause cause) -> {
-                if (context != null && context != fallbackSslContext) {
+            .removalListener((String key, Object value, RemovalCause cause) -> {
+                if (value instanceof CompletableFuture<?> future) {
+                    future.thenAccept(context -> {
+                        if (context instanceof SslContext sslContext && sslContext != fallbackSslContext) {
+                            log.debug("Evicted SSL context for {}. Releasing resources.", key);
+                            ReferenceCountUtil.release(sslContext);
+                        }
+                    });
+                } else if (value instanceof SslContext sslContext && sslContext != fallbackSslContext) {
                     log.debug("Evicted SSL context for {}. Releasing resources.", key);
-                    ReferenceCountUtil.release(context);
+                    ReferenceCountUtil.release(sslContext);
                 }
             })
             .buildAsync();
@@ -143,31 +151,36 @@ public class DynamicSslProvider {
                 }
 
                 try {
+                    final SslContext context;
                     if (cert.fullChainPath() != null) {
-                        return Mono.just(SslContextBuilder.forServer(
+                        context = SslContextBuilder.forServer(
                             new File(cert.fullChainPath()),
                             new File(cert.privateKeyPath())
-                        ).build());
-                    }
-
-                    if (cert.chainPath() != null && !cert.chainPath().isBlank()) {
+                        ).build();
+                    } else if (cert.chainPath() != null && !cert.chainPath().isBlank()) {
                         log.debug("Full chain path missing, but chain path present. Concatenating for {}.",
                             finalLookupDomain);
                         try (var certIs = new FileInputStream(cert.certificatePath());
                              var chainIs = new FileInputStream(cert.chainPath());
                              var fullChainIs = new SequenceInputStream(certIs, chainIs);
                              var keyIs = new FileInputStream(cert.privateKeyPath())) {
-                            return Mono.just(SslContextBuilder.forServer(fullChainIs, keyIs).build());
+                            context = SslContextBuilder.forServer(fullChainIs, keyIs).build();
                         }
+                    } else {
+                        context = SslContextBuilder.forServer(
+                            new File(cert.certificatePath()),
+                            new File(cert.privateKeyPath())
+                        ).build();
                     }
-
-                    return Mono.just(SslContextBuilder.forServer(
-                        new File(cert.certificatePath()),
-                        new File(cert.privateKeyPath())
-                    ).build());
+                    return Mono.just(context);
                 } catch (final Exception e) {
                     log.error("Failed to create SslContext for {}. Using fallback.", finalLookupDomain, e);
                     return Mono.just(fallbackSslContext);
+                }
+            })
+            .doOnDiscard(SslContext.class, ctx -> {
+                if (ctx != fallbackSslContext) {
+                    ReferenceCountUtil.release(ctx);
                 }
             })
             .defaultIfEmpty(fallbackSslContext)
