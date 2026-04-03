@@ -164,10 +164,10 @@ public class DynamicSslProvider {
                     } else if (cert.chainPath() != null && !cert.chainPath().isBlank()) {
                         log.debug("Full chain path missing, but chain path present. Concatenating for {}.",
                             finalLookupDomain);
-                        try (var certIs = new FileInputStream(cert.certificatePath());
-                             var chainIs = new FileInputStream(cert.chainPath());
-                             var fullChainIs = new SequenceInputStream(certIs, chainIs);
-                             var keyIs = new FileInputStream(cert.privateKeyPath())) {
+                        try (final var certIs = new FileInputStream(cert.certificatePath());
+                             final var chainIs = new FileInputStream(cert.chainPath());
+                             final var fullChainIs = new SequenceInputStream(certIs, chainIs);
+                             final var keyIs = new FileInputStream(cert.privateKeyPath())) {
                             context = SslContextBuilder.forServer(fullChainIs, keyIs).build();
                         }
                     } else {
@@ -176,9 +176,7 @@ public class DynamicSslProvider {
                             new File(cert.privateKeyPath())
                         ).build();
                     }
-                    if (context != null) {
-                        ReferenceCountUtil.retain(context);
-                    }
+                    ReferenceCountUtil.retain(context);
                     return Mono.just(context);
                 } catch (final Exception e) {
                     log.error("Failed to create SslContext for {}. Using fallback.", finalLookupDomain, e);
