@@ -57,17 +57,17 @@ public class DynamicSslProvider {
         this.sslServiceClient = sslServiceClient;
         this.properties = properties;
         this.baseDomain = properties.domain();
+        this.fallbackSslContext = createFallbackSslContext();
         this.sslContextCache = Caffeine.newBuilder()
-            .maximumSize(1000)
-            .expireAfterWrite(Duration.ofHours(1))
+            .maximumSize(500)
+            .expireAfterWrite(Duration.ofMinutes(30))
             .removalListener((String key, SslContext context, RemovalCause cause) -> {
-                if (context != null) {
+                if (context != null && context != fallbackSslContext) {
                     log.debug("Evicted SSL context for {}. Releasing resources.", key);
                     ReferenceCountUtil.release(context);
                 }
             })
             .buildAsync();
-        this.fallbackSslContext = createFallbackSslContext();
     }
 
     /**
@@ -121,7 +121,9 @@ public class DynamicSslProvider {
         if (hostname == null) {
             return Mono.just(fallbackSslContext);
         }
-        return Mono.fromFuture(sslContextCache.get(hostname, (h, executor) -> loadSslContext(h).toFuture()));
+
+        final var normalizedHostname = hostname.toLowerCase();
+        return Mono.fromFuture(sslContextCache.get(normalizedHostname, (h, executor) -> loadSslContext(h).toFuture()));
     }
 
     private Mono<SslContext> loadSslContext(final String hostname) {
@@ -134,18 +136,18 @@ public class DynamicSslProvider {
 
         final String finalLookupDomain = lookupDomain;
         return sslServiceClient.getCertificate(lookupDomain)
-            .map(cert -> {
+            .flatMap(cert -> {
                 if (cert == null || cert.certificatePath() == null || cert.privateKeyPath() == null) {
                     log.warn("No certificate found for {}. Using fallback.", finalLookupDomain);
-                    return fallbackSslContext;
+                    return Mono.just(fallbackSslContext);
                 }
 
                 try {
                     if (cert.fullChainPath() != null) {
-                        return SslContextBuilder.forServer(
+                        return Mono.just(SslContextBuilder.forServer(
                             new File(cert.fullChainPath()),
                             new File(cert.privateKeyPath())
-                        ).build();
+                        ).build());
                     }
 
                     if (cert.chainPath() != null && !cert.chainPath().isBlank()) {
@@ -155,17 +157,17 @@ public class DynamicSslProvider {
                              var chainIs = new FileInputStream(cert.chainPath());
                              var fullChainIs = new SequenceInputStream(certIs, chainIs);
                              var keyIs = new FileInputStream(cert.privateKeyPath())) {
-                            return SslContextBuilder.forServer(fullChainIs, keyIs).build();
+                            return Mono.just(SslContextBuilder.forServer(fullChainIs, keyIs).build());
                         }
                     }
 
-                    return SslContextBuilder.forServer(
+                    return Mono.just(SslContextBuilder.forServer(
                         new File(cert.certificatePath()),
                         new File(cert.privateKeyPath())
-                    ).build();
+                    ).build());
                 } catch (final Exception e) {
                     log.error("Failed to create SslContext for {}. Using fallback.", finalLookupDomain, e);
-                    return fallbackSslContext;
+                    return Mono.just(fallbackSslContext);
                 }
             })
             .defaultIfEmpty(fallbackSslContext)

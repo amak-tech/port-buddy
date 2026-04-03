@@ -57,7 +57,7 @@ class DynamicSslProviderTest {
         when(sslServiceClient.getCertificate(anyString())).thenReturn(Mono.empty());
 
         // When
-        final SslContext context = sslProvider.getSslContext("unknown.com").block();
+        final SslContext context = sslProvider.getSslContext("UNKNOWN.COM").block();
 
         // Then
         assertNotNull(context);
