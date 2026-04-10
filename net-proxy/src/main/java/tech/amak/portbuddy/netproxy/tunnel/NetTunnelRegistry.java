@@ -102,8 +102,10 @@ public class NetTunnelRegistry {
     private void cleanupOrphanedTunnels() {
         final var now = System.currentTimeMillis();
         for (final var tunnel : byTunnelId.values()) {
-            if (tunnel.session == null && (now - tunnel.createdAt) > ORPHAN_TIMEOUT_MS) {
-                log.warn("Cleaning up orphaned tunnel {} (no session for {}ms)",
+            final var session = tunnel.session;
+            final var isOrphaned = session == null || !session.isOpen();
+            if (isOrphaned && (now - tunnel.createdAt) > ORPHAN_TIMEOUT_MS) {
+                log.warn("Cleaning up orphaned tunnel {} (no session or closed for {}ms)",
                     tunnel.tunnelId, now - tunnel.createdAt);
                 closeTunnel(tunnel.tunnelId);
             }
