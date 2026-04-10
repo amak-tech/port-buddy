@@ -323,7 +323,7 @@ public class NetTunnelRegistry {
                 sendBinaryToClient(tunnel, connection.connectionId, peekBuffer, 0, bytesRead);
             }
 
-            while (true) {
+            while (!Thread.currentThread().isInterrupted()) {
                 final var next = connection.in.read(buffer);
                 if (next == -1) {
                     break;
@@ -350,7 +350,7 @@ public class NetTunnelRegistry {
     private void udpReceiveLoop(final Tunnel tunnel) {
         final var buffer = new byte[8192];
         try {
-            while (tunnel.udpSocket != null && !tunnel.udpSocket.isClosed()) {
+            while (tunnel.udpSocket != null && !tunnel.udpSocket.isClosed() && !Thread.currentThread().isInterrupted()) {
                 final var packet = new DatagramPacket(buffer, buffer.length);
                 tunnel.udpSocket.receive(packet);
                 final var remote = new InetSocketAddress(packet.getAddress(), packet.getPort());
