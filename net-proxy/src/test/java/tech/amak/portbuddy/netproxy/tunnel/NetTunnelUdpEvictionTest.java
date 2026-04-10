@@ -10,7 +10,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
  */
 
 /*
@@ -71,8 +70,10 @@ class NetTunnelUdpEvictionTest {
         tunnel.getUdpRemotes().cleanUp();
         
         assertEquals(1000, tunnel.getUdpRemotes().estimatedSize());
-        assertNotNull(tunnel.getUdpRemotes().getIfPresent("remote-0"), "remote-0 should still be present because it was recently accessed");
-        assertNull(tunnel.getUdpRemotes().getIfPresent("remote-1"), "remote-1 should have been evicted as the eldest entry");
+        assertNotNull(tunnel.getUdpRemotes().getIfPresent("remote-0"),
+            "remote-0 should still be present because it was recently accessed");
+        assertNull(tunnel.getUdpRemotes().getIfPresent("remote-1"),
+            "remote-1 should have been evicted as the eldest entry");
         assertNotNull(tunnel.getUdpRemotes().getIfPresent("remote-1000"));
     }
 }

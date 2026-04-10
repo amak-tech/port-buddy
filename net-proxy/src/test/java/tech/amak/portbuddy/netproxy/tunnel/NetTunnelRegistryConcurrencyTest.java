@@ -10,7 +10,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
  */
 
 package tech.amak.portbuddy.netproxy.tunnel;
@@ -24,15 +23,16 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.web.socket.WebSocketSession;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.TunnelType;
 
+@Slf4j
 class NetTunnelRegistryConcurrencyTest {
 
     private final ObjectMapper mapper = new ObjectMapper();
@@ -60,14 +60,16 @@ class NetTunnelRegistryConcurrencyTest {
 
             // Check that all connections are registered
             final var tunnel = registry.byTunnelId.get(tunnelId);
-            assertEquals(connectionCount, tunnel.getConnections().size(), 
+            assertEquals(connectionCount, tunnel.getConnections().size(),
                 "Should have " + connectionCount + " active connections");
 
         } finally {
             for (final var socket : sockets) {
                 try {
                     socket.close();
-                } catch (IOException ignore) {}
+                } catch (final IOException ignore) {
+                    log.debug("Failed to close socket during test cleanup", ignore);
+                }
             }
             registry.closeTunnel(tunnelId);
         }

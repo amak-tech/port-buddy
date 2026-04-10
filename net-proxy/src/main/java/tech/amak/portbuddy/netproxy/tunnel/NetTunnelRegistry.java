@@ -262,14 +262,7 @@ public class NetTunnelRegistry {
         // Close all live TCP connections
         for (final var entry : tunnel.connections.entrySet()) {
             final var connection = entry.getValue();
-            try {
-                if (connection.pumpFuture != null) {
-                    connection.pumpFuture.cancel(true);
-                }
-                connection.socket.close();
-            } catch (final Exception e) {
-                log.debug("Failed to close connection {}: {}", entry.getKey(), e.toString());
-            }
+            connection.close();
         }
         tunnel.connections.clear();
         // Close UDP socket
@@ -364,11 +357,7 @@ public class NetTunnelRegistry {
             log.error("Failed to read from public socket for tunnel {}: {}", tunnel.tunnelId, ignore.toString());
         } finally {
             log.info("Public socket closed for tunnel {}: {}", tunnel.tunnelId, connection.connectionId);
-            try {
-                connection.socket.close();
-            } catch (final Exception ignore) {
-                log.error("Failed to close public socket: {}", ignore.toString());
-            }
+            connection.close();
             tunnel.connections.remove(connection.connectionId);
             final var message = new WsTunnelMessage();
             message.setWsType(WsTunnelMessage.Type.CLOSE);
@@ -491,18 +480,7 @@ public class NetTunnelRegistry {
         } else {
             final var connection = tunnel.connections.remove(connectionId);
             if (connection != null) {
-                if (connection.cleanupTask != null) {
-                    connection.cleanupTask.cancel(false);
-                    connection.cleanupTask = null;
-                }
-                if (connection.pumpFuture != null) {
-                    connection.pumpFuture.cancel(true);
-                }
-                try {
-                    connection.socket.close();
-                } catch (final IOException ignore) {
-                    log.error("Failed to close public socket: {}", ignore.toString());
-                }
+                connection.close();
             }
         }
     }
@@ -566,9 +544,9 @@ public class NetTunnelRegistry {
 
     private static class Connection {
         final String connectionId;
-        final Socket socket;
-        final InputStream in;
-        final OutputStream out;
+        Socket socket;
+        InputStream in;
+        OutputStream out;
         volatile boolean pumpStarted = false;
         volatile Future<?> pumpFuture;
         volatile ScheduledFuture<?> cleanupTask;
@@ -582,6 +560,30 @@ public class NetTunnelRegistry {
 
         void setCleanupTask(final ScheduledFuture<?> cleanupTask) {
             this.cleanupTask = cleanupTask;
+        }
+
+        /**
+         * Closes the socket and nullifies all resource references.
+         */
+        void close() {
+            if (cleanupTask != null) {
+                cleanupTask.cancel(false);
+                cleanupTask = null;
+            }
+            if (pumpFuture != null) {
+                pumpFuture.cancel(true);
+                pumpFuture = null;
+            }
+            try {
+                if (socket != null && !socket.isClosed()) {
+                    socket.close();
+                }
+            } catch (final IOException ignore) {
+                log.error("Failed to close socket: {}", ignore.toString());
+            }
+            socket = null;
+            in = null;
+            out = null;
         }
     }
 }
