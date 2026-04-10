@@ -104,9 +104,18 @@ public class NetTunnelRegistry {
         for (final var tunnel : byTunnelId.values()) {
             final var session = tunnel.session;
             final var isOrphaned = session == null || !session.isOpen();
+
+            // UDP tunnels might be inactive but still have a session.
+            // Check last activity for UDP tunnels if they are orphaned.
+            final var isUdpInactive = tunnel.udpSocket != null && (now - tunnel.lastUdpActivity) > ORPHAN_TIMEOUT_MS;
+
             if (isOrphaned && (now - tunnel.createdAt) > ORPHAN_TIMEOUT_MS) {
                 log.warn("Cleaning up orphaned tunnel {} (no session or closed for {}ms)",
                     tunnel.tunnelId, now - tunnel.createdAt);
+                closeTunnel(tunnel.tunnelId);
+            } else if (isUdpInactive && isOrphaned) {
+                log.warn("Cleaning up inactive UDP tunnel {} (no activity for {}ms)",
+                    tunnel.tunnelId, now - tunnel.lastUdpActivity);
                 closeTunnel(tunnel.tunnelId);
             }
         }
@@ -339,7 +348,11 @@ public class NetTunnelRegistry {
                 for (final var method : HTTP_METHODS) {
                     if (prefix.startsWith(method)) {
                         log.warn("Blocking HTTP request on TCP tunnel {}: {}", tunnel.tunnelId, prefix.trim());
-                        connection.socket.close();
+                        final var closeMsg = new WsTunnelMessage();
+                        closeMsg.setWsType(WsTunnelMessage.Type.CLOSE);
+                        closeMsg.setConnectionId(connection.connectionId);
+                        sendToClient(tunnel, closeMsg);
+                        connection.close();
                         tunnel.connections.remove(connection.connectionId);
                         return;
                     }
@@ -402,8 +415,16 @@ public class NetTunnelRegistry {
             connection.cleanupTask.cancel(false);
             connection.cleanupTask = null;
         }
-        connection.pumpStarted = true;
-        connection.pumpFuture = ioPool.submit(() -> pumpFromPublic(tunnel, connection));
+        if (connection.pumpStarted) {
+            return;
+        }
+        synchronized (connection) {
+            if (connection.pumpStarted) {
+                return;
+            }
+            connection.pumpStarted = true;
+            connection.pumpFuture = ioPool.submit(() -> pumpFromPublic(tunnel, connection));
+        }
     }
 
     /**
@@ -525,7 +546,7 @@ public class NetTunnelRegistry {
     }
 
     @Data
-    static class Tunnel {
+    public static class Tunnel {
         private final UUID tunnelId;
         private long createdAt = System.currentTimeMillis();
         private volatile WebSocketSession session;
@@ -541,13 +562,19 @@ public class NetTunnelRegistry {
                     return size() > 100;
                 }
             });
+        private long lastUdpActivity = System.currentTimeMillis();
 
         Tunnel(final UUID tunnelId) {
             this.tunnelId = tunnelId;
         }
+
+        public void updateUdpActivity() {
+            this.lastUdpActivity = System.currentTimeMillis();
+        }
     }
 
-    private static class Connection {
+    @Data
+    public static class Connection {
         final String connectionId;
         Socket socket;
         InputStream in;
