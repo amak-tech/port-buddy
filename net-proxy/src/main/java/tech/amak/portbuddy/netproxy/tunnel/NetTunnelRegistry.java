@@ -40,9 +40,10 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 import lombok.Data;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.TunnelType;
 import tech.amak.portbuddy.common.tunnel.BinaryWsFrame;
@@ -280,7 +281,7 @@ public class NetTunnelRegistry {
                 log.debug("Failed to close DatagramSocket: {}", e.toString());
             }
         }
-        tunnel.udpRemotes.clear();
+        tunnel.udpRemotes.invalidateAll();
         tunnel.session = null;
     }
 
@@ -379,7 +380,8 @@ public class NetTunnelRegistry {
     private void udpReceiveLoop(final Tunnel tunnel) {
         final var buffer = new byte[8192];
         try {
-            while (tunnel.udpSocket != null && !tunnel.udpSocket.isClosed() && !Thread.currentThread().isInterrupted()) {
+            while (tunnel.udpSocket != null && !tunnel.udpSocket.isClosed()
+                   && !Thread.currentThread().isInterrupted()) {
                 final var packet = new DatagramPacket(buffer, buffer.length);
                 tunnel.udpSocket.receive(packet);
                 final var remote = new InetSocketAddress(packet.getAddress(), packet.getPort());
@@ -445,7 +447,7 @@ public class NetTunnelRegistry {
         }
         // If UDP is active on this tunnel, route as a datagram
         if (tunnel.udpSocket != null) {
-            final var remote = tunnel.udpRemotes.get(connectionId);
+            final var remote = tunnel.udpRemotes.getIfPresent(connectionId);
             if (remote == null) {
                 return;
             }
@@ -485,7 +487,7 @@ public class NetTunnelRegistry {
         }
         if (tunnel.udpSocket != null) {
             // Just remove mapping; no need to close the UDP socket itself
-            tunnel.udpRemotes.remove(connectionId);
+            tunnel.udpRemotes.invalidate(connectionId);
         } else {
             final var connection = tunnel.connections.remove(connectionId);
             if (connection != null) {
@@ -552,15 +554,10 @@ public class NetTunnelRegistry {
         private final Map<String, Connection> connections = new ConcurrentHashMap<>();
         private volatile DatagramSocket udpSocket;
         private volatile Future<?> udpReceiveLoopFuture;
-        private final Map<String, InetSocketAddress> udpRemotes = new ConcurrentHashMap<>() {
-            @Override
-            public InetSocketAddress put(final String key, final InetSocketAddress value) {
-                if (size() > 1000) {
-                    clear(); // Simple eviction to prevent OOM
-                }
-                return super.put(key, value);
-            }
-        };
+        private final Cache<String, InetSocketAddress> udpRemotes =
+            Caffeine.newBuilder()
+                .maximumSize(1000)
+                .build();
 
         Tunnel(final UUID tunnelId) {
             this.tunnelId = tunnelId;
