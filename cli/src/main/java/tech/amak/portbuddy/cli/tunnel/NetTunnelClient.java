@@ -93,6 +93,7 @@ public class NetTunnelClient {
     private final AtomicBoolean closedReported = new AtomicBoolean(false);
     private final AtomicBoolean stop = new AtomicBoolean(false);
     private final AtomicBoolean warnedAboutReassignment = new AtomicBoolean(false);
+    private final AtomicBoolean successfullyConnected = new AtomicBoolean(false);
 
     /**
      * Establishes and maintains a WebSocket connection for TCP/UDP tunneling.
@@ -126,11 +127,16 @@ public class NetTunnelClient {
                     request.addHeader("Authorization", "Bearer " + authToken);
                 }
                 webSocket = http.newWebSocket(request.build(), new Listener());
+                successfullyConnected.set(false);
 
                 // Block until this connection is closed
                 closed.await();
                 if (stop.get()) {
                     break;
+                }
+
+                if (successfullyConnected.get()) {
+                    backoffMs = 1000L;
                 }
                 // Reconnect with backoff
                 log.info("Net tunnel disconnected; reconnecting in {} ms...", backoffMs);
@@ -228,6 +234,7 @@ public class NetTunnelClient {
     private class Listener extends WebSocketListener {
         @Override
         public void onOpen(final WebSocket webSocket, final Response response) {
+            successfullyConnected.set(true);
             // Report CONNECTED and start heartbeats
             try {
                 postStatus("/api/tunnels/" + tunnelId + "/connected");

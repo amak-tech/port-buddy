@@ -170,24 +170,20 @@ public class NetTunnelRegistry {
         if (tunnel.serverSocket != null && !tunnel.serverSocket.isClosed()) {
             return new ExposedPort(tunnel.serverSocket.getLocalPort());
         }
-        final ServerSocket serverSocket;
-        ServerSocket sock;
         try {
-            sock = new ServerSocket(desiredPort);
+            tunnel.serverSocket = new ServerSocket(desiredPort);
         } catch (final IOException bindEx) {
             log.info("TCP port {} is busy. Trying to close existing tunnel and retry.", desiredPort);
             closeTunnelUsingPort(desiredPort);
             try {
-                sock = new ServerSocket(desiredPort);
+                tunnel.serverSocket = new ServerSocket(desiredPort);
             } catch (final IOException secondBindEx) {
                 log.error("TCP port {} is still busy.", desiredPort);
                 throw secondBindEx;
             }
         }
-        serverSocket = sock;
-        tunnel.serverSocket = serverSocket;
         tunnel.acceptLoopFuture = ioPool.submit(() -> acceptLoop(tunnel));
-        return new ExposedPort(serverSocket.getLocalPort());
+        return new ExposedPort(tunnel.serverSocket.getLocalPort());
     }
 
     /**
@@ -296,7 +292,7 @@ public class NetTunnelRegistry {
                 ioPool.submit(() -> handleNewConnection(tunnel, socket));
             }
         } catch (final Exception e) {
-            log.info("Accept loop ended for tunnel {}: {}", tunnel.tunnelId, e.toString());
+            log.info("Accept loop ended for tunnel {}: {}", tunnel.tunnelId, e.getMessage(), e);
         }
     }
 
@@ -375,8 +371,8 @@ public class NetTunnelRegistry {
                 }
                 sendBinaryToClient(tunnel, connection.connectionId, buffer, 0, next);
             }
-        } catch (final Exception ignore) {
-            log.error("Failed to read from public socket for tunnel {}: {}", tunnel.tunnelId, ignore.toString());
+        } catch (final Exception e) {
+            log.error("Failed to read from public socket for tunnel {}: {}", tunnel.tunnelId, e.getMessage(), e);
         } finally {
             log.info("Public socket closed for tunnel {}: {}", tunnel.tunnelId, connection.connectionId);
             connection.close();
