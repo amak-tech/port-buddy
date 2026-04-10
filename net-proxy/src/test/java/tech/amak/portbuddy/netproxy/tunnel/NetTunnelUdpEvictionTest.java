@@ -54,26 +54,22 @@ class NetTunnelUdpEvictionTest {
         assertNotNull(tunnel);
         
         // Fill the map to its capacity (1000)
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 100; i++) {
             final var id = "remote-" + i;
             tunnel.getUdpRemotes().put(id, new InetSocketAddress("127.0.0.1", 10000 + i));
         }
         
-        assertEquals(1000, tunnel.getUdpRemotes().estimatedSize());
-        assertNotNull(tunnel.getUdpRemotes().getIfPresent("remote-0"));
+        assertEquals(100, tunnel.getUdpRemotes().size());
+        assertNotNull(tunnel.getUdpRemotes().get("remote-0"));
         
         // Add one more entry to trigger eviction
-        tunnel.getUdpRemotes().put("remote-1000", new InetSocketAddress("127.0.0.1", 11000));
+        tunnel.getUdpRemotes().put("remote-100", new InetSocketAddress("127.0.0.1", 11000));
         
-        // Caffeine eviction is eventual/asynchronous by default, but for small sizes and immediate check it might work
-        // or we can call cleanUp()
-        tunnel.getUdpRemotes().cleanUp();
-        
-        assertEquals(1000, tunnel.getUdpRemotes().estimatedSize());
-        assertNotNull(tunnel.getUdpRemotes().getIfPresent("remote-0"),
+        assertEquals(100, tunnel.getUdpRemotes().size());
+        assertNotNull(tunnel.getUdpRemotes().get("remote-0"),
             "remote-0 should still be present because it was recently accessed");
-        assertNull(tunnel.getUdpRemotes().getIfPresent("remote-1"),
+        assertNull(tunnel.getUdpRemotes().get("remote-1"),
             "remote-1 should have been evicted as the eldest entry");
-        assertNotNull(tunnel.getUdpRemotes().getIfPresent("remote-1000"));
+        assertNotNull(tunnel.getUdpRemotes().get("remote-100"));
     }
 }

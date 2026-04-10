@@ -24,6 +24,8 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Base64;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -40,8 +42,6 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -276,7 +276,7 @@ public class NetTunnelRegistry {
                 log.debug("Failed to close DatagramSocket: {}", e.toString());
             }
         }
-        tunnel.udpRemotes.invalidateAll();
+        tunnel.udpRemotes.clear();
         tunnel.session = null;
     }
 
@@ -438,7 +438,7 @@ public class NetTunnelRegistry {
         }
         // If UDP is active on this tunnel, route as a datagram
         if (tunnel.udpSocket != null) {
-            final var remote = tunnel.udpRemotes.getIfPresent(connectionId);
+            final var remote = tunnel.udpRemotes.get(connectionId);
             if (remote == null) {
                 return;
             }
@@ -478,7 +478,7 @@ public class NetTunnelRegistry {
         }
         if (tunnel.udpSocket != null) {
             // Just remove mapping; no need to close the UDP socket itself
-            tunnel.udpRemotes.invalidate(connectionId);
+            tunnel.udpRemotes.remove(connectionId);
         } else {
             final var connection = tunnel.connections.remove(connectionId);
             if (connection != null) {
@@ -534,10 +534,13 @@ public class NetTunnelRegistry {
         private final Map<String, Connection> connections = new ConcurrentHashMap<>();
         private volatile DatagramSocket udpSocket;
         private volatile Future<?> udpReceiveLoopFuture;
-        private final Cache<String, InetSocketAddress> udpRemotes =
-            Caffeine.newBuilder()
-                .maximumSize(1000)
-                .build();
+        private final Map<String, InetSocketAddress> udpRemotes =
+            Collections.synchronizedMap(new LinkedHashMap<>(16, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(final Map.Entry<String, InetSocketAddress> eldest) {
+                    return size() > 100;
+                }
+            });
 
         Tunnel(final UUID tunnelId) {
             this.tunnelId = tunnelId;
