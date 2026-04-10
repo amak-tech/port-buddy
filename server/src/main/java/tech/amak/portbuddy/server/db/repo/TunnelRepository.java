@@ -86,9 +86,10 @@ public interface TunnelRepository extends JpaRepository<TunnelEntity, UUID> {
         UPDATE tunnels SET status = 'CLOSED', updated_at = NOW()
         WHERE created_at < :cutoff
                   AND status <> 'CLOSED'
-                  AND (last_heartbeat_at IS NULL OR last_heartbeat_at < :cutoff)""",
+                  AND (last_heartbeat_at IS NULL OR last_heartbeat_at < :cutoff)
+        RETURNING id""",
         nativeQuery = true)
-    int closeStaleConnected(@Param("cutoff") final OffsetDateTime cutoff);
+    List<UUID> closeStaleConnected(@Param("cutoff") final OffsetDateTime cutoff);
 
     @Query(value = """
         SELECT t.id AS id,
