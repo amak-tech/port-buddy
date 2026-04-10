@@ -308,30 +308,37 @@ public class NetTunnelRegistry {
      * @param socket the newly accepted socket
      */
     private void handleNewConnection(final Tunnel tunnel, final Socket socket) {
+        String connId = null;
         try {
             socket.setSoTimeout(30000); // 30s timeout for initial handshake
-            final var connId = UUID.randomUUID().toString();
+            connId = UUID.randomUUID().toString();
             final var pushbackIn = new PushbackInputStream(socket.getInputStream(), 16);
             final var connection = new Connection(connId, socket, pushbackIn);
             tunnel.connections.put(connId, connection);
             sendOpen(tunnel, connId);
 
             // Start a task to cleanup this connection if it's not opened within a reasonable time
+            final var finalConnId = connId;
             final var cleanupTask = scheduler.schedule(() -> {
-                final var conn = tunnel.connections.get(connId);
+                final var conn = tunnel.connections.get(finalConnId);
                 if (conn != null && !conn.pumpStarted) {
                     log.warn("Connection {} for tunnel {} was not opened by client within 60s. Closing.",
-                        connId, tunnel.tunnelId);
-                    onClientClose(tunnel.tunnelId, connId);
+                        finalConnId, tunnel.tunnelId);
+                    onClientClose(tunnel.tunnelId, finalConnId);
                 }
             }, 60, TimeUnit.SECONDS);
             connection.setCleanupTask(cleanupTask);
         } catch (final Exception e) {
             log.error("Failed to handle new connection for tunnel {}: {}", tunnel.tunnelId, e.toString());
-            try {
-                socket.close();
-            } catch (final IOException ignore) {
-                // ignore
+            final var conn = connId != null ? tunnel.connections.remove(connId) : null;
+            if (conn != null) {
+                conn.close();
+            } else {
+                try {
+                    socket.close();
+                } catch (final IOException ignore) {
+                    // ignore
+                }
             }
         }
     }
