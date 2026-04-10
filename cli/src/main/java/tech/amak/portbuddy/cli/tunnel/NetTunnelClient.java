@@ -93,6 +93,7 @@ public class NetTunnelClient {
     private final AtomicBoolean closedReported = new AtomicBoolean(false);
     private final AtomicBoolean stop = new AtomicBoolean(false);
     private final AtomicBoolean warnedAboutReassignment = new AtomicBoolean(false);
+    private final AtomicBoolean successfullyConnected = new AtomicBoolean(false);
 
     /**
      * Establishes and maintains a WebSocket connection for TCP/UDP tunneling.
@@ -126,11 +127,16 @@ public class NetTunnelClient {
                     request.addHeader("Authorization", "Bearer " + authToken);
                 }
                 webSocket = http.newWebSocket(request.build(), new Listener());
+                successfullyConnected.set(false);
 
                 // Block until this connection is closed
                 closed.await();
                 if (stop.get()) {
                     break;
+                }
+
+                if (successfullyConnected.get()) {
+                    backoffMs = 1000L;
                 }
                 // Reconnect with backoff
                 log.info("Net tunnel disconnected; reconnecting in {} ms...", backoffMs);
@@ -187,8 +193,8 @@ public class NetTunnelClient {
             udpLocals.values().forEach(this::close);
             udpLocals.clear();
             reportClosedSafe();
-        } catch (final Exception ignore) {
-            log.debug("TCP tunnel close error: {}", ignore.toString());
+        } catch (final Exception e) {
+            log.debug("TCP tunnel close error: {}", e.toString());
         }
     }
 
@@ -228,6 +234,7 @@ public class NetTunnelClient {
     private class Listener extends WebSocketListener {
         @Override
         public void onOpen(final WebSocket webSocket, final Response response) {
+            successfullyConnected.set(true);
             // Report CONNECTED and start heartbeats
             try {
                 postStatus("/api/tunnels/" + tunnelId + "/connected");
@@ -299,7 +306,6 @@ public class NetTunnelClient {
                 if (env.getKind() != null && env.getKind().equals("WS")) {
                     final var msg = MAPPER.readValue(text, WsTunnelMessage.class);
                     handleControl(msg);
-                    return;
                 }
                 // Unknown kinds are ignored for NET tunnels
             } catch (final Exception e) {
@@ -522,8 +528,8 @@ public class NetTunnelClient {
                 message.setWsType(WsTunnelMessage.Type.CLOSE);
                 message.setConnectionId(local.connectionId);
                 webSocket.send(MAPPER.writeValueAsString(message));
-            } catch (final Exception ignore) {
-                log.error("Failed to send local WS close: {}", ignore.toString());
+            } catch (final Exception e) {
+                log.error("Failed to send local WS close: {}", e.toString());
             }
             close(local);
             locals.remove(local.connectionId);

@@ -25,6 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import tech.amak.portbuddy.server.config.TunnelsProperties;
 import tech.amak.portbuddy.server.db.repo.TunnelRepository;
+import tech.amak.portbuddy.server.tunnel.TunnelRegistry;
 
 /**
  * Periodically closes tunnels that stopped sending heartbeats.
@@ -36,6 +37,7 @@ public class StaleTunnelsReaper {
 
     private final TunnelRepository tunnelRepository;
     private final TunnelsProperties tunnelsProperties;
+    private final TunnelRegistry tunnelRegistry;
 
     /**
      * Monitors stale tunnels and closes them.
@@ -49,9 +51,12 @@ public class StaleTunnelsReaper {
     public void closeStaleTunnels() {
         final var timeout = tunnelsProperties.getHeartbeatTimeout();
         final var cutoff = OffsetDateTime.now().minus(timeout);
-        final var updated = tunnelRepository.closeStaleConnected(cutoff);
-        if (updated > 0) {
-            log.info("Closed {} stale tunnels (cutoff={})", updated, cutoff);
+        final var closedIds = tunnelRepository.closeStaleConnected(cutoff);
+        if (!closedIds.isEmpty()) {
+            log.info("Closed {} stale tunnels (cutoff={})", closedIds.size(), cutoff);
+            for (final var tunnelId : closedIds) {
+                tunnelRegistry.closeTunnel(tunnelId);
+            }
         } else {
             log.debug("No stale tunnels found (cutoff={})", cutoff);
         }
