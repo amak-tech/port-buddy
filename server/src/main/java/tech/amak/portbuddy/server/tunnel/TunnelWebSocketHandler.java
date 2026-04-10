@@ -136,13 +136,11 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionClosed(final WebSocketSession session, final CloseStatus status) {
         final var tunnelId = extractTunnelId(session);
-        final var tunnel = registry.getByTunnelId(tunnelId);
-        if (tunnel != null) {
-            tunnel.setSession(null);
-            log.info("Tunnel session closed: {} code={} reason={}", tunnelId,
-                status != null ? status.getCode() : null,
-                status != null ? status.getReason() : null);
-        }
+        log.info("Tunnel session closed: {} code={} reason={}", tunnelId,
+            status != null ? status.getCode() : null,
+            status != null ? status.getReason() : null);
+
+        registry.closeTunnel(tunnelId);
         tunnelService.markClosed(tunnelId);
     }
 

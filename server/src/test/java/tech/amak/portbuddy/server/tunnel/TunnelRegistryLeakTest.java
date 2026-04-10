@@ -54,10 +54,18 @@ class TunnelRegistryLeakTest {
         final var connectionId = "conn-1";
         registry.registerBrowserWs(tunnelId, connectionId, browserSession);
 
+        // Verify it is registered
+        assert registry.getByTunnelId(tunnelId) != null;
+        assert registry.getBySubdomain("test") != null;
+
         // When
         registry.closeTunnel(tunnelId);
 
-        // Then - the browser session should be closed (this is currently not happening)
+        // Then - the browser session should be closed
         verify(browserSession).close();
+
+        // And it should be removed from maps
+        assert registry.getByTunnelId(tunnelId) == null;
+        assert registry.getBySubdomain("test") == null;
     }
 }

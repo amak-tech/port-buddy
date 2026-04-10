@@ -78,7 +78,7 @@ public class TunnelRegistry {
      * @return the created Tunnel instance
      */
     private Tunnel register(final String subdomain, final UUID tunnelId, final UUID accountId) {
-        final var tunnel = new Tunnel(tunnelId, accountId);
+        final var tunnel = new Tunnel(subdomain, tunnelId, accountId);
         bySubdomain.put(subdomain, tunnel);
         byTunnelId.put(tunnelId, tunnel);
         return tunnel;
@@ -131,9 +131,12 @@ public class TunnelRegistry {
 
         final var futureTimeout = timeout == null ? DEFAULT_TIMEOUT : timeout;
         // Apply timeout
-        return future.orTimeout(futureTimeout.toMillis(), TimeUnit.MILLISECONDS)
-            .whenComplete((res, err) ->
-                tunnel.pending().remove(request.getId()));
+        final var timedFuture = future.orTimeout(futureTimeout.toMillis(), TimeUnit.MILLISECONDS);
+
+        timedFuture.whenComplete((res, err) ->
+            tunnel.pending().remove(request.getId()));
+
+        return timedFuture;
     }
 
     /**
@@ -265,7 +268,9 @@ public class TunnelRegistry {
             return;
         }
         // Remove from bySubdomain if exists
-        bySubdomain.values().removeIf(t -> t.tunnelId().equals(tunnelId));
+        if (tunnel.subdomain() != null) {
+            bySubdomain.remove(tunnel.subdomain());
+        }
 
         // Close all browser sessions associated with this tunnel
         tunnel.browserByConnection().values().forEach(session -> {
@@ -308,6 +313,7 @@ public class TunnelRegistry {
     @RequiredArgsConstructor
     public static class Tunnel {
 
+        private final String subdomain;
         private final UUID tunnelId;
         private final UUID accountId;
 
@@ -318,6 +324,10 @@ public class TunnelRegistry {
         private final Map<String, WebSocketSession> browserByConnection = new ConcurrentHashMap<>();
         private final Map<WebSocketSession, Ids> browserReverse = new ConcurrentHashMap<>();
 
+
+        public String subdomain() {
+            return subdomain;
+        }
 
         public UUID tunnelId() {
             return tunnelId;
