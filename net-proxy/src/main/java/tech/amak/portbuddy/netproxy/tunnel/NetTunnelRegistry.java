@@ -613,8 +613,8 @@ public class NetTunnelRegistry {
                 if (socket != null && !socket.isClosed()) {
                     socket.close();
                 }
-            } catch (final IOException ignore) {
-                log.error("Failed to close socket: {}", ignore.toString());
+            } catch (final IOException e) {
+                log.error("Failed to close socket: {}", e.toString());
             }
             socket = null;
             in = null;

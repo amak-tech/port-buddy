@@ -193,8 +193,8 @@ public class NetTunnelClient {
             udpLocals.values().forEach(this::close);
             udpLocals.clear();
             reportClosedSafe();
-        } catch (final Exception ignore) {
-            log.debug("TCP tunnel close error: {}", ignore.toString());
+        } catch (final Exception e) {
+            log.debug("TCP tunnel close error: {}", e.toString());
         }
     }
 
@@ -306,7 +306,6 @@ public class NetTunnelClient {
                 if (env.getKind() != null && env.getKind().equals("WS")) {
                     final var msg = MAPPER.readValue(text, WsTunnelMessage.class);
                     handleControl(msg);
-                    return;
                 }
                 // Unknown kinds are ignored for NET tunnels
             } catch (final Exception e) {
@@ -529,8 +528,8 @@ public class NetTunnelClient {
                 message.setWsType(WsTunnelMessage.Type.CLOSE);
                 message.setConnectionId(local.connectionId);
                 webSocket.send(MAPPER.writeValueAsString(message));
-            } catch (final Exception ignore) {
-                log.error("Failed to send local WS close: {}", ignore.toString());
+            } catch (final Exception e) {
+                log.error("Failed to send local WS close: {}", e.toString());
             }
             close(local);
             locals.remove(local.connectionId);
