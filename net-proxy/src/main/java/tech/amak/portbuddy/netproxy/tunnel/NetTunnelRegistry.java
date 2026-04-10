@@ -50,7 +50,6 @@ import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class NetTunnelRegistry {
 
     private static final int MIN_PORT = 10000;
@@ -76,9 +75,39 @@ public class NetTunnelRegistry {
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
     /**
+     * Timeout for orphaned tunnels (no session attached).
+     */
+    private static final long ORPHAN_TIMEOUT_MS = TimeUnit.MINUTES.toMillis(5);
+
+    /**
      * Jackson object mapper.
      */
     private final ObjectMapper mapper;
+
+    /**
+     * Constructor for NetTunnelRegistry.
+     *
+     * @param mapper Jackson object mapper
+     */
+    public NetTunnelRegistry(final ObjectMapper mapper) {
+        this.mapper = mapper;
+        this.scheduler.scheduleAtFixedRate(this::cleanupOrphanedTunnels, 1, 1, TimeUnit.MINUTES);
+    }
+
+    /**
+     * Periodically cleans up "orphaned" tunnels that have no active session and
+     * have been inactive for more than {@link #ORPHAN_TIMEOUT_MS}.
+     */
+    private void cleanupOrphanedTunnels() {
+        final var now = System.currentTimeMillis();
+        for (final var tunnel : byTunnelId.values()) {
+            if (tunnel.session == null && (now - tunnel.createdAt) > ORPHAN_TIMEOUT_MS) {
+                log.warn("Cleaning up orphaned tunnel {} (no session for {}ms)",
+                    tunnel.tunnelId, now - tunnel.createdAt);
+                closeTunnel(tunnel.tunnelId);
+            }
+        }
+    }
 
     /**
      * Finds and closes a tunnel that is using the specified port for TCP or UDP.
@@ -516,6 +545,7 @@ public class NetTunnelRegistry {
     @Data
     static class Tunnel {
         private final UUID tunnelId;
+        private long createdAt = System.currentTimeMillis();
         private volatile WebSocketSession session;
         private volatile ServerSocket serverSocket;
         private volatile Future<?> acceptLoopFuture;
