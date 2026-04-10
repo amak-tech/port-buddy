@@ -29,6 +29,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -65,9 +66,9 @@ public class NetTunnelRegistry {
     final Map<UUID, Tunnel> byTunnelId = new ConcurrentHashMap<>();
 
     /**
-     * Pool for IO operations.
+     * Pool for IO operations using Virtual Threads.
      */
-    private final ExecutorService ioPool = Executors.newFixedThreadPool(200);
+    private final ExecutorService ioPool = Executors.newVirtualThreadPerTaskExecutor();
 
     /**
      * Scheduler for cleanup tasks.
@@ -144,7 +145,7 @@ public class NetTunnelRegistry {
         }
         serverSocket = sock;
         tunnel.serverSocket = serverSocket;
-        ioPool.execute(() -> acceptLoop(tunnel));
+        tunnel.acceptLoopFuture = ioPool.submit(() -> acceptLoop(tunnel));
         return new ExposedPort(serverSocket.getLocalPort());
     }
 
@@ -174,7 +175,7 @@ public class NetTunnelRegistry {
         }
         socket = sock;
         tunnel.udpSocket = socket;
-        ioPool.execute(() -> udpReceiveLoop(tunnel));
+        tunnel.udpReceiveLoopFuture = ioPool.submit(() -> udpReceiveLoop(tunnel));
         return new ExposedPort(socket.getLocalPort());
     }
 
@@ -212,6 +213,13 @@ public class NetTunnelRegistry {
         if (tunnel == null) {
             return;
         }
+        // Interrupt loops
+        if (tunnel.acceptLoopFuture != null) {
+            tunnel.acceptLoopFuture.cancel(true);
+        }
+        if (tunnel.udpReceiveLoopFuture != null) {
+            tunnel.udpReceiveLoopFuture.cancel(true);
+        }
         // Close TCP acceptor first so accept loops break
         final var server = tunnel.serverSocket;
         if (server != null) {
@@ -225,6 +233,9 @@ public class NetTunnelRegistry {
         for (final var entry : tunnel.connections.entrySet()) {
             final var connection = entry.getValue();
             try {
+                if (connection.pumpFuture != null) {
+                    connection.pumpFuture.cancel(true);
+                }
                 connection.socket.close();
             } catch (final Exception e) {
                 log.debug("Failed to close connection {}: {}", entry.getKey(), e.toString());
@@ -246,9 +257,9 @@ public class NetTunnelRegistry {
 
     private void acceptLoop(final Tunnel tunnel) {
         try {
-            while (!tunnel.serverSocket.isClosed()) {
+            while (!tunnel.serverSocket.isClosed() && !Thread.currentThread().isInterrupted()) {
                 final var socket = tunnel.serverSocket.accept();
-                ioPool.execute(() -> handleNewConnection(tunnel, socket));
+                ioPool.submit(() -> handleNewConnection(tunnel, socket));
             }
         } catch (final Exception e) {
             log.info("Accept loop ended for tunnel {}: {}", tunnel.tunnelId, e.toString());
@@ -370,7 +381,7 @@ public class NetTunnelRegistry {
             connection.cleanupTask = null;
         }
         connection.pumpStarted = true;
-        ioPool.execute(() -> pumpFromPublic(tunnel, connection));
+        connection.pumpFuture = ioPool.submit(() -> pumpFromPublic(tunnel, connection));
     }
 
     /**
@@ -453,6 +464,9 @@ public class NetTunnelRegistry {
                     connection.cleanupTask.cancel(false);
                     connection.cleanupTask = null;
                 }
+                if (connection.pumpFuture != null) {
+                    connection.pumpFuture.cancel(true);
+                }
                 try {
                     connection.socket.close();
                 } catch (final IOException ignore) {
@@ -504,8 +518,10 @@ public class NetTunnelRegistry {
         private final UUID tunnelId;
         private volatile WebSocketSession session;
         private volatile ServerSocket serverSocket;
+        private volatile Future<?> acceptLoopFuture;
         private final Map<String, Connection> connections = new ConcurrentHashMap<>();
         private volatile DatagramSocket udpSocket;
+        private volatile Future<?> udpReceiveLoopFuture;
         private final Map<String, InetSocketAddress> udpRemotes = new ConcurrentHashMap<>() {
             @Override
             public InetSocketAddress put(final String key, final InetSocketAddress value) {
@@ -527,6 +543,7 @@ public class NetTunnelRegistry {
         final InputStream in;
         final OutputStream out;
         volatile boolean pumpStarted = false;
+        volatile Future<?> pumpFuture;
         volatile ScheduledFuture<?> cleanupTask;
 
         Connection(final String connectionId, final Socket socket, final InputStream in) throws IOException {
