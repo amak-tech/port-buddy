@@ -29,6 +29,9 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.BinaryMessage;
@@ -64,7 +67,12 @@ public class NetTunnelRegistry {
     /**
      * Pool for IO operations.
      */
-    private final ExecutorService ioPool = Executors.newCachedThreadPool();
+    private final ExecutorService ioPool = Executors.newFixedThreadPool(200);
+
+    /**
+     * Scheduler for cleanup tasks.
+     */
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
     /**
      * Jackson object mapper.
@@ -264,19 +272,15 @@ public class NetTunnelRegistry {
             sendOpen(tunnel, connId);
 
             // Start a task to cleanup this connection if it's not opened within a reasonable time
-            ioPool.execute(() -> {
-                try {
-                    Thread.sleep(60000); // Wait 60s for OPEN_OK
-                    final var conn = tunnel.connections.get(connId);
-                    if (conn != null && conn.socket != null && !conn.socket.isClosed() && !conn.pumpStarted) {
-                        log.warn("Connection {} for tunnel {} was not opened by client within 60s. Closing.",
-                            connId, tunnel.tunnelId);
-                        onClientClose(tunnel.tunnelId, connId);
-                    }
-                } catch (final InterruptedException e) {
-                    Thread.currentThread().interrupt();
+            final var cleanupTask = scheduler.schedule(() -> {
+                final var conn = tunnel.connections.get(connId);
+                if (conn != null && !conn.pumpStarted) {
+                    log.warn("Connection {} for tunnel {} was not opened by client within 60s. Closing.",
+                        connId, tunnel.tunnelId);
+                    onClientClose(tunnel.tunnelId, connId);
                 }
-            });
+            }, 60, TimeUnit.SECONDS);
+            connection.setCleanupTask(cleanupTask);
         } catch (final Exception e) {
             log.error("Failed to handle new connection for tunnel {}: {}", tunnel.tunnelId, e.toString());
             try {
@@ -290,6 +294,7 @@ public class NetTunnelRegistry {
     private void pumpFromPublic(final Tunnel tunnel, final Connection connection) {
         final var buffer = new byte[8192];
         try {
+            connection.socket.setSoTimeout(60000); // 60s idle timeout for data pumping
             // Peek at initial bytes to detect HTTP requests
             final var peekBuffer = new byte[16];
             final var bytesRead = connection.in.read(peekBuffer);
@@ -299,6 +304,7 @@ public class NetTunnelRegistry {
                     if (prefix.startsWith(method)) {
                         log.warn("Blocking HTTP request on TCP tunnel {}: {}", tunnel.tunnelId, prefix.trim());
                         connection.socket.close();
+                        tunnel.connections.remove(connection.connectionId);
                         return;
                     }
                 }
@@ -314,7 +320,7 @@ public class NetTunnelRegistry {
                 sendBinaryToClient(tunnel, connection.connectionId, buffer, 0, next);
             }
         } catch (final Exception ignore) {
-            log.error("Failed to read from public socket: {}", ignore.toString());
+            log.error("Failed to read from public socket for tunnel {}: {}", tunnel.tunnelId, ignore.toString());
         } finally {
             log.info("Public socket closed for tunnel {}: {}", tunnel.tunnelId, connection.connectionId);
             try {
@@ -331,14 +337,14 @@ public class NetTunnelRegistry {
     }
 
     private void udpReceiveLoop(final Tunnel tunnel) {
-        final var buffer = new byte[65535];
+        final var buffer = new byte[8192];
         try {
             while (tunnel.udpSocket != null && !tunnel.udpSocket.isClosed()) {
                 final var packet = new DatagramPacket(buffer, buffer.length);
                 tunnel.udpSocket.receive(packet);
                 final var remote = new InetSocketAddress(packet.getAddress(), packet.getPort());
                 final var connectionId = remote.getHostString() + ":" + remote.getPort();
-                tunnel.udpRemotes.putIfAbsent(connectionId, remote);
+                tunnel.udpRemotes.put(connectionId, remote);
                 sendBinaryToClient(tunnel, connectionId, packet.getData(), packet.getOffset(), packet.getLength());
             }
         } catch (final Exception e) {
@@ -358,6 +364,10 @@ public class NetTunnelRegistry {
         final var connection = tunnel.connections.get(connectionId);
         if (connection == null) {
             return;
+        }
+        if (connection.cleanupTask != null) {
+            connection.cleanupTask.cancel(false);
+            connection.cleanupTask = null;
         }
         connection.pumpStarted = true;
         ioPool.execute(() -> pumpFromPublic(tunnel, connection));
@@ -439,6 +449,10 @@ public class NetTunnelRegistry {
         } else {
             final var connection = tunnel.connections.remove(connectionId);
             if (connection != null) {
+                if (connection.cleanupTask != null) {
+                    connection.cleanupTask.cancel(false);
+                    connection.cleanupTask = null;
+                }
                 try {
                     connection.socket.close();
                 } catch (final IOException ignore) {
@@ -492,7 +506,15 @@ public class NetTunnelRegistry {
         private volatile ServerSocket serverSocket;
         private final Map<String, Connection> connections = new ConcurrentHashMap<>();
         private volatile DatagramSocket udpSocket;
-        private final Map<String, InetSocketAddress> udpRemotes = new ConcurrentHashMap<>();
+        private final Map<String, InetSocketAddress> udpRemotes = new ConcurrentHashMap<>() {
+            @Override
+            public InetSocketAddress put(final String key, final InetSocketAddress value) {
+                if (size() > 1000) {
+                    clear(); // Simple eviction to prevent OOM
+                }
+                return super.put(key, value);
+            }
+        };
 
         Tunnel(final UUID tunnelId) {
             this.tunnelId = tunnelId;
@@ -505,12 +527,17 @@ public class NetTunnelRegistry {
         final InputStream in;
         final OutputStream out;
         volatile boolean pumpStarted = false;
+        volatile ScheduledFuture<?> cleanupTask;
 
         Connection(final String connectionId, final Socket socket, final InputStream in) throws IOException {
             this.connectionId = connectionId;
             this.socket = socket;
             this.in = in;
             this.out = socket.getOutputStream();
+        }
+
+        void setCleanupTask(final ScheduledFuture<?> cleanupTask) {
+            this.cleanupTask = cleanupTask;
         }
     }
 }
