@@ -15,7 +15,6 @@
 package tech.amak.portbuddy.server.service;
 
 import java.time.OffsetDateTime;
-import java.util.UUID;
 
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
