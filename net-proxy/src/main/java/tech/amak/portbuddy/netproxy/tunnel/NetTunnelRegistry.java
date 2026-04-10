@@ -570,10 +570,6 @@ public class NetTunnelRegistry {
         Tunnel(final UUID tunnelId) {
             this.tunnelId = tunnelId;
         }
-
-        public void updateUdpActivity() {
-            this.lastUdpActivity = System.currentTimeMillis();
-        }
     }
 
     @Data
