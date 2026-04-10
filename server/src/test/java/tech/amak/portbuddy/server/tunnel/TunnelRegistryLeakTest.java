@@ -106,7 +106,7 @@ class TunnelRegistryLeakTest {
     }
 
     @Test
-    void shouldCleanupBrowserReverseMapWhenUnregistered() throws Exception {
+    void shouldCleanupBrowserReverseMapWhenUnregistered() {
         // Given
         final var mapper = new ObjectMapper();
         final var registry = new TunnelRegistry(mapper);

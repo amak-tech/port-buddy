@@ -103,7 +103,7 @@ public interface TunnelRepository extends JpaRepository<TunnelEntity, UUID> {
         FROM tunnels t
         LEFT JOIN users u ON u.id = t.user_id
         WHERE t.status = 'CONNECTED'
-          AND (:search IS NULL 
+          AND (:search IS NULL
                OR t.public_url ILIKE CONCAT('%', :search, '%') 
                OR t.public_host ILIKE CONCAT('%', :search, '%')
                OR u.email ILIKE CONCAT('%', :search, '%')
