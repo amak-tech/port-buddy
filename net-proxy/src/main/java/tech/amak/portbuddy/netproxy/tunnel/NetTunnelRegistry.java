@@ -182,6 +182,7 @@ public class NetTunnelRegistry {
             }
             try {
                 tunnel.serverSocket = new ServerSocket(desiredPort);
+                log.info("New Tunnel {} using port {}", tunnel.tunnelId, desiredPort);
             } catch (final IOException bindEx) {
                 log.info("TCP port {} is busy. Trying to close existing tunnel and retry.", desiredPort);
                 closeTunnelUsingPort(desiredPort);
@@ -327,7 +328,7 @@ public class NetTunnelRegistry {
                 ioPool.submit(() -> handleNewConnection(tunnel, socket));
             }
         } catch (final Exception e) {
-            log.info("Accept loop ended for tunnel {}: {}", tunnel.tunnelId, e.getMessage(), e);
+            log.info("Accept loop ended for tunnel {}: {}", tunnel.tunnelId, e.getMessage());
         }
     }
 
@@ -368,7 +369,7 @@ public class NetTunnelRegistry {
                 try {
                     socket.close();
                 } catch (final IOException ignore) {
-                    // ignore
+                    log.warn("Failed to close socket for tunnel {}: {}", tunnel.tunnelId, e.getMessage());
                 }
             }
         }
@@ -412,10 +413,6 @@ public class NetTunnelRegistry {
             log.info("Public socket closed for tunnel {}: {}", tunnel.tunnelId, connection.connectionId);
             connection.close();
             tunnel.connections.remove(connection.connectionId);
-            final var message = new WsTunnelMessage();
-            message.setWsType(WsTunnelMessage.Type.CLOSE);
-            message.setConnectionId(connection.connectionId);
-            sendToClient(tunnel, message);
         }
     }
 
@@ -578,7 +575,7 @@ public class NetTunnelRegistry {
                 binaryMessage.getPayload().clear();
             }
         } catch (final IOException e) {
-            log.debug("Failed to send binary to client: {}", e.toString());
+            log.debug("Failed to send binary to client: {}", e.getMessage());
         }
     }
 
