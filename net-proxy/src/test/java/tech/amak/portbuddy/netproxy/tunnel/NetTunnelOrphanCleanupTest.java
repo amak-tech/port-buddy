@@ -18,22 +18,36 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.util.unit.DataSize;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import tech.amak.portbuddy.common.TunnelType;
+import tech.amak.portbuddy.netproxy.config.AppProperties;
 
 class NetTunnelOrphanCleanupTest {
 
     private final ObjectMapper mapper = new ObjectMapper();
+    private final AppProperties properties = new AppProperties(
+        "localhost",
+        new AppProperties.WebSocket(
+            DataSize.ofMegabytes(10),
+            DataSize.ofMegabytes(10),
+            Duration.ofMinutes(10),
+            Duration.ofSeconds(10),
+            DataSize.ofMegabytes(1)
+        ),
+        new AppProperties.Jwt("port-buddy", "http://localhost:8080")
+    );
 
     @Test
     void testOrphanedTunnelCleanup() throws IOException, InterruptedException {
         try {
-            final var registry = new NetTunnelRegistry(mapper);
+            final var registry = new NetTunnelRegistry(mapper, properties);
             final var tunnelId = UUID.randomUUID();
 
             // Expose a tunnel - this creates it in byTunnelId

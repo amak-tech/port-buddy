@@ -24,23 +24,37 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.util.unit.DataSize;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import tech.amak.portbuddy.common.TunnelType;
+import tech.amak.portbuddy.netproxy.config.AppProperties;
 
 class NetTunnelRegistryTest {
 
     private final ObjectMapper mapper = new ObjectMapper();
+    private final AppProperties properties = new AppProperties(
+        "localhost",
+        new AppProperties.WebSocket(
+            DataSize.ofMegabytes(10),
+            DataSize.ofMegabytes(10),
+            Duration.ofMinutes(10),
+            Duration.ofSeconds(10),
+            DataSize.ofMegabytes(1)
+        ),
+        new AppProperties.Jwt("port-buddy", "http://localhost:8080")
+    );
 
     @Test
     void testBlockHttpOnTcpTunnel() throws IOException, InterruptedException {
-        final var registry = new NetTunnelRegistry(mapper);
+        final var registry = new NetTunnelRegistry(mapper, properties);
         final var tunnelId = UUID.randomUUID();
         final var session = mock(WebSocketSession.class);
         when(session.isOpen()).thenReturn(true);
@@ -81,7 +95,7 @@ class NetTunnelRegistryTest {
 
     @Test
     void testAllowNonHttpOnTcpTunnel() throws IOException, InterruptedException {
-        final var registry = new NetTunnelRegistry(mapper);
+        final var registry = new NetTunnelRegistry(mapper, properties);
         final var tunnelId = UUID.randomUUID();
         final var session = mock(WebSocketSession.class);
         when(session.isOpen()).thenReturn(true);
@@ -103,7 +117,7 @@ class NetTunnelRegistryTest {
 
     @Test
     void testAllowPostgresSslRequest() throws IOException {
-        final var registry = new NetTunnelRegistry(mapper);
+        final var registry = new NetTunnelRegistry(mapper, properties);
         final var tunnelId = UUID.randomUUID();
         final var session = mock(WebSocketSession.class);
         when(session.isOpen()).thenReturn(true);
@@ -127,7 +141,7 @@ class NetTunnelRegistryTest {
 
     @Test
     void testConnectionWithNoDataSentInitially() throws IOException, InterruptedException {
-        final var registry = new NetTunnelRegistry(mapper);
+        final var registry = new NetTunnelRegistry(mapper, properties);
         final var tunnelId = UUID.randomUUID();
         final var session = mock(WebSocketSession.class);
         when(session.isOpen()).thenReturn(true);

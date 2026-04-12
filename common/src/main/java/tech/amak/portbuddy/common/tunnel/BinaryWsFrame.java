@@ -70,9 +70,10 @@ public final class BinaryWsFrame {
                                        final byte[] data,
                                        final int offset,
                                        final int length) {
-        final var bb = encodeToByteBuffer(connectionId, data, offset, length);
-        final var out = new byte[bb.remaining()];
-        bb.get(out);
+        final var buffer = encodeToByteBuffer(connectionId, data, offset, length);
+        final var out = new byte[buffer.remaining()];
+        buffer.get(out);
+        buffer.clear();
         return out;
     }
 
@@ -115,7 +116,10 @@ public final class BinaryWsFrame {
      *     or {@code null} if the array does not contain a valid or complete frame.
      */
     public static Decoded decode(final byte[] frameBytes) {
-        return decode(ByteBuffer.wrap(frameBytes));
+        final var byteBuffer = ByteBuffer.wrap(frameBytes);
+        final var decoded = decode(byteBuffer);
+        byteBuffer.clear();
+        return decoded;
     }
 
     /**

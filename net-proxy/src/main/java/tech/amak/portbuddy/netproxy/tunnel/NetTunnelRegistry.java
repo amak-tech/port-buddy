@@ -40,6 +40,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.socket.BinaryMessage;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.handler.ConcurrentWebSocketSessionDecorator;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -48,6 +49,7 @@ import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.TunnelType;
 import tech.amak.portbuddy.common.tunnel.BinaryWsFrame;
 import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
+import tech.amak.portbuddy.netproxy.config.AppProperties;
 
 @Slf4j
 @Component
@@ -86,12 +88,19 @@ public class NetTunnelRegistry {
     private final ObjectMapper mapper;
 
     /**
+     * Application properties.
+     */
+    private final AppProperties properties;
+
+    /**
      * Constructor for NetTunnelRegistry.
      *
-     * @param mapper Jackson object mapper
+     * @param mapper     Jackson object mapper
+     * @param properties application properties
      */
-    public NetTunnelRegistry(final ObjectMapper mapper) {
+    public NetTunnelRegistry(final ObjectMapper mapper, final AppProperties properties) {
         this.mapper = mapper;
+        this.properties = properties;
         this.scheduler.scheduleAtFixedRate(this::cleanupOrphanedTunnels, 1, 1, TimeUnit.MINUTES);
     }
 
@@ -167,23 +176,26 @@ public class NetTunnelRegistry {
      */
     private ExposedPort exposeTcp(final UUID tunnelId, final Integer desiredPort) throws IOException {
         final var tunnel = byTunnelId.computeIfAbsent(tunnelId, Tunnel::new);
-        if (tunnel.serverSocket != null && !tunnel.serverSocket.isClosed()) {
-            return new ExposedPort(tunnel.serverSocket.getLocalPort());
-        }
-        try {
-            tunnel.serverSocket = new ServerSocket(desiredPort);
-        } catch (final IOException bindEx) {
-            log.info("TCP port {} is busy. Trying to close existing tunnel and retry.", desiredPort);
-            closeTunnelUsingPort(desiredPort);
+        synchronized (tunnel) {
+            if (tunnel.serverSocket != null && !tunnel.serverSocket.isClosed()) {
+                return new ExposedPort(tunnel.serverSocket.getLocalPort());
+            }
             try {
                 tunnel.serverSocket = new ServerSocket(desiredPort);
-            } catch (final IOException secondBindEx) {
-                log.error("TCP port {} is still busy.", desiredPort);
-                throw secondBindEx;
+                log.info("New Tunnel {} using port {}", tunnel.tunnelId, desiredPort);
+            } catch (final IOException bindEx) {
+                log.info("TCP port {} is busy. Trying to close existing tunnel and retry.", desiredPort);
+                closeTunnelUsingPort(desiredPort);
+                try {
+                    tunnel.serverSocket = new ServerSocket(desiredPort);
+                } catch (final IOException secondBindEx) {
+                    log.error("TCP port {} is still busy.", desiredPort);
+                    throw secondBindEx;
+                }
             }
+            tunnel.acceptLoopFuture = ioPool.submit(() -> acceptLoop(tunnel));
+            return new ExposedPort(tunnel.serverSocket.getLocalPort());
         }
-        tunnel.acceptLoopFuture = ioPool.submit(() -> acceptLoop(tunnel));
-        return new ExposedPort(tunnel.serverSocket.getLocalPort());
     }
 
     /**
@@ -193,32 +205,56 @@ public class NetTunnelRegistry {
     private ExposedPort exposeUdp(final UUID tunnelId, final int desiredPort) throws IOException {
 
         final var tunnel = byTunnelId.computeIfAbsent(tunnelId, Tunnel::new);
-        if (tunnel.udpSocket != null && !tunnel.udpSocket.isClosed()) {
-            return new ExposedPort(tunnel.udpSocket.getLocalPort());
-        }
-        final DatagramSocket socket;
-        DatagramSocket sock;
-        try {
-            sock = new DatagramSocket(desiredPort);
-        } catch (final IOException bindEx) {
-            log.info("UDP port {} is busy. Trying to close existing tunnel and retry.", desiredPort);
-            closeTunnelUsingPort(desiredPort);
+        synchronized (tunnel) {
+            if (tunnel.udpSocket != null && !tunnel.udpSocket.isClosed()) {
+                return new ExposedPort(tunnel.udpSocket.getLocalPort());
+            }
+            final DatagramSocket socket;
+            DatagramSocket sock;
             try {
                 sock = new DatagramSocket(desiredPort);
-            } catch (final IOException secondBindEx) {
-                log.error("UDP port {} is still busy.", desiredPort);
-                throw secondBindEx;
+            } catch (final IOException bindEx) {
+                log.info("UDP port {} is busy. Trying to close existing tunnel and retry.", desiredPort);
+                closeTunnelUsingPort(desiredPort);
+                try {
+                    sock = new DatagramSocket(desiredPort);
+                } catch (final IOException secondBindEx) {
+                    log.error("UDP port {} is still busy.", desiredPort);
+                    throw secondBindEx;
+                }
             }
+            socket = sock;
+            tunnel.udpSocket = socket;
+            tunnel.udpReceiveLoopFuture = ioPool.submit(() -> udpReceiveLoop(tunnel));
+            return new ExposedPort(socket.getLocalPort());
         }
-        socket = sock;
-        tunnel.udpSocket = socket;
-        tunnel.udpReceiveLoopFuture = ioPool.submit(() -> udpReceiveLoop(tunnel));
-        return new ExposedPort(socket.getLocalPort());
     }
 
+    /**
+     * Attach session to tunnel.
+     *
+     * @param tunnelId tunnel id.
+     * @param session  websocket session.
+     */
     public void attachSession(final UUID tunnelId, final WebSocketSession session) {
         final var tunnel = byTunnelId.computeIfAbsent(tunnelId, Tunnel::new);
-        tunnel.session = session;
+        final var ws = properties.webSocket();
+        tunnel.session = new ConcurrentWebSocketSessionDecorator(
+            session,
+            (int) ws.sendTimeLimit().toMillis(),
+            (int) ws.sendBufferSizeLimit().toBytes()
+        );
+    }
+
+    /**
+     * Returns the WebSocket session associated with the given tunnel ID.
+     *
+     * @param tunnelId the tunnel identifier
+     * @return the WebSocket session, or null if not found
+     */
+    public WebSocketSession getSession(final UUID tunnelId) {
+        final var tunnel = byTunnelId.get(tunnelId);
+        return tunnel != null ? tunnel.session : null;
     }
 
     /**
@@ -292,7 +328,7 @@ public class NetTunnelRegistry {
                 ioPool.submit(() -> handleNewConnection(tunnel, socket));
             }
         } catch (final Exception e) {
-            log.info("Accept loop ended for tunnel {}: {}", tunnel.tunnelId, e.getMessage(), e);
+            log.info("Accept loop ended for tunnel {}: {}", tunnel.tunnelId, e.getMessage());
         }
     }
 
@@ -333,7 +369,7 @@ public class NetTunnelRegistry {
                 try {
                     socket.close();
                 } catch (final IOException ignore) {
-                    // ignore
+                    log.warn("Failed to close socket for tunnel {}: {}", tunnel.tunnelId, e.getMessage());
                 }
             }
         }
@@ -377,10 +413,6 @@ public class NetTunnelRegistry {
             log.info("Public socket closed for tunnel {}: {}", tunnel.tunnelId, connection.connectionId);
             connection.close();
             tunnel.connections.remove(connection.connectionId);
-            final var message = new WsTunnelMessage();
-            message.setWsType(WsTunnelMessage.Type.CLOSE);
-            message.setConnectionId(connection.connectionId);
-            sendToClient(tunnel, message);
         }
     }
 
@@ -391,6 +423,7 @@ public class NetTunnelRegistry {
                    && !Thread.currentThread().isInterrupted()) {
                 final var packet = new DatagramPacket(buffer, buffer.length);
                 tunnel.udpSocket.receive(packet);
+                tunnel.lastUdpActivity = System.currentTimeMillis();
                 final var remote = new InetSocketAddress(packet.getAddress(), packet.getPort());
                 final var connectionId = remote.getHostString() + ":" + remote.getPort();
                 tunnel.udpRemotes.put(connectionId, remote);
@@ -462,6 +495,7 @@ public class NetTunnelRegistry {
         }
         // If UDP is active on this tunnel, route as a datagram
         if (tunnel.udpSocket != null) {
+            tunnel.lastUdpActivity = System.currentTimeMillis();
             final var remote = tunnel.udpRemotes.get(connectionId);
             if (remote == null) {
                 return;
@@ -536,10 +570,12 @@ public class NetTunnelRegistry {
         try {
             if (tunnel.session != null && tunnel.session.isOpen()) {
                 final var payload = BinaryWsFrame.encodeToByteBuffer(connectionId, bytes, offset, length);
-                tunnel.session.sendMessage(new BinaryMessage(payload));
+                final var binaryMessage = new BinaryMessage(payload);
+                tunnel.session.sendMessage(binaryMessage);
+                binaryMessage.getPayload().clear();
             }
         } catch (final IOException e) {
-            log.debug("Failed to send binary to client: {}", e.toString());
+            log.debug("Failed to send binary to client: {}", e.getMessage());
         }
     }
 

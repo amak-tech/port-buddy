@@ -29,7 +29,9 @@ public record AppProperties(
     public record WebSocket(
         DataSize maxTextMessageSize,
         DataSize maxBinaryMessageSize,
-        Duration sessionIdleTimeout
+        Duration sessionIdleTimeout,
+        Duration sendTimeLimit,
+        DataSize sendBufferSizeLimit
     ) {
     }
 
