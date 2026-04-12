@@ -573,7 +573,9 @@ public class NetTunnelRegistry {
         try {
             if (tunnel.session != null && tunnel.session.isOpen()) {
                 final var payload = BinaryWsFrame.encodeToByteBuffer(connectionId, bytes, offset, length);
-                tunnel.session.sendMessage(new BinaryMessage(payload));
+                final var binaryMessage = new BinaryMessage(payload);
+                tunnel.session.sendMessage(binaryMessage);
+                binaryMessage.getPayload().clear();
             }
         } catch (final IOException e) {
             log.debug("Failed to send binary to client: {}", e.toString());

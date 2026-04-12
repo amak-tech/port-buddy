@@ -143,11 +143,13 @@ public class NetTunnelWebSocketHandler extends AbstractWebSocketHandler {
     @Override
     protected void handleBinaryMessage(final WebSocketSession session, final BinaryMessage message) {
         final var tunnelId = extractTunnelId(session);
-        final var decoded = BinaryWsFrame.decode(message.getPayload());
+        final var payload = message.getPayload();
+        final var decoded = BinaryWsFrame.decode(payload);
         if (decoded == null) {
             return;
         }
         registry.onClientBinaryBytes(tunnelId, decoded.connectionId(), decoded.data());
+        payload.clear();
     }
 
     @Override

@@ -515,7 +515,8 @@ public class NetTunnelClient {
                     break;
                 }
                 final var frame = BinaryWsFrame.encodeToArray(local.connectionId, buffer, 0, byteCount);
-                webSocket.send(ByteString.of(frame));
+                final var byteString = ByteString.of(frame);
+                webSocket.send(byteString);
                 if (trafficSink != null) {
                     trafficSink.onBytesOut(byteCount);
                 }
@@ -568,7 +569,8 @@ public class NetTunnelClient {
                 local.sock.receive(packet);
                 final var frame = BinaryWsFrame
                     .encodeToArray(local.connectionId, packet.getData(), packet.getOffset(), packet.getLength());
-                webSocket.send(ByteString.of(frame));
+                final var byteString = ByteString.of(frame);
+                webSocket.send(byteString);
                 if (trafficSink != null) {
                     trafficSink.onBytesOut(packet.getLength());
                 }
