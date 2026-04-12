@@ -88,6 +88,7 @@ public class NetTunnelWebSocketHandler extends AbstractWebSocketHandler {
         }
         // TODO: validate Authorization header/JWT
         registry.attachSession(tunnelId, session);
+        final var decoratedSession = registry.getSession(tunnelId);
         log.info("Net tunnel WS established: {} type={} port={}", tunnelId, tunnelType, desiredPort);
 
         // Inform client about actual public details in case port was re-assigned
@@ -96,7 +97,9 @@ public class NetTunnelWebSocketHandler extends AbstractWebSocketHandler {
             info.setWsType(WsTunnelMessage.Type.EXPOSED);
             info.setPublicHost(properties.publicHost());
             info.setPublicPort(exposedPort.getPort());
-            session.sendMessage(new TextMessage(mapper.writeValueAsString(info)));
+            if (decoratedSession != null) {
+                decoratedSession.sendMessage(new TextMessage(mapper.writeValueAsString(info)));
+            }
         } catch (final Exception e) {
             log.debug("Failed to send EXPOSED info: {}", e.toString());
         }
@@ -114,7 +117,10 @@ public class NetTunnelWebSocketHandler extends AbstractWebSocketHandler {
                 final var pong = new ControlMessage();
                 pong.setType(ControlMessage.Type.PONG);
                 pong.setTs(System.currentTimeMillis());
-                session.sendMessage(new TextMessage(mapper.writeValueAsString(pong)));
+                final var decoratedSession = registry.getSession(tunnelId);
+                if (decoratedSession != null) {
+                    decoratedSession.sendMessage(new TextMessage(mapper.writeValueAsString(pong)));
+                }
             }
             return;
         }

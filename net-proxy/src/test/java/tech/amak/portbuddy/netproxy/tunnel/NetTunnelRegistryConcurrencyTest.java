@@ -20,26 +20,40 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.util.unit.DataSize;
 import org.springframework.web.socket.WebSocketSession;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.TunnelType;
+import tech.amak.portbuddy.netproxy.config.AppProperties;
 
 @Slf4j
 class NetTunnelRegistryConcurrencyTest {
 
     private final ObjectMapper mapper = new ObjectMapper();
+    private final AppProperties properties = new AppProperties(
+        "localhost",
+        new AppProperties.WebSocket(
+            DataSize.ofMegabytes(10),
+            DataSize.ofMegabytes(10),
+            Duration.ofMinutes(10),
+            Duration.ofSeconds(10),
+            DataSize.ofMegabytes(1)
+        ),
+        new AppProperties.Jwt("port-buddy", "http://localhost:8080")
+    );
 
     @Test
     void testManyConcurrentConnections() throws IOException, InterruptedException {
-        final var registry = new NetTunnelRegistry(mapper);
+        final var registry = new NetTunnelRegistry(mapper, properties);
         final var tunnelId = UUID.randomUUID();
         final var session = mock(WebSocketSession.class);
         when(session.isOpen()).thenReturn(true);
