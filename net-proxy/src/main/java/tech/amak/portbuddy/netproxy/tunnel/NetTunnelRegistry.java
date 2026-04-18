@@ -273,7 +273,7 @@ public class NetTunnelRegistry {
             }
 
             if (currentSession == session || (currentSession != null
-                && currentSession.getId().equals(session.getId()))) {
+                                              && currentSession.getId().equals(session.getId()))) {
                 log.info("Session detached for tunnel {}. Closing tunnel.", tunnel.tunnelId);
                 closeTunnel(tunnel.tunnelId);
                 break;
@@ -656,19 +656,27 @@ public class NetTunnelRegistry {
          * Closes the socket and nullifies all resource references.
          */
         void close() {
-            if (cleanupTask != null) {
-                cleanupTask.cancel(false);
-                cleanupTask = null;
+            try {
+                if (cleanupTask != null) {
+                    cleanupTask.cancel(false);
+                    cleanupTask = null;
+                }
+            } catch (final Exception e) {
+                log.error("Failed to clean up resources: {}", e.getMessage());
             }
-            if (pumpFuture != null) {
-                pumpFuture.cancel(true);
-                pumpFuture = null;
+            try {
+                if (pumpFuture != null) {
+                    pumpFuture.cancel(true);
+                    pumpFuture = null;
+                }
+            } catch (final Exception e) {
+                log.error("Failed to clean up resources: {}", e.getMessage());
             }
             try {
                 if (socket != null && !socket.isClosed()) {
                     socket.close();
                 }
-            } catch (final IOException e) {
+            } catch (final Exception e) {
                 log.error("Failed to close socket: {}", e.toString());
             }
             socket = null;
@@ -676,7 +684,7 @@ public class NetTunnelRegistry {
                 try {
                     in.close();
                     in = null;
-                } catch (final IOException e) {
+                } catch (final Exception e) {
                     log.error("Failed to close input stream: {}", e.getMessage());
                 }
             }
@@ -684,7 +692,7 @@ public class NetTunnelRegistry {
                 try {
                     out.close();
                     out = null;
-                } catch (final IOException e) {
+                } catch (final Exception e) {
                     log.error("Failed to close output stream: {}", e.getMessage());
                 }
             }
