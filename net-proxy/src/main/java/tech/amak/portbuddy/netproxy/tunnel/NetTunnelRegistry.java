@@ -641,7 +641,6 @@ public class NetTunnelRegistry {
                 final var payload = BinaryWsFrame.encodeToByteBuffer(connectionId, bytes, offset, length);
                 final var binaryMessage = new BinaryMessage(payload);
                 tunnel.session.sendMessage(binaryMessage);
-                binaryMessage.getPayload().clear();
                 return true;
             }
         } catch (final Exception e) {
