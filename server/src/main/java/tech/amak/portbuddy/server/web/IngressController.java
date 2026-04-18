@@ -194,18 +194,28 @@ public class IngressController {
         headers.put("X-Forwarded-Proto", List.of(request.isSecure() ? "https" : "http"));
 
         final var maxRequestBodySize = properties.gateway().maxRequestBodySize();
-        if (maxRequestBodySize != null) {
-            final var contentLength = request.getContentLengthLong();
-            if (contentLength > maxRequestBodySize.toBytes()) {
-                log.warn("Payload Too Large: subdomain {} exceeded max body size of {} (length: {})",
-                    subdomain, maxRequestBodySize, contentLength);
-                response.sendError(HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE,
-                    "Payload Too Large: max %s allowed".formatted(maxRequestBodySize));
-                return;
-            }
+        var limit = maxRequestBodySize == null ? -1 : maxRequestBodySize.toBytes();
+        if (limit > Integer.MAX_VALUE - 8) {
+            limit = Integer.MAX_VALUE - 8;
         }
 
-        final var bodyBytes = request.getInputStream().readAllBytes();
+        final byte[] bodyBytes;
+        try (final var inputStream = request.getInputStream()) {
+            if (limit >= 0) {
+                // Read up to limit + 1 bytes to detect if the body is too large
+                final var result = inputStream.readNBytes((int) limit + 1);
+                if (result.length > limit) {
+                    log.warn("Payload Too Large: subdomain {} exceeded max body size of {} (actual length > {})",
+                        subdomain, maxRequestBodySize, limit);
+                    response.sendError(HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE,
+                        "Payload Too Large: max %s allowed".formatted(maxRequestBodySize));
+                    return;
+                }
+                bodyBytes = result;
+            } else {
+                bodyBytes = inputStream.readAllBytes();
+            }
+        }
         final var bodyB64 = bodyBytes.length == 0 ? null : Base64.getEncoder().encodeToString(bodyBytes);
 
         final var msg = new HttpTunnelMessage();
