@@ -58,8 +58,9 @@ public class NetTunnelRegistry {
     private static final int MIN_PORT = 10000;
     private static final int MAX_PORT = 65535;
 
-    private static final String[] HTTP_METHODS = {
-        "GET ", "POST ", "PUT ", "DELETE ", "HEAD ", "OPTIONS ", "PATCH ", "TRACE ", "CONNECT "
+    private static final byte[][] HTTP_METHODS_BYTES = {
+        "GET ".getBytes(), "POST ".getBytes(), "PUT ".getBytes(), "DELETE ".getBytes(),
+        "HEAD ".getBytes(), "OPTIONS ".getBytes(), "PATCH ".getBytes(), "TRACE ".getBytes(), "CONNECT ".getBytes()
     };
 
     /**
@@ -271,7 +272,8 @@ public class NetTunnelRegistry {
                 currentSession = decorator.getDelegate();
             }
 
-            if (currentSession == session || (currentSession != null && currentSession.getId().equals(session.getId()))) {
+            if (currentSession == session || (currentSession != null
+                && currentSession.getId().equals(session.getId()))) {
                 log.info("Session detached for tunnel {}. Closing tunnel.", tunnel.tunnelId);
                 closeTunnel(tunnel.tunnelId);
                 break;
@@ -389,10 +391,10 @@ public class NetTunnelRegistry {
             final var peekBuffer = new byte[16];
             final var bytesRead = connection.in.read(peekBuffer);
             if (bytesRead != -1) {
-                final var prefix = new String(peekBuffer, 0, bytesRead);
-                for (final var method : HTTP_METHODS) {
-                    if (prefix.startsWith(method)) {
-                        log.warn("Blocking HTTP request on TCP tunnel {}: {}", tunnel.tunnelId, prefix.trim());
+                for (final var methodBytes : HTTP_METHODS_BYTES) {
+                    if (startsWith(peekBuffer, bytesRead, methodBytes)) {
+                        log.warn("Blocking HTTP request on TCP tunnel {}: {}",
+                            tunnel.tunnelId, new String(peekBuffer, 0, bytesRead).trim());
                         final var closeMsg = new WsTunnelMessage();
                         closeMsg.setWsType(WsTunnelMessage.Type.CLOSE);
                         closeMsg.setConnectionId(connection.connectionId);
@@ -420,6 +422,18 @@ public class NetTunnelRegistry {
             connection.close();
             tunnel.connections.remove(connection.connectionId);
         }
+    }
+
+    private boolean startsWith(final byte[] buffer, final int bytesRead, final byte[] prefix) {
+        if (prefix.length > bytesRead) {
+            return false;
+        }
+        for (int i = 0; i < prefix.length; i++) {
+            if (buffer[i] != prefix[i]) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void udpReceiveLoop(final Tunnel tunnel) {
@@ -624,7 +638,10 @@ public class NetTunnelRegistry {
         volatile Future<?> pumpFuture;
         volatile ScheduledFuture<?> cleanupTask;
 
-        Connection(final String connectionId, final Socket socket, final InputStream in) throws IOException {
+        Connection(final String connectionId,
+                   final Socket socket,
+                   final InputStream in) throws IOException {
+
             this.connectionId = connectionId;
             this.socket = socket;
             this.in = in;
@@ -655,8 +672,22 @@ public class NetTunnelRegistry {
                 log.error("Failed to close socket: {}", e.toString());
             }
             socket = null;
-            in = null;
-            out = null;
+            if (in != null) {
+                try {
+                    in.close();
+                    in = null;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            if (out != null) {
+                try {
+                    out.close();
+                    out = null;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
         }
     }
 }
