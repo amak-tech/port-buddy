@@ -547,6 +547,7 @@ public class NetTunnelRegistry {
             connection.out.flush();
         } catch (final IOException e) {
             log.debug("Failed to write to public socket: {}", e.toString());
+            onClientClose(tunnelId, connectionId);
         }
     }
 
