@@ -36,6 +36,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.util.unit.DataSize;
 
 import com.stripe.model.Event;
 import com.stripe.model.EventDataObjectDeserializer;
@@ -94,7 +95,7 @@ class StripeWebhookControllerTest {
     @BeforeEach
     void setUp() {
         when(appProperties.gateway()).thenReturn(new AppProperties.Gateway(
-            "http://localhost:8080", "localhost", "http", "/404", "/passcode"
+            "http://localhost:8080", "localhost", "http", "/404", "/passcode", DataSize.ofMegabytes(10)
         ));
         when(appProperties.stripe()).thenReturn(new AppProperties.Stripe(
             "whsec_test", "sk_test", new AppProperties.Stripe.PriceIds("pro", "team", "extra")

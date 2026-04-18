@@ -49,7 +49,8 @@ public record AppProperties(
         String domain,
         String subdomainUrlTemplate,
         String notFoundPage,
-        String passcodePage
+        String passcodePage,
+        DataSize maxRequestBodySize
     ) {
         public String subdomainHost() {
             return "." + domain;

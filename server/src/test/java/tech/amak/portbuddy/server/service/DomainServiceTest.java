@@ -35,6 +35,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.util.unit.DataSize;
 
 import tech.amak.portbuddy.server.client.SslServiceClient;
 import tech.amak.portbuddy.server.config.AppProperties;
@@ -71,7 +72,8 @@ class DomainServiceTest {
             "portbuddy.dev",
             "https",
             "https://portbuddy.dev/404",
-            "https://portbuddy.dev/passcode");
+            "https://portbuddy.dev/passcode",
+            DataSize.ofMegabytes(10));
         final var mail = new AppProperties.Mail("no-reply@localhost", "Port Buddy");
         final var portReservations =
             new AppProperties.PortReservations(new AppProperties.PortReservations.Range(40000, 60000));

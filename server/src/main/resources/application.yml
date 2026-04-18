@@ -17,6 +17,7 @@ app:
     subdomain-url-template: https://%s.${app.gateway.domain}
     not-found-page: ${app.gateway.url}/404
     passcode-page: ${app.gateway.url}/passcode
+    max-request-body-size: 10MB
   mail:
     fromAddress: ${MAIL_FROM:no-reply@portbuddy.dev}
     fromName: ${MAIL_FROM_NAME:Port Buddy}
