@@ -38,7 +38,7 @@ public class ThreatFoxService {
     private static final ThreatFoxRequest FETCH_IOC_REQUEST = new ThreatFoxRequest("get_iocs", 7);
 
     private final ThreatFoxClient client;
-    private Set<String> cache = new HashSet<>();
+    private volatile Set<String> cache = new HashSet<>();
 
     /**
      * Fetches threat intelligence data and processes it to update the internal cache.

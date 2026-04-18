@@ -305,9 +305,9 @@ public class TunnelRegistry {
 
     @Data
     @AllArgsConstructor
-    public static class Ids {
-        private UUID tunnelId;
-        private String connectionId;
+    public static final class Ids {
+        private final UUID tunnelId;
+        private final String connectionId;
     }
 
     @RequiredArgsConstructor

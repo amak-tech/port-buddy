@@ -15,6 +15,7 @@
 package tech.amak.portbuddy.server.service;
 
 import java.security.SecureRandom;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -278,10 +279,11 @@ public class DomainService {
     }
 
     private boolean checkCname(final String domain, final String expectedTarget) {
+        final var env = new Hashtable<String, String>();
+        env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.dns.DnsContextFactory");
+        DirContext ictx = null;
         try {
-            final var env = new java.util.Hashtable<String, String>();
-            env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.dns.DnsContextFactory");
-            final DirContext ictx = new InitialDirContext(env);
+            ictx = new InitialDirContext(env);
             final Attributes attrs = ictx.getAttributes(domain, new String[] {"CNAME"});
             final Attribute cnameAttr = attrs.get("CNAME");
 
@@ -293,6 +295,14 @@ public class DomainService {
             }
         } catch (final NamingException e) {
             log.debug("Failed to lookup CNAME for {}", domain, e);
+        } finally {
+            if (ictx != null) {
+                try {
+                    ictx.close();
+                } catch (final NamingException e) {
+                    log.debug("Failed to close DNS context", e);
+                }
+            }
         }
         return false;
     }
