@@ -146,17 +146,21 @@ public class NetTunnelRegistry {
             final var session = tunnel.session;
             final var isOrphaned = session == null || !session.isOpen();
 
-            // UDP tunnels might be inactive but still have a session.
-            // Check last activity for UDP tunnels if they are orphaned.
-            final var isUdpInactive = tunnel.udpSocket != null && (now - tunnel.lastUdpActivity) > ORPHAN_TIMEOUT_MS;
+            if (!isOrphaned) {
+                continue;
+            }
 
-            if (isOrphaned && (now - tunnel.createdAt) > ORPHAN_TIMEOUT_MS) {
+            final var age = now - tunnel.createdAt;
+            final var udpInactiveTime = now - tunnel.lastUdpActivity;
+            final var isUdpTunnel = tunnel.udpSocket != null;
+
+            if (age > ORPHAN_TIMEOUT_MS) {
                 log.warn("Cleaning up orphaned tunnel {} (no session or closed for {}ms)",
-                    tunnel.tunnelId, now - tunnel.createdAt);
+                    tunnel.tunnelId, age);
                 closeTunnel(tunnel.tunnelId);
-            } else if (isUdpInactive && isOrphaned) {
+            } else if (isUdpTunnel && udpInactiveTime > ORPHAN_TIMEOUT_MS) {
                 log.warn("Cleaning up inactive UDP tunnel {} (no activity for {}ms)",
-                    tunnel.tunnelId, now - tunnel.lastUdpActivity);
+                    tunnel.tunnelId, udpInactiveTime);
                 closeTunnel(tunnel.tunnelId);
             }
         }
@@ -209,6 +213,10 @@ public class NetTunnelRegistry {
     private ExposedPort exposeTcp(final UUID tunnelId, final Integer desiredPort) throws IOException {
         final var tunnel = byTunnelId.computeIfAbsent(tunnelId, Tunnel::new);
         synchronized (tunnel) {
+            if (byTunnelId.get(tunnelId) != tunnel) {
+                // The tunnel was replaced or removed; retry.
+                return exposeTcp(tunnelId, desiredPort);
+            }
             if (tunnel.serverSocket != null && !tunnel.serverSocket.isClosed()) {
                 return new ExposedPort(tunnel.serverSocket.getLocalPort());
             }
@@ -238,6 +246,10 @@ public class NetTunnelRegistry {
 
         final var tunnel = byTunnelId.computeIfAbsent(tunnelId, Tunnel::new);
         synchronized (tunnel) {
+            if (byTunnelId.get(tunnelId) != tunnel) {
+                // The tunnel was replaced or removed; retry.
+                return exposeUdp(tunnelId, desiredPort);
+            }
             if (tunnel.udpSocket != null && !tunnel.udpSocket.isClosed()) {
                 return new ExposedPort(tunnel.udpSocket.getLocalPort());
             }
@@ -270,13 +282,20 @@ public class NetTunnelRegistry {
      */
     public void attachSession(final UUID tunnelId, final WebSocketSession session) {
         final var tunnel = byTunnelId.computeIfAbsent(tunnelId, Tunnel::new);
-        final var ws = properties.webSocket();
-        tunnel.session = new ConcurrentWebSocketSessionDecorator(
-            session,
-            (int) ws.sendTimeLimit().toMillis(),
-            (int) ws.sendBufferSizeLimit().toBytes()
-        );
-        sessionToTunnelId.put(session.getId(), tunnelId);
+        synchronized (tunnel) {
+            if (byTunnelId.get(tunnelId) != tunnel) {
+                // The tunnel was replaced or removed; retry.
+                attachSession(tunnelId, session);
+                return;
+            }
+            final var ws = properties.webSocket();
+            tunnel.session = new ConcurrentWebSocketSessionDecorator(
+                session,
+                (int) ws.sendTimeLimit().toMillis(),
+                (int) ws.sendBufferSizeLimit().toBytes()
+            );
+            sessionToTunnelId.put(session.getId(), tunnelId);
+        }
     }
 
     /**
@@ -317,50 +336,55 @@ public class NetTunnelRegistry {
         if (tunnel == null) {
             return;
         }
-        // Interrupt loops
-        if (tunnel.acceptLoopFuture != null) {
-            tunnel.acceptLoopFuture.cancel(true);
-        }
-        if (tunnel.udpReceiveLoopFuture != null) {
-            tunnel.udpReceiveLoopFuture.cancel(true);
-        }
-        // Close TCP acceptor first so accept loops break
-        final var server = tunnel.serverSocket;
-        if (server != null) {
-            try {
-                server.close();
-            } catch (final Exception e) {
-                log.debug("Failed to close ServerSocket: {}", e.toString());
+        synchronized (tunnel) {
+            // Interrupt loops
+            if (tunnel.acceptLoopFuture != null) {
+                tunnel.acceptLoopFuture.cancel(true);
+                tunnel.acceptLoopFuture = null;
             }
-        }
-        // Close all live TCP connections
-        for (final var entry : tunnel.connections.entrySet()) {
-            final var connection = entry.getValue();
-            connection.close();
-        }
-        tunnel.connections.clear();
-        // Close UDP socket
-        final var udp = tunnel.udpSocket;
-        if (udp != null) {
-            try {
-                udp.close();
-            } catch (final Exception e) {
-                log.debug("Failed to close DatagramSocket: {}", e.toString());
+            if (tunnel.udpReceiveLoopFuture != null) {
+                tunnel.udpReceiveLoopFuture.cancel(true);
+                tunnel.udpReceiveLoopFuture = null;
             }
-        }
-        tunnel.udpRemotes.clear();
-        final var session = tunnel.session;
-        if (session != null) {
-            sessionToTunnelId.remove(session.getId());
-            if (session.isOpen()) {
+            // Close TCP acceptor first so accept loops break
+            final var server = tunnel.serverSocket;
+            if (server != null) {
                 try {
-                    session.close();
-                } catch (final IOException e) {
-                    log.debug("Failed to close WebSocket session for tunnel {}: {}", tunnelId, e.getMessage());
+                    server.close();
+                } catch (final Exception e) {
+                    log.debug("Failed to close ServerSocket: {}", e.toString());
                 }
+                tunnel.serverSocket = null;
+            }
+            // Close all live TCP connections
+            for (final var connection : tunnel.connections.values()) {
+                connection.close();
+            }
+            tunnel.connections.clear();
+            // Close UDP socket
+            final var udp = tunnel.udpSocket;
+            if (udp != null) {
+                try {
+                    udp.close();
+                } catch (final Exception e) {
+                    log.debug("Failed to close DatagramSocket: {}", e.toString());
+                }
+                tunnel.udpSocket = null;
+            }
+            tunnel.udpRemotes.clear();
+            final var session = tunnel.session;
+            if (session != null) {
+                sessionToTunnelId.remove(session.getId());
+                if (session.isOpen()) {
+                    try {
+                        session.close();
+                    } catch (final IOException e) {
+                        log.debug("Failed to close WebSocket session for tunnel {}: {}", tunnelId, e.getMessage());
+                    }
+                }
+                tunnel.session = null;
             }
         }
-        tunnel.session = null;
     }
 
     private void acceptLoop(final Tunnel tunnel) {
@@ -397,7 +421,10 @@ public class NetTunnelRegistry {
             final var pushbackIn = new PushbackInputStream(socket.getInputStream(), 16);
             final var connection = new Connection(connId, socket, pushbackIn);
             tunnel.connections.put(connId, connection);
-            sendOpen(tunnel, connId);
+
+            if (!sendOpen(tunnel, connId)) {
+                throw new IOException("Failed to send OPEN message to client");
+            }
 
             // Start a task to cleanup this connection if it's not opened within a reasonable time
             final var finalConnId = connId;
@@ -542,9 +569,13 @@ public class NetTunnelRegistry {
         if (connection == null) {
             return;
         }
+        final var out = connection.out;
+        if (out == null) {
+            return;
+        }
         try {
-            connection.out.write(Base64.getDecoder().decode(dataB64));
-            connection.out.flush();
+            out.write(Base64.getDecoder().decode(dataB64));
+            out.flush();
         } catch (final IOException e) {
             log.debug("Failed to write to public socket: {}", e.toString());
             onClientClose(tunnelId, connectionId);
@@ -581,9 +612,13 @@ public class NetTunnelRegistry {
         if (connection == null) {
             return;
         }
+        final var out = connection.out;
+        if (out == null) {
+            return;
+        }
         try {
-            connection.out.write(data);
-            connection.out.flush();
+            out.write(data);
+            out.flush();
         } catch (final IOException e) {
             log.debug("Failed to write to public socket: {}. Closing connection.", e.toString());
             onClientClose(tunnel.tunnelId, connectionId);
@@ -613,11 +648,11 @@ public class NetTunnelRegistry {
         }
     }
 
-    private void sendOpen(final Tunnel tunnel, final String connId) {
+    private boolean sendOpen(final Tunnel tunnel, final String connId) {
         final var message = new WsTunnelMessage();
         message.setWsType(WsTunnelMessage.Type.OPEN);
         message.setConnectionId(connId);
-        sendToClient(tunnel, message);
+        return sendToClient(tunnel, message);
     }
 
     private boolean sendToClient(final Tunnel tunnel, final WsTunnelMessage message) {
@@ -713,7 +748,7 @@ public class NetTunnelRegistry {
                     cleanupTask = null;
                 }
             } catch (final Exception e) {
-                log.error("Failed to clean up resources: {}", e.getMessage());
+                log.error("Failed to cancel cleanup task: {}", e.getMessage());
             }
             try {
                 if (pumpFuture != null) {
@@ -721,32 +756,32 @@ public class NetTunnelRegistry {
                     pumpFuture = null;
                 }
             } catch (final Exception e) {
-                log.error("Failed to clean up resources: {}", e.getMessage());
+                log.error("Failed to cancel pump future: {}", e.getMessage());
             }
             try {
                 if (socket != null && !socket.isClosed()) {
                     socket.close();
-                    socket = null;
                 }
             } catch (final Exception e) {
                 log.error("Failed to close socket: {}", e.toString());
             }
+            socket = null;
 
             if (in != null) {
                 try {
                     in.close();
-                    in = null;
                 } catch (final Exception e) {
                     log.error("Failed to close input stream: {}", e.getMessage());
                 }
+                in = null;
             }
             if (out != null) {
                 try {
                     out.close();
-                    out = null;
                 } catch (final Exception e) {
                     log.error("Failed to close output stream: {}", e.getMessage());
                 }
+                out = null;
             }
         }
     }
