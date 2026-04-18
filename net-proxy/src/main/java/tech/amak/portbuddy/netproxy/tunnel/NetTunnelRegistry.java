@@ -44,6 +44,7 @@ import org.springframework.web.socket.handler.ConcurrentWebSocketSessionDecorato
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import jakarta.annotation.PreDestroy;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.TunnelType;
@@ -58,14 +59,20 @@ public class NetTunnelRegistry {
     private static final int MIN_PORT = 10000;
     private static final int MAX_PORT = 65535;
 
-    private static final String[] HTTP_METHODS = {
-        "GET ", "POST ", "PUT ", "DELETE ", "HEAD ", "OPTIONS ", "PATCH ", "TRACE ", "CONNECT "
+    private static final byte[][] HTTP_METHODS_BYTES = {
+        "GET ".getBytes(), "POST ".getBytes(), "PUT ".getBytes(), "DELETE ".getBytes(),
+        "HEAD ".getBytes(), "OPTIONS ".getBytes(), "PATCH ".getBytes(), "TRACE ".getBytes(), "CONNECT ".getBytes()
     };
 
     /**
      * Map of tunnels by their ID.
      */
     final Map<UUID, Tunnel> byTunnelId = new ConcurrentHashMap<>();
+
+    /**
+     * Map of session ID to tunnel ID for fast lookup during detachment.
+     */
+    private final Map<String, UUID> sessionToTunnelId = new ConcurrentHashMap<>();
 
     /**
      * Pool for IO operations using Virtual Threads.
@@ -102,6 +109,31 @@ public class NetTunnelRegistry {
         this.mapper = mapper;
         this.properties = properties;
         this.scheduler.scheduleAtFixedRate(this::cleanupOrphanedTunnels, 1, 1, TimeUnit.MINUTES);
+    }
+
+    /**
+     * Shuts down the executor services when the component is destroyed.
+     */
+    @PreDestroy
+    public void shutdown() {
+        log.info("Shutting down NetTunnelRegistry...");
+        scheduler.shutdown();
+        ioPool.shutdown();
+        try {
+            if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+                scheduler.shutdownNow();
+            }
+            if (!ioPool.awaitTermination(5, TimeUnit.SECONDS)) {
+                ioPool.shutdownNow();
+            }
+        } catch (final InterruptedException e) {
+            scheduler.shutdownNow();
+            ioPool.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+        for (final var tunnelId : byTunnelId.keySet()) {
+            closeTunnel(tunnelId);
+        }
     }
 
     /**
@@ -244,6 +276,7 @@ public class NetTunnelRegistry {
             (int) ws.sendTimeLimit().toMillis(),
             (int) ws.sendBufferSizeLimit().toBytes()
         );
+        sessionToTunnelId.put(session.getId(), tunnelId);
     }
 
     /**
@@ -264,12 +297,10 @@ public class NetTunnelRegistry {
      * @param session the WebSocket session to detach
      */
     public void detachSession(final WebSocketSession session) {
-        for (final var tunnel : byTunnelId.values()) {
-            if (tunnel.session == session) {
-                log.info("Session detached for tunnel {}. Closing tunnel.", tunnel.tunnelId);
-                closeTunnel(tunnel.tunnelId);
-                break;
-            }
+        final var tunnelId = sessionToTunnelId.remove(session.getId());
+        if (tunnelId != null) {
+            log.info("Session detached for tunnel {}. Closing tunnel.", tunnelId);
+            closeTunnel(tunnelId);
         }
     }
 
@@ -318,6 +349,17 @@ public class NetTunnelRegistry {
             }
         }
         tunnel.udpRemotes.clear();
+        final var session = tunnel.session;
+        if (session != null) {
+            sessionToTunnelId.remove(session.getId());
+            if (session.isOpen()) {
+                try {
+                    session.close();
+                } catch (final IOException e) {
+                    log.debug("Failed to close WebSocket session for tunnel {}: {}", tunnelId, e.getMessage());
+                }
+            }
+        }
         tunnel.session = null;
     }
 
@@ -340,6 +382,14 @@ public class NetTunnelRegistry {
      * @param socket the newly accepted socket
      */
     private void handleNewConnection(final Tunnel tunnel, final Socket socket) {
+        if (tunnel.session == null || !tunnel.session.isOpen()) {
+            try {
+                socket.close();
+            } catch (final IOException ignore) {
+                // ignore
+            }
+            return;
+        }
         String connId = null;
         try {
             socket.setSoTimeout(30000); // 30s timeout for initial handshake
@@ -383,10 +433,10 @@ public class NetTunnelRegistry {
             final var peekBuffer = new byte[16];
             final var bytesRead = connection.in.read(peekBuffer);
             if (bytesRead != -1) {
-                final var prefix = new String(peekBuffer, 0, bytesRead);
-                for (final var method : HTTP_METHODS) {
-                    if (prefix.startsWith(method)) {
-                        log.warn("Blocking HTTP request on TCP tunnel {}: {}", tunnel.tunnelId, prefix.trim());
+                for (final var methodBytes : HTTP_METHODS_BYTES) {
+                    if (startsWith(peekBuffer, bytesRead, methodBytes)) {
+                        log.warn("Blocking HTTP request on TCP tunnel {}: {}",
+                            tunnel.tunnelId, new String(peekBuffer, 0, bytesRead).trim());
                         final var closeMsg = new WsTunnelMessage();
                         closeMsg.setWsType(WsTunnelMessage.Type.CLOSE);
                         closeMsg.setConnectionId(connection.connectionId);
@@ -397,7 +447,9 @@ public class NetTunnelRegistry {
                     }
                 }
                 // If not HTTP, send the peeked bytes and continue
-                sendBinaryToClient(tunnel, connection.connectionId, peekBuffer, 0, bytesRead);
+                if (!sendBinaryToClient(tunnel, connection.connectionId, peekBuffer, 0, bytesRead)) {
+                    return;
+                }
             }
 
             while (!Thread.currentThread().isInterrupted()) {
@@ -405,7 +457,9 @@ public class NetTunnelRegistry {
                 if (next == -1) {
                     break;
                 }
-                sendBinaryToClient(tunnel, connection.connectionId, buffer, 0, next);
+                if (!sendBinaryToClient(tunnel, connection.connectionId, buffer, 0, next)) {
+                    break;
+                }
             }
         } catch (final Exception e) {
             log.error("Failed to read from public socket for tunnel {}: {}", tunnel.tunnelId, e.getMessage(), e);
@@ -414,6 +468,18 @@ public class NetTunnelRegistry {
             connection.close();
             tunnel.connections.remove(connection.connectionId);
         }
+    }
+
+    private boolean startsWith(final byte[] buffer, final int bytesRead, final byte[] prefix) {
+        if (prefix.length > bytesRead) {
+            return false;
+        }
+        for (int i = 0; i < prefix.length; i++) {
+            if (buffer[i] != prefix[i]) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void udpReceiveLoop(final Tunnel tunnel) {
@@ -481,6 +547,7 @@ public class NetTunnelRegistry {
             connection.out.flush();
         } catch (final IOException e) {
             log.debug("Failed to write to public socket: {}", e.toString());
+            onClientClose(tunnelId, connectionId);
         }
     }
 
@@ -518,7 +585,8 @@ public class NetTunnelRegistry {
             connection.out.write(data);
             connection.out.flush();
         } catch (final IOException e) {
-            log.debug("Failed to write to public socket: {}", e.toString());
+            log.debug("Failed to write to public socket: {}. Closing connection.", e.toString());
+            onClientClose(tunnel.tunnelId, connectionId);
         }
     }
 
@@ -552,31 +620,34 @@ public class NetTunnelRegistry {
         sendToClient(tunnel, message);
     }
 
-    private void sendToClient(final Tunnel tunnel, final WsTunnelMessage message) {
+    private boolean sendToClient(final Tunnel tunnel, final WsTunnelMessage message) {
         try {
             if (tunnel.session != null && tunnel.session.isOpen()) {
                 tunnel.session.sendMessage(new TextMessage(mapper.writeValueAsString(message)));
+                return true;
             }
-        } catch (final IOException e) {
+        } catch (final Exception e) {
             log.debug("Failed to send to client: {}", e.toString());
         }
+        return false;
     }
 
-    private void sendBinaryToClient(final Tunnel tunnel,
-                                    final String connectionId,
-                                    final byte[] bytes,
-                                    final int offset,
-                                    final int length) {
+    private boolean sendBinaryToClient(final Tunnel tunnel,
+                                       final String connectionId,
+                                       final byte[] bytes,
+                                       final int offset,
+                                       final int length) {
         try {
             if (tunnel.session != null && tunnel.session.isOpen()) {
                 final var payload = BinaryWsFrame.encodeToByteBuffer(connectionId, bytes, offset, length);
                 final var binaryMessage = new BinaryMessage(payload);
                 tunnel.session.sendMessage(binaryMessage);
-                binaryMessage.getPayload().clear();
+                return true;
             }
-        } catch (final IOException e) {
+        } catch (final Exception e) {
             log.debug("Failed to send binary to client: {}", e.getMessage());
         }
+        return false;
     }
 
     @Data
@@ -618,7 +689,10 @@ public class NetTunnelRegistry {
         volatile Future<?> pumpFuture;
         volatile ScheduledFuture<?> cleanupTask;
 
-        Connection(final String connectionId, final Socket socket, final InputStream in) throws IOException {
+        Connection(final String connectionId,
+                   final Socket socket,
+                   final InputStream in) throws IOException {
+
             this.connectionId = connectionId;
             this.socket = socket;
             this.in = in;
@@ -633,24 +707,47 @@ public class NetTunnelRegistry {
          * Closes the socket and nullifies all resource references.
          */
         void close() {
-            if (cleanupTask != null) {
-                cleanupTask.cancel(false);
-                cleanupTask = null;
+            try {
+                if (cleanupTask != null) {
+                    cleanupTask.cancel(false);
+                    cleanupTask = null;
+                }
+            } catch (final Exception e) {
+                log.error("Failed to clean up resources: {}", e.getMessage());
             }
-            if (pumpFuture != null) {
-                pumpFuture.cancel(true);
-                pumpFuture = null;
+            try {
+                if (pumpFuture != null) {
+                    pumpFuture.cancel(true);
+                    pumpFuture = null;
+                }
+            } catch (final Exception e) {
+                log.error("Failed to clean up resources: {}", e.getMessage());
             }
             try {
                 if (socket != null && !socket.isClosed()) {
                     socket.close();
+                    socket = null;
                 }
-            } catch (final IOException e) {
+            } catch (final Exception e) {
                 log.error("Failed to close socket: {}", e.toString());
             }
-            socket = null;
-            in = null;
-            out = null;
+
+            if (in != null) {
+                try {
+                    in.close();
+                    in = null;
+                } catch (final Exception e) {
+                    log.error("Failed to close input stream: {}", e.getMessage());
+                }
+            }
+            if (out != null) {
+                try {
+                    out.close();
+                    out = null;
+                } catch (final Exception e) {
+                    log.error("Failed to close output stream: {}", e.getMessage());
+                }
+            }
         }
     }
 }

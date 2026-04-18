@@ -26,8 +26,8 @@ spring:
 app:
   public-host: ${NET_PROXY_PUBLIC_HOST:localhost}
   web-socket:
-    max-text-message-size: 10MB
-    max-binary-message-size: 10MB
+    max-text-message-size: 1MB
+    max-binary-message-size: 1MB
     session-idle-timeout: 10m
     send-time-limit: 10s
     send-buffer-size-limit: 1MB

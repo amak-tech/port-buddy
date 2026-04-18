@@ -57,6 +57,7 @@ class NetTunnelRegistryTest {
         final var registry = new NetTunnelRegistry(mapper, properties);
         final var tunnelId = UUID.randomUUID();
         final var session = mock(WebSocketSession.class);
+        when(session.getId()).thenReturn(UUID.randomUUID().toString());
         when(session.isOpen()).thenReturn(true);
 
         registry.attachSession(tunnelId, session);
@@ -98,6 +99,7 @@ class NetTunnelRegistryTest {
         final var registry = new NetTunnelRegistry(mapper, properties);
         final var tunnelId = UUID.randomUUID();
         final var session = mock(WebSocketSession.class);
+        when(session.getId()).thenReturn(UUID.randomUUID().toString());
         when(session.isOpen()).thenReturn(true);
 
         registry.attachSession(tunnelId, session);
@@ -120,6 +122,7 @@ class NetTunnelRegistryTest {
         final var registry = new NetTunnelRegistry(mapper, properties);
         final var tunnelId = UUID.randomUUID();
         final var session = mock(WebSocketSession.class);
+        when(session.getId()).thenReturn(UUID.randomUUID().toString());
         when(session.isOpen()).thenReturn(true);
 
         registry.attachSession(tunnelId, session);
@@ -144,6 +147,7 @@ class NetTunnelRegistryTest {
         final var registry = new NetTunnelRegistry(mapper, properties);
         final var tunnelId = UUID.randomUUID();
         final var session = mock(WebSocketSession.class);
+        when(session.getId()).thenReturn(UUID.randomUUID().toString());
         when(session.isOpen()).thenReturn(true);
 
         registry.attachSession(tunnelId, session);

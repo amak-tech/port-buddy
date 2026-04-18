@@ -193,6 +193,18 @@ public class IngressController {
         headers.put("X-Forwarded-Host", List.of(request.getServerName()));
         headers.put("X-Forwarded-Proto", List.of(request.isSecure() ? "https" : "http"));
 
+        final var maxRequestBodySize = properties.gateway().maxRequestBodySize();
+        if (maxRequestBodySize != null) {
+            final var contentLength = request.getContentLengthLong();
+            if (contentLength > maxRequestBodySize.toBytes()) {
+                log.warn("Payload Too Large: subdomain {} exceeded max body size of {} (length: {})",
+                    subdomain, maxRequestBodySize, contentLength);
+                response.sendError(HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE,
+                    "Payload Too Large: max %s allowed".formatted(maxRequestBodySize));
+                return;
+            }
+        }
+
         final var bodyBytes = request.getInputStream().readAllBytes();
         final var bodyB64 = bodyBytes.length == 0 ? null : Base64.getEncoder().encodeToString(bodyBytes);
 
