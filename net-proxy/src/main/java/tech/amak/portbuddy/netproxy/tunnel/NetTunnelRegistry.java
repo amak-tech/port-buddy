@@ -430,7 +430,7 @@ public class NetTunnelRegistry {
         try {
             connection.socket.setSoTimeout(60000); // 60s idle timeout for data pumping
             // Peek at initial bytes to detect HTTP requests
-            var peekBuffer = new byte[16];
+            final var peekBuffer = new byte[16];
             final var bytesRead = connection.in.read(peekBuffer);
             if (bytesRead != -1) {
                 for (final var methodBytes : HTTP_METHODS_BYTES) {

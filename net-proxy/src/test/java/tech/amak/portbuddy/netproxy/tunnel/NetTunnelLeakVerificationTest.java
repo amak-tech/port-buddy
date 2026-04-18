@@ -10,7 +10,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
  */
 
 package tech.amak.portbuddy.netproxy.tunnel;
@@ -31,7 +30,6 @@ import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -67,7 +65,7 @@ class NetTunnelLeakVerificationTest {
         final var session = mock(WebSocketSession.class);
         when(session.getId()).thenReturn(UUID.randomUUID().toString());
         when(session.isOpen()).thenReturn(true);
-        
+
         // Simulate failure on sendMessage
         doThrow(new IOException("Simulated failure")).when(session).sendMessage(any(BinaryMessage.class));
 
@@ -82,7 +80,7 @@ class NetTunnelLeakVerificationTest {
 
             final var tunnel = registry.byTunnelId.get(tunnelId);
             final var connectionId = tunnel.getConnections().keySet().iterator().next();
-            
+
             // Signal OPEN_OK
             registry.onClientOpenOk(tunnelId, connectionId);
 
@@ -92,12 +90,13 @@ class NetTunnelLeakVerificationTest {
 
             // The sendBinaryToClient should fail, and pumpFromPublic should exit and cleanup
             // We wait a bit for the async processing
-            long start = System.currentTimeMillis();
+            final var start = System.currentTimeMillis();
             while (tunnel.getConnections().containsKey(connectionId) && (System.currentTimeMillis() - start) < 5000) {
                 Thread.sleep(100);
             }
 
-            assertNull(tunnel.getConnections().get(connectionId), "Connection should have been cleaned up after send failure");
+            assertNull(tunnel.getConnections().get(connectionId),
+                "Connection should have been cleaned up after send failure");
         } finally {
             registry.closeTunnel(tunnelId);
             registry.shutdown();
