@@ -388,7 +388,7 @@ public class NetTunnelRegistry {
         try {
             connection.socket.setSoTimeout(60000); // 60s idle timeout for data pumping
             // Peek at initial bytes to detect HTTP requests
-            final var peekBuffer = new byte[16];
+            var peekBuffer = new byte[16];
             final var bytesRead = connection.in.read(peekBuffer);
             if (bytesRead != -1) {
                 for (final var methodBytes : HTTP_METHODS_BYTES) {
@@ -676,16 +676,16 @@ public class NetTunnelRegistry {
                 try {
                     in.close();
                     in = null;
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
+                } catch (final IOException e) {
+                    log.error("Failed to close input stream: {}", e.getMessage());
                 }
             }
             if (out != null) {
                 try {
                     out.close();
                     out = null;
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
+                } catch (final IOException e) {
+                    log.error("Failed to close output stream: {}", e.getMessage());
                 }
             }
         }
