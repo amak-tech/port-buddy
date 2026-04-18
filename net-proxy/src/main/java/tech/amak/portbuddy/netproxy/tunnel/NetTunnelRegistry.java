@@ -265,7 +265,13 @@ public class NetTunnelRegistry {
      */
     public void detachSession(final WebSocketSession session) {
         for (final var tunnel : byTunnelId.values()) {
-            if (tunnel.session == session) {
+            var currentSession = tunnel.session;
+            // Unwrap if it's a decorator
+            if (currentSession instanceof ConcurrentWebSocketSessionDecorator decorator) {
+                currentSession = decorator.getDelegate();
+            }
+
+            if (currentSession == session || (currentSession != null && currentSession.getId().equals(session.getId()))) {
                 log.info("Session detached for tunnel {}. Closing tunnel.", tunnel.tunnelId);
                 closeTunnel(tunnel.tunnelId);
                 break;
