@@ -60,8 +60,8 @@ export default function AppLayout() {
           <div className="sticky top-0 z-10 border-b border-white/5 px-6 py-6 flex items-center justify-between">
             <Link to="/" className="flex items-center gap-3 text-xl font-black text-white hover:opacity-90 transition-opacity tracking-tighter">
               <span className="relative flex h-3 w-3">
-                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-jb-blue opacity-75"></span>
-                 <span className="relative inline-flex rounded-full h-3 w-3 bg-jb-blue"></span>
+                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                 <span className="relative inline-flex rounded-full h-3 w-3 bg-indigo-400"></span>
               </span>
               Port Buddy
             </Link>
