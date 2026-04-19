@@ -52,6 +52,44 @@ Expose a local UDP service:
 portbuddy udp 9000
 ```
 
+### 4. Run with Docker
+
+You can also run the PortBuddy CLI inside a Docker container.
+
+#### Pull the Image
+If you haven't built it locally, you can use the official image (replace with actual image name if applicable):
+```bash
+docker pull amaktech/portbuddy:latest
+```
+*Note: If you are developing locally, you can build the image using `Dockerfile-cli`.*
+
+#### Authentication with Docker
+To use PortBuddy in Docker, you should mount your token file from your host machine to the container. The CLI expects the token at `/root/.port-buddy/token`.
+
+First, authenticate on your host machine:
+```bash
+portbuddy init {YOUR_API_TOKEN}
+```
+
+Then, run the Docker container with the token mounted:
+```bash
+docker run -it --rm \
+  -v ~/.port-buddy/token:/root/.port-buddy/token \
+  --network host \
+  amaktech/portbuddy 3000
+```
+
+#### Mounting a Token File Directly
+If you have your API token in a file (e.g., `my_token.txt`), you can mount it directly:
+```bash
+docker run -it --rm \
+  -v $(pwd)/my_token.txt:/root/.port-buddy/token \
+  --network host \
+  amaktech/portbuddy 3000
+```
+
+*Note: `--network host` is used to allow the container to access services running on your host's localhost (e.g., port 3000).*
+
 ## 🛠️ CLI Usage
 
 ```text
