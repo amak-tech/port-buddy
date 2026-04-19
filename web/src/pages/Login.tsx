@@ -76,8 +76,8 @@ export default function Login() {
             <Link to="/" className="inline-block mb-8 group">
               <div className="flex items-center justify-center gap-3 text-2xl font-black text-white tracking-tighter uppercase transition-transform group-hover:scale-105">
                 <span className="relative flex h-4 w-4">
-                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-jb-blue opacity-75"></span>
-                   <span className="relative inline-flex rounded-full h-4 w-4 bg-jb-blue shadow-[0_0_10px_rgba(51,204,255,0.5)]"></span>
+                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                   <span className="relative inline-flex rounded-full h-4 w-4 bg-indigo-400 shadow-[0_0_10px_rgba(51,204,255,0.5)]"></span>
                 </span>
                 Port Buddy
               </div>

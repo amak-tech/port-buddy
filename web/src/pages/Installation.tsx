@@ -143,10 +143,27 @@ export default function Installation() {
                     <CodeBlock code="docker pull portbuddy/portbuddy" />
                   </Step>
                   <Step 
-                    title="Run Port Buddy"
-                    description="Expose your local service using Docker."
+                    title="Authentication with Docker"
+                    description="To use Port Buddy in Docker, mount your token file. The CLI expects it at /root/.port-buddy/token."
                   >
-                    <CodeBlock code="docker run --net=host portbuddy/portbuddy 3000" />
+                    <div className="space-y-4">
+                      <p className="text-slate-400 text-sm">First, authenticate on your host machine:</p>
+                      <CodeBlock code="portbuddy init YOUR_API_TOKEN" />
+                      <p className="text-slate-400 text-sm">Then, run with the token mounted:</p>
+                      <CodeBlock code={`docker run -it --rm \\
+  -v ~/.port-buddy/token:/root/.port-buddy/token \\
+  --network host \\
+  portbuddy/portbuddy 3000`} />
+                    </div>
+                  </Step>
+                  <Step 
+                    title="Mounting a Token File Directly"
+                    description="If you have your API token in a file, you can mount it directly."
+                  >
+                    <CodeBlock code={`docker run -it --rm \\
+  -v $(pwd)/my_token.txt:/root/.port-buddy/token \\
+  --network host \\
+  portbuddy/portbuddy 3000`} />
                   </Step>
                 </div>
               )}
