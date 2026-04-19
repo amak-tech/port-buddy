@@ -118,3 +118,9 @@ docker-compose up -d
 ## 📄 License
 
 This project is licensed under the Apache License, Version 2.0 - see the [LICENSE](LICENSE) file for details.
+
+## 🤝 Community Projects
+
+Projects built by the PortBuddy community:
+
+- **[PortBuddy GUI](https://github.com/quack-stuff/portbuddy-gui)** by Quack - A graphical user interface for PortBuddy on Windows.
