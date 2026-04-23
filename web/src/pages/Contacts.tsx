@@ -67,7 +67,7 @@ export default function Contacts() {
               </p>
               <ul className="list-disc pl-6 space-y-2">
                 <li>
-                  <a href="https://discord.gg/RCT82A6T" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">Discord</a> - Join our community for real-time help and discussions.
+                  <a href="https://discord.gg/PaEzzjmvSH" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">Discord</a> - Join our community for real-time help and discussions.
                 </li>
                 <li>
                   <a href="https://t.me/portbuddy" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">Telegram</a> - Follow us for updates and news.
