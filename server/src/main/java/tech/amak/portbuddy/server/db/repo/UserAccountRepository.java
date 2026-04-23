@@ -28,8 +28,20 @@ public interface UserAccountRepository extends JpaRepository<UserAccountEntity, 
 
     List<UserAccountEntity> findAllByUserId(UUID userId);
 
-    @Query("SELECT ua FROM UserAccountEntity ua WHERE ua.user.id = :userId ORDER BY ua.lastUsedAt DESC LIMIT 1")
+    @Query("""
+        SELECT ua
+        FROM UserAccountEntity ua
+            JOIN FETCH ua.account
+        WHERE ua.user.id = :userId
+        ORDER BY ua.lastUsedAt DESC
+        LIMIT 1""")
     Optional<UserAccountEntity> findLatestUsedByUserId(@Param("userId") UUID userId);
 
-    Optional<UserAccountEntity> findByUserIdAndAccountId(UUID userId, UUID accountId);
+    @Query("""
+        SELECT ua
+        FROM UserAccountEntity ua
+            JOIN FETCH ua.account
+        WHERE ua.user.id = :userId AND ua.account.id = :accountId""")
+    Optional<UserAccountEntity> findByUserIdAndAccountId(@Param("userId") UUID userId,
+                                                         @Param("accountId") UUID accountId);
 }
