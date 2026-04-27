@@ -28,6 +28,8 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -78,4 +80,18 @@ public class DomainEntity {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
+
+    @PrePersist
+    @PreUpdate
+    private void toLowerCase() {
+        if (subdomain != null) {
+            subdomain = subdomain.toLowerCase();
+        }
+        if (domain != null) {
+            domain = domain.toLowerCase();
+        }
+        if (customDomain != null) {
+            customDomain = customDomain.toLowerCase();
+        }
+    }
 }

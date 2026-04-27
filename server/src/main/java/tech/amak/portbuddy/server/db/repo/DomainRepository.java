@@ -30,7 +30,7 @@ import tech.amak.portbuddy.server.db.entity.DomainEntity;
 public interface DomainRepository extends JpaRepository<DomainEntity, UUID> {
     boolean existsBySubdomain(String subdomain);
 
-    @Query(value = "SELECT count(*) > 0 FROM domains WHERE subdomain = :subdomain", nativeQuery = true)
+    @Query(value = "SELECT count(*) > 0 FROM domains WHERE subdomain = LOWER(:subdomain)", nativeQuery = true)
     boolean existsBySubdomainGlobal(@Param("subdomain") String subdomain);
 
     List<DomainEntity> findAllByAccount(AccountEntity account);

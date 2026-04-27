@@ -124,11 +124,12 @@ public class DomainService {
             throw new RuntimeException("Cannot update domain used by active tunnel");
         }
 
-        if (!domain.getSubdomain().equals(newSubdomain)) {
-            if (domainRepository.existsBySubdomainGlobal(newSubdomain)) {
-                throw new RuntimeException("Subdomain " + newSubdomain + " is already taken");
+        final var normalizedSubdomain = newSubdomain != null ? newSubdomain.toLowerCase() : null;
+        if (!domain.getSubdomain().equals(normalizedSubdomain)) {
+            if (domainRepository.existsBySubdomainGlobal(normalizedSubdomain)) {
+                throw new RuntimeException("Subdomain " + normalizedSubdomain + " is already taken");
             }
-            domain.setSubdomain(newSubdomain);
+            domain.setSubdomain(normalizedSubdomain);
             domain.setCnameVerified(false);
             domain.setSslActive(false);
             return domainRepository.save(domain);
@@ -210,8 +211,9 @@ public class DomainService {
         final var domain = domainRepository.findByIdAndAccount(id, account)
             .orElseThrow(() -> new RuntimeException("Domain not found"));
 
-        if (!Objects.equals(domain.getCustomDomain(), customDomain)) {
-            domain.setCustomDomain(customDomain);
+        final var normalizedCustomDomain = customDomain != null ? customDomain.toLowerCase() : null;
+        if (!Objects.equals(domain.getCustomDomain(), normalizedCustomDomain)) {
+            domain.setCustomDomain(normalizedCustomDomain);
             domain.setCnameVerified(false);
             domain.setSslActive(false);
             return domainRepository.save(domain);
@@ -314,7 +316,10 @@ public class DomainService {
      */
     @Transactional
     public void markSslActive(final String customDomain) {
-        domainRepository.findByCustomDomain(customDomain).ifPresent(domain -> {
+        if (customDomain == null) {
+            return;
+        }
+        domainRepository.findByCustomDomain(customDomain.toLowerCase()).ifPresent(domain -> {
             domain.setSslActive(true);
             domainRepository.save(domain);
             log.info("Marked domain {} as SSL active", customDomain);
@@ -342,10 +347,11 @@ public class DomainService {
                                       final Integer localPort) {
         if (requestedDomain != null && !requestedDomain.isBlank()) {
             // User requested specific domain
-            String targetSubdomain = requestedDomain;
+            final var normalizedDomain = requestedDomain.toLowerCase();
+            String targetSubdomain = normalizedDomain;
             final var baseDomain = properties.gateway().domain();
-            if (requestedDomain.endsWith("." + baseDomain)) {
-                targetSubdomain = requestedDomain.substring(0, requestedDomain.length() - baseDomain.length() - 1);
+            if (normalizedDomain.endsWith("." + baseDomain)) {
+                targetSubdomain = normalizedDomain.substring(0, normalizedDomain.length() - baseDomain.length() - 1);
             }
 
             final var finalSubdomain = targetSubdomain;
