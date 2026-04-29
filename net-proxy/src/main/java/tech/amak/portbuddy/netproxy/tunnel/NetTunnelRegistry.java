@@ -455,7 +455,7 @@ public class NetTunnelRegistry {
     private void pumpFromPublic(final Tunnel tunnel, final Connection connection) {
         final var buffer = new byte[8192];
         try {
-            connection.socket.setSoTimeout(60000); // 60s idle timeout for data pumping
+            connection.socket.setSoTimeout((int) properties.webSocket().sessionIdleTimeout().toMillis());
             // Peek at initial bytes to detect HTTP requests
             final var peekBuffer = new byte[16];
             final var bytesRead = connection.in.read(peekBuffer);
