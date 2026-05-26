@@ -23,6 +23,7 @@ import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -142,11 +143,18 @@ public class NetTunnelRegistry {
      */
     private void cleanupOrphanedTunnels() {
         final var now = System.currentTimeMillis();
+        log.info("Running tunnel cleanup. Active tunnels: {}, Active sessions: {}",
+            byTunnelId.size(), sessionToTunnelId.size());
+
         for (final var tunnel : byTunnelId.values()) {
             final var session = tunnel.session;
             final var isOrphaned = session == null || !session.isOpen();
 
             if (!isOrphaned) {
+                // Monitor connection counts for active tunnels
+                if (!tunnel.connections.isEmpty()) {
+                    log.info("Tunnel {} has {} active connections", tunnel.tunnelId, tunnel.connections.size());
+                }
                 continue;
             }
 
@@ -439,14 +447,13 @@ public class NetTunnelRegistry {
             connection.setCleanupTask(cleanupTask);
         } catch (final Exception e) {
             log.error("Failed to handle new connection for tunnel {}: {}", tunnel.tunnelId, e.toString());
-            final var conn = connId != null ? tunnel.connections.remove(connId) : null;
-            if (conn != null) {
-                conn.close();
+            if (connId != null) {
+                onClientClose(tunnel.tunnelId, connId);
             } else {
                 try {
                     socket.close();
                 } catch (final IOException ignore) {
-                    log.warn("Failed to close socket for tunnel {}: {}", tunnel.tunnelId, e.getMessage());
+                    // ignore
                 }
             }
         }
@@ -468,8 +475,6 @@ public class NetTunnelRegistry {
                         closeMsg.setWsType(WsTunnelMessage.Type.CLOSE);
                         closeMsg.setConnectionId(connection.connectionId);
                         sendToClient(tunnel, closeMsg);
-                        connection.close();
-                        tunnel.connections.remove(connection.connectionId);
                         return;
                     }
                 }
@@ -488,12 +493,16 @@ public class NetTunnelRegistry {
                     break;
                 }
             }
+        } catch (final SocketException e) {
+            final var message = e.getMessage();
+            if (message != null && !message.contains("Socket closed")) {
+                log.error("Client connection {} for tunnel {} closed unexpectedly: {}",
+                    connection.connectionId, tunnel.tunnelId, message, e);
+            }
         } catch (final Exception e) {
-            log.error("Failed to read from public socket for tunnel {}: {}", tunnel.tunnelId, e.getMessage(), e);
+            log.error("Failed to read from public socket for tunnel {}: {}", tunnel.tunnelId, e.getMessage());
         } finally {
-            log.info("Public socket closed for tunnel {}: {}", tunnel.tunnelId, connection.connectionId);
-            connection.close();
-            tunnel.connections.remove(connection.connectionId);
+            onClientClose(tunnel.tunnelId, connection.connectionId);
         }
     }
 

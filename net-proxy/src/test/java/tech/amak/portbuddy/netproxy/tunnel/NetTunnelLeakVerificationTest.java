@@ -15,6 +15,7 @@
 package tech.amak.portbuddy.netproxy.tunnel;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -116,5 +117,82 @@ class NetTunnelLeakVerificationTest {
 
         assertTrue(ioPool.isShutdown());
         assertTrue(scheduler.isShutdown());
+    }
+
+    @Test
+    void testConnectionCleanupOnHandshakeFailure() throws IOException, InterruptedException {
+        final var registry = new NetTunnelRegistry(mapper, properties);
+        final var tunnelId = UUID.randomUUID();
+        final var session = mock(WebSocketSession.class);
+        when(session.getId()).thenReturn(UUID.randomUUID().toString());
+        when(session.isOpen()).thenReturn(true);
+
+        // Simulate failure on sendOpen
+        doThrow(new RuntimeException("Simulated OPEN failure")).when(session).sendMessage(any(TextMessage.class));
+
+        registry.attachSession(tunnelId, session);
+        final var exposedPort = registry.expose(tunnelId, TunnelType.TCP, 10030);
+
+        try (final var clientSocket = new Socket("localhost", exposedPort.getPort())) {
+            // Wait for registry to attempt handleNewConnection and fail
+            final var tunnel = registry.byTunnelId.get(tunnelId);
+            final var start = System.currentTimeMillis();
+            while (!tunnel.getConnections().isEmpty() && (System.currentTimeMillis() - start) < 5000) {
+                Thread.sleep(100);
+            }
+            assertTrue(tunnel.getConnections().isEmpty(), "Connections should be empty after handshake failure");
+        } finally {
+            registry.closeTunnel(tunnelId);
+            registry.shutdown();
+        }
+    }
+
+    @Test
+    void testConnectionCleanupOnIdleTimeout() throws IOException, InterruptedException {
+        // Use shorter timeout for testing if possible, but properties are final and injected.
+        // The default sessionIdleTimeout in properties is 10m.
+        // For testing purposes, we might want to mock AppProperties, but it's a record.
+        
+        final var shortIdleProps = new AppProperties(
+            "localhost",
+            new AppProperties.WebSocket(
+                DataSize.ofMegabytes(10),
+                DataSize.ofMegabytes(10),
+                Duration.ofSeconds(1), // 1s idle timeout
+                Duration.ofSeconds(10),
+                DataSize.ofMegabytes(1)
+            ),
+            new AppProperties.Jwt("port-buddy", "http://localhost:8080")
+        );
+
+        final var registry = new NetTunnelRegistry(mapper, shortIdleProps);
+        final var tunnelId = UUID.randomUUID();
+        final var session = mock(WebSocketSession.class);
+        when(session.getId()).thenReturn(UUID.randomUUID().toString());
+        when(session.isOpen()).thenReturn(true);
+
+        registry.attachSession(tunnelId, session);
+        final var exposedPort = registry.expose(tunnelId, TunnelType.TCP, 10040);
+
+        try (final var clientSocket = new Socket("localhost", exposedPort.getPort())) {
+            verify(session, timeout(2000)).sendMessage(any(TextMessage.class));
+            final var tunnel = registry.byTunnelId.get(tunnelId);
+            final var connectionId = tunnel.getConnections().keySet().iterator().next();
+
+            registry.onClientOpenOk(tunnelId, connectionId);
+            
+            assertNotNull(tunnel.getConnections().get(connectionId));
+
+            // Wait for idle timeout
+            final var start = System.currentTimeMillis();
+            while (tunnel.getConnections().containsKey(connectionId) && (System.currentTimeMillis() - start) < 5000) {
+                Thread.sleep(100);
+            }
+
+            assertNull(tunnel.getConnections().get(connectionId), "Connection should be cleaned up after idle timeout");
+        } finally {
+            registry.closeTunnel(tunnelId);
+            registry.shutdown();
+        }
     }
 }
