@@ -271,6 +271,9 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
+      - name: Disable Homebrew Sandbox
+        run: echo "HOMEBREW_NO_SANDBOX_LINUX=1" >> $GITHUB_ENV
+
       - name: Checkout Homebrew Tap
         uses: actions/checkout@v4
         with:
