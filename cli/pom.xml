@@ -169,6 +169,7 @@
                                 <buildArg>--gc=serial</buildArg>
                                 <buildArg>-H:+UnlockExperimentalVMOptions</buildArg>
                                 <buildArg>-H:-StackTrace</buildArg>
+                                <buildArg>-march=compatibility</buildArg>
                                 <buildArg>--initialize-at-build-time=org.slf4j,ch.qos.logback,tech.amak.portbuddy.common</buildArg>
                             </buildArgs>
                             <jvmArgs>
