@@ -98,6 +98,12 @@ public class TunnelEntity {
     @Column(name = "last_heartbeat_at")
     private OffsetDateTime lastHeartbeatAt;
 
+    @Column(name = "client_ip")
+    private String clientIp;
+
+    @Column(name = "user_agent")
+    private String userAgent;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;

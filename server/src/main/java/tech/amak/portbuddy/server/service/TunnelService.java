@@ -63,6 +63,8 @@ public class TunnelService {
      * @param request   The HTTP expose request containing details of the local HTTP service (scheme, host, port).
      * @param publicUrl The public URL where the service will be accessible.
      * @param domain    The domain entity used for the public HTTP endpoint.
+     * @param clientIp  The client IP address.
+     * @param userAgent The client user agent.
      * @return the created tunnel id (same as entity id string)
      */
     @Transactional
@@ -71,9 +73,11 @@ public class TunnelService {
                                          final String apiKeyId,
                                          final ExposeRequest request,
                                          final String publicUrl,
-                                         final DomainEntity domain) {
+                                         final DomainEntity domain,
+                                         final String clientIp,
+                                         final String userAgent) {
         checkTunnelLimit(account);
-        return createTunnel(account.getId(), userId, apiKeyId, request, publicUrl, domain);
+        return createTunnel(account.getId(), userId, apiKeyId, request, publicUrl, domain, clientIp, userAgent);
     }
 
     /**
@@ -84,15 +88,19 @@ public class TunnelService {
      * @param userId   The unique identifier of the user creating the tunnel.
      * @param apiKeyId The optional API key identifier associated with the tunnel.
      * @param request  The expose request containing details of the local service.
+     * @param clientIp  The client IP address.
+     * @param userAgent The client user agent.
      * @return the created tunnel id (same as entity id string)
      */
     @Transactional
     public TunnelEntity createNetTunnel(final AccountEntity account,
                                         final UUID userId,
                                         final String apiKeyId,
-                                        final ExposeRequest request) {
+                                        final ExposeRequest request,
+                                        final String clientIp,
+                                        final String userAgent) {
         checkTunnelLimit(account);
-        return createTunnel(account.getId(), userId, apiKeyId, request, null, null);
+        return createTunnel(account.getId(), userId, apiKeyId, request, null, null, clientIp, userAgent);
     }
 
     private void checkSubscriptionStatus(final AccountEntity account) {
@@ -197,7 +205,9 @@ public class TunnelService {
                                       final String apiKeyId,
                                       final ExposeRequest request,
                                       final String publicUrl,
-                                      final DomainEntity domain) {
+                                      final DomainEntity domain,
+                                      final String clientIp,
+                                      final String userAgent) {
 
         threatfoxService.ifPresent(threatfox ->
             threatfox.checkThreat(request.host(), request.port()));
@@ -214,6 +224,8 @@ public class TunnelService {
         tunnel.setLocalPort(request.port());
         tunnel.setPublicUrl(publicUrl);
         tunnel.setDomain(domain);
+        tunnel.setClientIp(clientIp);
+        tunnel.setUserAgent(userAgent);
 
         if (apiKeyId != null && !apiKeyId.isBlank()) {
             tunnel.setApiKeyId(UUID.fromString(apiKeyId));
