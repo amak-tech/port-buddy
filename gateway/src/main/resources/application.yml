@@ -61,6 +61,7 @@ spring:
             wiretap: off
           x-forwarded:
             enabled: true
+          trusted-proxies: ".*"
           discovery:
             locator:
               lower-case-service-id: true

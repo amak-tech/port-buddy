@@ -25,10 +25,12 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.dto.ExposeRequest;
@@ -69,7 +71,9 @@ public class ExposeController {
     @PostMapping("/http")
     @Transactional
     public ExposeResponse exposeHttp(final @AuthenticationPrincipal Jwt jwt,
-                                     final @RequestBody ExposeRequest request) {
+                                     final @RequestBody ExposeRequest request,
+                                     final @RequestHeader(value = "User-Agent", required = false) String userAgent,
+                                     final HttpServletRequest httpServletRequest) {
         final var validatedUser = validateUser(jwt);
         final var account = validatedUser.account();
         final var user = validatedUser.user();
@@ -82,13 +86,16 @@ public class ExposeController {
         final var source = "%s://%s:%s".formatted(request.scheme(), request.host(), request.port());
 
         final var apiKeyId = extractApiKeyId(jwt);
+        final var clientIp = getClientIp(httpServletRequest);
         final var tunnel = tunnelService.createHttpTunnel(
             account,
             user.getId(),
             apiKeyId,
             request,
             publicUrl,
-            domain);
+            domain,
+            clientIp,
+            userAgent);
         final var tunnelId = tunnel.getId();
 
         // If passcode provided, store temporary passcode hash on the tunnel entity
@@ -113,15 +120,19 @@ public class ExposeController {
     @PostMapping("/net")
     @Transactional
     public ExposeResponse exposeNet(final @AuthenticationPrincipal Jwt jwt,
-                                    final @RequestBody ExposeRequest request) {
+                                    final @RequestBody ExposeRequest request,
+                                    final @RequestHeader(value = "User-Agent", required = false) String userAgent,
+                                    final HttpServletRequest httpServletRequest) {
 
         final var validatedUser = validateUser(jwt);
         final var account = validatedUser.account();
         final var user = validatedUser.user();
         final var apiKeyId = validatedUser.apiKeyId();
 
+        final var clientIp = getClientIp(httpServletRequest);
+
         // Pre-create tunnel and use its DB id as tunnelId
-        final var tunnel = tunnelService.createNetTunnel(account, user.getId(), apiKeyId, request);
+        final var tunnel = tunnelService.createNetTunnel(account, user.getId(), apiKeyId, request, clientIp, userAgent);
         final var tunnelId = tunnel.getId();
 
         // Resolve or validate reservation according to rules
@@ -167,5 +178,9 @@ public class ExposeController {
     }
 
     private record ValidatedUser(UserEntity user, AccountEntity account, String apiKeyId) {
+    }
+
+    private String getClientIp(final HttpServletRequest request) {
+        return request.getRemoteAddr();
     }
 }

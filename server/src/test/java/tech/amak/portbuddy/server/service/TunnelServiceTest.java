@@ -86,14 +86,14 @@ class TunnelServiceTest {
     void checkTunnelLimit_ActiveSubscription_Success() {
         when(tunnelRepository.countByAccountIdAndStatusIn(any(), any())).thenReturn(0L);
         assertDoesNotThrow(() -> tunnelService.createHttpTunnel(
-            account, UUID.randomUUID(), null, createRequest(), "http://abc.pb.dev", new DomainEntity()));
+            account, UUID.randomUUID(), null, createRequest(), "http://abc.pb.dev", new DomainEntity(), "127.0.0.1", "curl/7.68.0"));
     }
 
     @Test
     void checkTunnelLimit_InactiveSubscription_ThrowsException() {
         account.setSubscriptionStatus("past_due");
         assertThrows(IllegalStateException.class, () -> tunnelService.createHttpTunnel(
-            account, UUID.randomUUID(), null, createRequest(), "http://abc.pb.dev", new DomainEntity()));
+            account, UUID.randomUUID(), null, createRequest(), "http://abc.pb.dev", new DomainEntity(), "127.0.0.1", "curl/7.68.0"));
     }
 
     @Test
@@ -132,7 +132,7 @@ class TunnelServiceTest {
         account.setExtraTunnels(0);
 
         final var exception = assertThrows(IllegalStateException.class, () -> tunnelService.createHttpTunnel(
-            account, UUID.randomUUID(), null, createRequest(), "http://abc.pb.dev", new DomainEntity()));
+            account, UUID.randomUUID(), null, createRequest(), "http://abc.pb.dev", new DomainEntity(), "127.0.0.1", "curl/7.68.0"));
 
         assertEquals("Tunnel limit reached for your plan (1). Please upgrade or add more tunnels.",
             exception.getMessage());
@@ -172,7 +172,7 @@ class TunnelServiceTest {
 
         when(tunnelRepository.countByAccountIdAndStatusIn(any(), any())).thenReturn(0L);
         assertDoesNotThrow(() -> tunnelService.createHttpTunnel(
-            account, UUID.randomUUID(), null, createRequest(), "http://abc.pb.dev", new DomainEntity()));
+            account, UUID.randomUUID(), null, createRequest(), "http://abc.pb.dev", new DomainEntity(), "127.0.0.1", "curl/7.68.0"));
     }
 
     @Test
@@ -182,7 +182,7 @@ class TunnelServiceTest {
         account.setExtraTunnels(1);
 
         assertThrows(IllegalStateException.class, () -> tunnelService.createHttpTunnel(
-            account, UUID.randomUUID(), null, createRequest(), "http://abc.pb.dev", new DomainEntity()));
+            account, UUID.randomUUID(), null, createRequest(), "http://abc.pb.dev", new DomainEntity(), "127.0.0.1", "curl/7.68.0"));
     }
 
     @Test
@@ -191,7 +191,7 @@ class TunnelServiceTest {
         account.setPlan(Plan.TEAM);
 
         assertThrows(IllegalStateException.class, () -> tunnelService.createHttpTunnel(
-            account, UUID.randomUUID(), null, createRequest(), "http://abc.pb.dev", new DomainEntity()));
+            account, UUID.randomUUID(), null, createRequest(), "http://abc.pb.dev", new DomainEntity(), "127.0.0.1", "curl/7.68.0"));
     }
 
     private ExposeRequest createRequest() {
