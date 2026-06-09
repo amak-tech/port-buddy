@@ -1,55 +1,48 @@
-# PortBuddy 🚀
+# 🚀 Port Buddy — Secure Localhost Tunneling (HTTP, TCP, UDP)
 
-PortBuddy is a powerful yet simple tool that allows you to expose a port opened on your local host or in a private network to the public internet. It works as a secure tunnel, similar to ngrok, providing a public URL for your local services.
+[Official Website](https://portbuddy.dev)
 
-Whether you're developing a web app, testing webhooks, or sharing access to a local database, PortBuddy makes it easy and secure.
+[License](https://github.com/amak-tech/port-buddy/blob/master/LICENSE)
 
-## ✨ Features
+**Port Buddy** is a lightweight, high-performance **ngrok alternative** designed to instantly expose your local development servers to the public internet. Unlike standard tools, Port Buddy features native, zero-configuration support for **HTTP/HTTPS**, raw **TCP**, and **UDP** protocols right out of the box.
 
-- **Multi-protocol support**: Tunnel HTTP, TCP, and UDP traffic.
-- **SSL by default**: All HTTP tunnels are automatically secured with SSL.
-- **Customizable**: Support for static subdomains and custom domains.
-- **Websocket support**: Full support for real-time applications.
-- **Private tunnels**: Secure your tunnels with passcodes.
-- **Cross-platform CLI**: Lightweight CLI built with Java 25 and GraalVM (native executable).
-- **Web Dashboard**: Manage your tunnels, subscriptions, and team members easily.
+Whether you need to test webhooks, expose a local database, debug an SSH connection, or host a local multiplayer game server, Port Buddy creates a secure reverse tunnel with a single command—no router port forwarding required.
 
-## 🚀 Quick Start
+---
 
-### 1. Installation
+## ✨ Key Features
 
-Download the latest version of the `portbuddy` CLI for your platform (Windows, Linux, or Mac).
+*   **🌐 HTTP & HTTPS Tunnels:** Easily share local web applications and APIs with auto-generated SSL certificates.
+*   **🔌 Raw TCP Port Forwarding:** Expose local databases (PostgreSQL, MySQL), SSH, or custom TCP services securely.
+*   **🎮 Native UDP Support:** Perfect for debugging IoT protocols, VoIP services, and hosting game servers (Minecraft, Rust, etc.).
+*   **🔗 Custom & Static Domains:** Say goodbye to random URLs. Keep your endpoints permanent even across restarts.
+*   **⚡ WebSockets & SSE:** Full support for real-time streaming, chat apps, and live data connections.
+*   **🖥️ Background Daemon:** Run Port Buddy as a system service (`systemd` or Windows Task Scheduler) for persistent tunneling.
 
-### 2. Authentication
+---
 
-Before exposing ports, you need to authenticate your CLI.
-1. Log in to your account at [portbuddy.dev](https://portbuddy.dev).
-2. Generate an API Token in your dashboard.
-3. Run the following command:
-   ```bash
-   portbuddy init {YOUR_API_TOKEN}
-   ```
+## ⚡ Quick Start: How to Expose Local Ports
 
-### 3. Expose a Port
+Install the Port Buddy CLI and start tunneling in seconds.
 
-#### HTTP (Default)
-Expose a local web server running on port 3000:
+### 1. Expose Local Web Server (HTTP)
+To expose a standard local web app running on port 3000:
 ```bash
 portbuddy 3000
 ```
-Output: `http://localhost:3000 exposed to: https://abc123.portbuddy.dev`
+*Outputs a public URL like: `https://my-web-site.portbuddy.dev`*
 
-#### TCP
-Expose a local PostgreSQL database:
+### 2. Expose Local TCP Port (Databases, SSH)
+To expose a local TCP service, such as a PostgreSQL database running on port 5432:
 ```bash
 portbuddy tcp 5432
 ```
-Output: `tcp localhost:5432 exposed to: net-proxy-3.portbuddy.dev:43452`
+*Outputs a public endpoint like: `net-proxy-1.portbuddy.dev:43452`*
 
-#### UDP
-Expose a local UDP service:
+### 3. Expose Local UDP Port (Gaming, VoIP)
+To share a local UDP game server or service running on port 19132:
 ```bash
-portbuddy udp 9000
+portbuddy udp 19132
 ```
 
 ### 4. Run with Docker
@@ -65,30 +58,6 @@ docker pull amaktech/portbuddy:latest
 
 #### Authentication with Docker
 To use PortBuddy in Docker, you should mount your token file from your host machine to the container. The CLI expects the token at `/root/.port-buddy/token`.
-
-First, authenticate on your host machine:
-```bash
-portbuddy init {YOUR_API_TOKEN}
-```
-
-Then, run the Docker container with the token mounted:
-```bash
-docker run -it --rm \
-  -v ~/.port-buddy/token:/root/.port-buddy/token \
-  --network host \
-  amaktech/portbuddy 3000
-```
-
-#### Mounting a Token File Directly
-If you have your API token in a file (e.g., `my_token.txt`), you can mount it directly:
-```bash
-docker run -it --rm \
-  -v $(pwd)/my_token.txt:/root/.port-buddy/token \
-  --network host \
-  amaktech/portbuddy 3000
-```
-
-*Note: `--network host` is used to allow the container to access services running on your host's localhost (e.g., port 3000).*
 
 ## 🛠️ CLI Usage
 
@@ -106,19 +75,6 @@ Options:
   -h,  --help                   Show help message
   -V,  --version                Show version info
 ```
-
-## 💳 Subscription Plans
-
-| Feature | Pro ($0/mo) | Team ($10/mo) |
-| :--- | :--- | :--- |
-| Tunnels | HTTP, TCP, UDP | Everything in Pro |
-| SSL | Included | Included |
-| Subdomains | Static | Static |
-| Custom Domains | Supported | Supported |
-| Team Members | - | Included |
-| Free Tunnels | 1 at a time | 10 at a time |
-| Extra Tunnels | $1/mo each | $1/mo each |
-| Support | Standard | Priority |
 
 ## 🏗️ Architecture
 
