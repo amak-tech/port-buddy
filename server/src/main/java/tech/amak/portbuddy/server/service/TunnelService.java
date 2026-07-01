@@ -84,10 +84,10 @@ public class TunnelService {
      * Creates a pending TCP tunnel and returns its tunnel id (entity id).
      * Public host/port can be set later via {@link #updateTunnelPublicConnection(UUID, String, Integer)}.
      *
-     * @param account  The account creating the tunnel.
-     * @param userId   The unique identifier of the user creating the tunnel.
-     * @param apiKeyId The optional API key identifier associated with the tunnel.
-     * @param request  The expose request containing details of the local service.
+     * @param account   The account creating the tunnel.
+     * @param userId    The unique identifier of the user creating the tunnel.
+     * @param apiKeyId  The optional API key identifier associated with the tunnel.
+     * @param request   The expose request containing details of the local service.
      * @param clientIp  The client IP address.
      * @param userAgent The client user agent.
      * @return the created tunnel id (same as entity id string)
@@ -281,8 +281,7 @@ public class TunnelService {
      * Retrieves a tunnel entity based on the provided tunnel ID.
      *
      * @param tunnelId The unique identifier of the tunnel to retrieve.
-     * @return An {@code Optional} containing the {@code TunnelEntity} if found,
-     *     or an empty {@code Optional} if not found.
+     * @return An {@code Optional} containing the {@code TunnelEntity} if found, or an empty Optional if not found.
      */
     public Optional<TunnelEntity> findByTunnelId(final UUID tunnelId) {
         return Optional.ofNullable(tunnelId)
@@ -343,6 +342,7 @@ public class TunnelService {
                 .ifPresent(this::checkSubscriptionStatus);
 
             entity.setLastHeartbeatAt(OffsetDateTime.now());
+            entity.setStatus(TunnelStatus.CONNECTED);
             tunnelRepository.save(entity);
         });
     }
