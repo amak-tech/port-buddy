@@ -209,8 +209,10 @@ public class TunnelService {
                                       final String clientIp,
                                       final String userAgent) {
 
-        threatfoxService.ifPresent(threatfox ->
-            threatfox.checkThreat(request.host(), request.port()));
+        threatfoxService.ifPresent(threatfox -> {
+            threatfox.checkThreat(request.host(), request.port());
+            threatfox.checkThreat(clientIp, request.port());
+        });
 
         final var tunnel = new TunnelEntity();
 

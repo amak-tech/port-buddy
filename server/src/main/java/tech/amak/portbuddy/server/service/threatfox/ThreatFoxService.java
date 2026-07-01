@@ -33,8 +33,10 @@ import tech.amak.portbuddy.server.security.ThreatBlockedException;
 @ConditionalOnProperty(name = "threatfox.enabled", havingValue = "true")
 public class ThreatFoxService {
 
+    private static final String PORT_SEPARATOR = ":";
     private static final String IOC_TYPE_URL = "url";
-    private static final Set<String> IOC_TYPES = Set.of("domain", "ip:port", IOC_TYPE_URL);
+    private static final String IOC_TYPE_IP_PORT = "ip:port";
+    private static final Set<String> IOC_TYPES = Set.of("domain", IOC_TYPE_IP_PORT, IOC_TYPE_URL);
     private static final ThreatFoxRequest FETCH_IOC_REQUEST = new ThreatFoxRequest("get_iocs", 7);
 
     private final ThreatFoxClient client;
@@ -89,10 +91,12 @@ public class ThreatFoxService {
     }
 
     private String normalize(final ThreatFoxIoc ioc) {
-        final var iocValue = Objects.equals(ioc.iocType(), IOC_TYPE_URL)
-            ? extractDomain(ioc.ioc())
-            : ioc.ioc();
-        return normalize(iocValue);
+        final var iocValue = switch (ioc.iocType()) {
+            case IOC_TYPE_URL -> extractDomain(ioc.ioc());
+            default -> ioc.ioc();
+        };
+
+        return normalize(extractIp(iocValue));
     }
 
     private String normalize(final String ioc) {
@@ -100,6 +104,21 @@ public class ThreatFoxService {
             return null;
         }
         return ioc.toLowerCase().trim();
+    }
+
+    private String extractIp(final String ipPort) {
+        if (ipPort == null || ipPort.isBlank()) {
+            return null;
+        }
+
+        final var normalizedIpPort = ipPort.trim();
+        final var separatorIndex = normalizedIpPort.lastIndexOf(PORT_SEPARATOR);
+
+        if (separatorIndex <= 0) {
+            return ipPort;
+        }
+
+        return normalizedIpPort.substring(0, separatorIndex);
     }
 
     private String extractDomain(final String url) {
