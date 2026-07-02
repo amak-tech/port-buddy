@@ -20,15 +20,26 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import jakarta.persistence.LockModeType;
 import tech.amak.portbuddy.server.db.entity.AccountEntity;
 import tech.amak.portbuddy.server.web.admin.dto.AdminAccountRow;
 import tech.amak.portbuddy.server.web.admin.dto.AdminStatsRow;
 
 public interface AccountRepository extends JpaRepository<AccountEntity, UUID> {
     Optional<AccountEntity> findByStripeCustomerId(String stripeCustomerId);
+
+    /**
+     * Locks the account row for the duration of the current transaction. Used to serialize
+     * concurrent domain-resolution/tunnel-creation requests for the same account so two
+     * simultaneous expose calls can't both see the same domain as available.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT a FROM AccountEntity a WHERE a.id = :id")
+    Optional<AccountEntity> findByIdForUpdate(@Param("id") UUID id);
 
     @Query("SELECT a FROM AccountEntity a WHERE a.subscriptionStatus <> 'active' AND a.updatedAt < :cutoff")
     List<AccountEntity> findBySubscriptionStatusNotActiveAndUpdatedAtBefore(@Param("cutoff") OffsetDateTime cutoff);
