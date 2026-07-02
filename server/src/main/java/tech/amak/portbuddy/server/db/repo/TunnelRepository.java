@@ -36,8 +36,6 @@ import tech.amak.portbuddy.server.web.admin.dto.AdminTunnelRow;
 @Repository
 public interface TunnelRepository extends JpaRepository<TunnelEntity, UUID> {
 
-    boolean existsByDomainAndStatus(DomainEntity domain, TunnelStatus status);
-
     boolean existsByDomainAndStatusNot(DomainEntity domain, TunnelStatus status);
 
     Optional<TunnelEntity> findFirstByAccountIdAndLocalHostAndLocalPortAndDomainIsNotNullOrderByCreatedAtDesc(

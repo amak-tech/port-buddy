@@ -22,10 +22,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -36,12 +39,15 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.unit.DataSize;
+import org.springframework.web.server.ResponseStatusException;
 
 import tech.amak.portbuddy.server.client.SslServiceClient;
 import tech.amak.portbuddy.server.config.AppProperties;
 import tech.amak.portbuddy.server.db.entity.AccountEntity;
 import tech.amak.portbuddy.server.db.entity.DomainEntity;
+import tech.amak.portbuddy.server.db.entity.TunnelEntity;
 import tech.amak.portbuddy.server.db.entity.TunnelStatus;
+import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.DomainRepository;
 import tech.amak.portbuddy.server.db.repo.TunnelRepository;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
@@ -61,6 +67,8 @@ class DomainServiceTest {
     private PasswordEncoder passwordEncoder;
     @Mock
     private SslServiceClient sslServiceClient;
+    @Mock
+    private AccountRepository accountRepository;
 
     private DomainService domainService;
     private AccountEntity account;
@@ -93,9 +101,93 @@ class DomainServiceTest {
             appProps,
             passwordEncoder,
             sslServiceClient,
-            userRepository);
+            userRepository,
+            accountRepository);
         account = new AccountEntity();
         account.setId(UUID.randomUUID());
+        lenient().when(accountRepository.findByIdForUpdate(account.getId())).thenReturn(Optional.of(account));
+    }
+
+    private static DomainEntity domainWithSubdomain(final String subdomain) {
+        final var domain = new DomainEntity();
+        domain.setId(UUID.randomUUID());
+        domain.setSubdomain(subdomain);
+        return domain;
+    }
+
+    @Test
+    void resolveDomain_NoRequest_SoleAvailableDomain_ReturnsIt() {
+        final var domain = domainWithSubdomain("dieta18-admin");
+        when(domainRepository.findAllByAccount(account)).thenReturn(List.of(domain));
+        when(tunnelRepository.existsByDomainAndStatusNot(domain, TunnelStatus.CLOSED)).thenReturn(false);
+        when(tunnelRepository.findUsedTunnel(account.getId(), "localhost", 80)).thenReturn(Optional.empty());
+
+        final var resolved = domainService.resolveDomain(account, null, "localhost", 80);
+
+        assertEquals(domain, resolved);
+        verify(accountRepository).findByIdForUpdate(account.getId());
+    }
+
+    @Test
+    void resolveDomain_NoRequest_AffinityMatch_ReturnsMatchedDomain() {
+        final var glubokoe = domainWithSubdomain("glubokoe-admin");
+        final var dieta18 = domainWithSubdomain("dieta18-admin");
+        when(domainRepository.findAllByAccount(account)).thenReturn(List.of(glubokoe, dieta18));
+        when(tunnelRepository.existsByDomainAndStatusNot(any(DomainEntity.class), eq(TunnelStatus.CLOSED)))
+            .thenReturn(false);
+
+        final var lastTunnel = new TunnelEntity();
+        lastTunnel.setDomain(glubokoe);
+        when(tunnelRepository.findUsedTunnel(account.getId(), "localhost", 8080)).thenReturn(Optional.of(lastTunnel));
+
+        final var resolved = domainService.resolveDomain(account, null, "localhost", 8080);
+
+        assertEquals(glubokoe, resolved);
+    }
+
+    @Test
+    void resolveDomain_NoRequest_MultipleAvailableNoAffinity_ThrowsConflictInsteadOfGuessing() {
+        final var glubokoe = domainWithSubdomain("glubokoe-admin");
+        final var dieta18 = domainWithSubdomain("dieta18-admin");
+        when(domainRepository.findAllByAccount(account)).thenReturn(List.of(glubokoe, dieta18));
+        when(tunnelRepository.existsByDomainAndStatusNot(any(DomainEntity.class), eq(TunnelStatus.CLOSED)))
+            .thenReturn(false);
+        when(tunnelRepository.findUsedTunnel(account.getId(), "localhost", 80)).thenReturn(Optional.empty());
+
+        final var ex = assertThrows(ResponseStatusException.class,
+            () -> domainService.resolveDomain(account, null, "localhost", 80));
+        assertEquals(409, ex.getStatusCode().value());
+    }
+
+    @Test
+    void resolveDomain_NoRequest_NoDomainsAvailable_ThrowsConflict() {
+        when(domainRepository.findAllByAccount(account)).thenReturn(List.of());
+
+        assertThrows(ResponseStatusException.class,
+            () -> domainService.resolveDomain(account, null, "localhost", 80));
+    }
+
+    @Test
+    void resolveDomain_ExplicitRequest_PendingTunnelBlocksDomain() {
+        final var domain = domainWithSubdomain("dieta18-admin");
+        when(domainRepository.findByAccountAndSubdomain(account, "dieta18-admin")).thenReturn(Optional.of(domain));
+        // Domain has a non-CLOSED (e.g. PENDING) tunnel, so it must be treated as unavailable
+        // even though it is not yet CONNECTED.
+        when(tunnelRepository.existsByDomainAndStatusNot(domain, TunnelStatus.CLOSED)).thenReturn(true);
+
+        assertThrows(ResponseStatusException.class,
+            () -> domainService.resolveDomain(account, "dieta18-admin", "localhost", 80));
+    }
+
+    @Test
+    void resolveDomain_ExplicitRequest_Available_ReturnsIt() {
+        final var domain = domainWithSubdomain("dieta18-admin");
+        when(domainRepository.findByAccountAndSubdomain(account, "dieta18-admin")).thenReturn(Optional.of(domain));
+        when(tunnelRepository.existsByDomainAndStatusNot(domain, TunnelStatus.CLOSED)).thenReturn(false);
+
+        final var resolved = domainService.resolveDomain(account, "dieta18-admin", "localhost", 80);
+
+        assertEquals(domain, resolved);
     }
 
     @Test

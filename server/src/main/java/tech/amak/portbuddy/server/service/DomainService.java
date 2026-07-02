@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import javax.naming.Context;
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
@@ -27,9 +28,11 @@ import javax.naming.directory.Attributes;
 import javax.naming.directory.DirContext;
 import javax.naming.directory.InitialDirContext;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +41,7 @@ import tech.amak.portbuddy.server.config.AppProperties;
 import tech.amak.portbuddy.server.db.entity.AccountEntity;
 import tech.amak.portbuddy.server.db.entity.DomainEntity;
 import tech.amak.portbuddy.server.db.entity.TunnelStatus;
+import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.DomainRepository;
 import tech.amak.portbuddy.server.db.repo.TunnelRepository;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
@@ -55,6 +59,7 @@ public class DomainService {
     private final PasswordEncoder passwordEncoder;
     private final SslServiceClient sslServiceClient;
     private final UserRepository userRepository;
+    private final AccountRepository accountRepository;
 
     private final SecureRandom random = new SecureRandom();
 
@@ -345,6 +350,11 @@ public class DomainService {
                                       final String requestedDomain,
                                       final String localHost,
                                       final Integer localPort) {
+        // Lock the account row for the rest of this transaction so two concurrent expose
+        // requests for the same account can't both read the same domain as available and
+        // double-assign it before either tunnel commits.
+        accountRepository.findByIdForUpdate(account.getId());
+
         if (requestedDomain != null && !requestedDomain.isBlank()) {
             // User requested specific domain
             final var normalizedDomain = requestedDomain.toLowerCase();
@@ -356,19 +366,24 @@ public class DomainService {
 
             final var finalSubdomain = targetSubdomain;
 
-            return domainRepository.findByAccountAndSubdomain(account, finalSubdomain)
-                .filter(domain -> !isTunnelConnected(domain))
-                .orElseThrow(() -> new RuntimeException("Domain not found or unavailable: " + requestedDomain));
+            final var domain = domainRepository.findByAccountAndSubdomain(account, finalSubdomain)
+                .filter(d -> !isTunnelActive(d))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Domain not found or unavailable: " + requestedDomain));
+            log.info("Resolved domain {} for account {} (explicit request)", finalSubdomain, account.getId());
+            return domain;
         }
 
-        // No specific domain requested
-        // Filter out CONNECTED domains
+        // No specific domain requested.
+        // Filter out domains with any non-closed tunnel (CONNECTED or still-PENDING), since a
+        // PENDING tunnel's owner may finish connecting at any moment.
         final var availableDomains = domainRepository.findAllByAccount(account).stream()
-            .filter(domain -> !isTunnelConnected(domain))
+            .filter(domain -> !isTunnelActive(domain))
             .toList();
 
         if (availableDomains.isEmpty()) {
-            throw new RuntimeException("No available domains found. Please add a new domain at https://portbuddy.dev/app/domains");
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "No available domains found. Please add a new domain at https://portbuddy.dev/app/domains");
         }
 
         // Affinity check: Find the last used subdomain for this resource
@@ -380,16 +395,25 @@ public class DomainService {
                 .filter(domain -> Objects.equals(domain.getId(), lastDomain.getId()))
                 .findFirst();
             if (matched.isPresent()) {
+                log.info("Resolved domain {} for account {} (affinity match on {}:{})",
+                    matched.get().getSubdomain(), account.getId(), localHost, localPort);
                 return matched.get();
             }
         }
 
-        // Pick any
-        return availableDomains.getFirst();
-    }
+        if (availableDomains.size() > 1) {
+            final var candidates = availableDomains.stream()
+                .map(DomainEntity::getSubdomain)
+                .collect(Collectors.joining(", "));
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "Multiple domains available for this account; specify --domain explicitly. Candidates: "
+                    + candidates);
+        }
 
-    private boolean isTunnelConnected(final DomainEntity domain) {
-        return tunnelRepository.existsByDomainAndStatus(domain, TunnelStatus.CONNECTED);
+        final var onlyDomain = availableDomains.getFirst();
+        log.info("Resolved domain {} for account {} (sole available domain)",
+            onlyDomain.getSubdomain(), account.getId());
+        return onlyDomain;
     }
 
     private boolean isTunnelActive(final DomainEntity domain) {

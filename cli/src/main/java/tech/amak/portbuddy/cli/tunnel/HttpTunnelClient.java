@@ -218,6 +218,45 @@ public class HttpTunnelClient {
         }
     }
 
+    /**
+     * Resolves the Host header to present to the local target. Prefers the server-supplied
+     * {@code X-Forwarded-Host} (which reflects whichever public domain the visitor actually
+     * used — the portbuddy.dev subdomain or an attached custom domain), falling back to the
+     * tunnel's original public URL only if the server didn't send one (older server versions).
+     */
+    private String resolveLocalHostHeader(final String forwardedHost) {
+        if (forwardedHost != null && !forwardedHost.isBlank()) {
+            final var commaIdx = forwardedHost.indexOf(',');
+            return (commaIdx > 0 ? forwardedHost.substring(0, commaIdx) : forwardedHost).trim();
+        }
+        return URI.create(publicBaseUrl).getHost();
+    }
+
+    private static String extractHeaderValue(final Map<String, List<String>> headers, final String name) {
+        if (headers == null) {
+            return null;
+        }
+        for (final var entry : headers.entrySet()) {
+            if (entry.getKey() != null && entry.getKey().equalsIgnoreCase(name)
+                && entry.getValue() != null && !entry.getValue().isEmpty()) {
+                return entry.getValue().getFirst();
+            }
+        }
+        return null;
+    }
+
+    private static String extractSingleHeaderValue(final Map<String, String> headers, final String name) {
+        if (headers == null) {
+            return null;
+        }
+        for (final var entry : headers.entrySet()) {
+            if (entry.getKey() != null && entry.getKey().equalsIgnoreCase(name) && entry.getValue() != null) {
+                return entry.getValue();
+            }
+        }
+        return null;
+    }
+
     private String toWebSocketUrl(final String base, final String path) {
         final var uri = URI.create(base);
         var scheme = uri.getScheme();
@@ -357,9 +396,10 @@ public class HttpTunnelClient {
                     url += "?" + message.getQuery();
                 }
                 final var builder = new Request.Builder().url(url);
-                final var publicHost = URI.create(publicBaseUrl).getHost();
-                if (publicHost != null) {
-                    builder.header("Host", publicHost);
+                final var hostHeader = resolveLocalHostHeader(extractSingleHeaderValue(message.getHeaders(),
+                    "X-Forwarded-Host"));
+                if (hostHeader != null) {
+                    builder.header("Host", hostHeader);
                 }
                 if (message.getHeaders() != null) {
                     for (final var entry : message.getHeaders().entrySet()) {
@@ -474,9 +514,10 @@ public class HttpTunnelClient {
             .url(url)
             .method(method, buildBody(method, requestMessage.getBodyB64(), requestMessage.getBodyContentType()));
 
-        final var publicHost = URI.create(publicBaseUrl).getHost();
-        if (publicHost != null) {
-            targetRequest.header("Host", publicHost);
+        final var hostHeader = resolveLocalHostHeader(extractHeaderValue(requestMessage.getHeaders(),
+            "X-Forwarded-Host"));
+        if (hostHeader != null) {
+            targetRequest.header("Host", hostHeader);
         }
 
         if (requestMessage.getHeaders() != null) {
