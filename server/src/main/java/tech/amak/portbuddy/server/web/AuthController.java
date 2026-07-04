@@ -30,6 +30,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import tech.amak.portbuddy.common.dto.auth.RegisterOtpRequest;
 import tech.amak.portbuddy.common.dto.auth.RegisterRequest;
 import tech.amak.portbuddy.common.dto.auth.RegisterResponse;
 import tech.amak.portbuddy.common.dto.auth.TokenExchangeRequest;
@@ -40,6 +41,7 @@ import tech.amak.portbuddy.server.db.repo.UserAccountRepository;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
 import tech.amak.portbuddy.server.security.JwtService;
 import tech.amak.portbuddy.server.service.ApiTokenService;
+import tech.amak.portbuddy.server.service.user.EmailOtpService;
 import tech.amak.portbuddy.server.service.user.PasswordResetService;
 import tech.amak.portbuddy.server.service.user.UserProvisioningService;
 import tech.amak.portbuddy.server.web.dto.LoginRequest;
@@ -57,6 +59,7 @@ public class AuthController {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserProvisioningService userProvisioningService;
+    private final EmailOtpService emailOtpService;
     private final PasswordResetService passwordResetService;
     private final AppProperties properties;
     private final UserAccountRepository userAccountRepository;
@@ -129,12 +132,37 @@ public class AuthController {
     }
 
     /**
-     * Registers a new local user and returns an API key.
+     * Sends a one-time verification code to the given email as the first step of CLI registration.
+     */
+    @PostMapping("/register/request-otp")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void requestRegistrationOtp(final @RequestBody RegisterOtpRequest payload) {
+        if (payload == null || payload.getEmail() == null || payload.getEmail().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email is required");
+        }
+        try {
+            emailOtpService.requestOtp(payload.getEmail());
+        } catch (final IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
+    }
+
+    /**
+     * Registers a new local user after verifying the emailed one-time code, and returns an API key.
      */
     @PostMapping("/register")
     public RegisterResponse register(final @RequestBody RegisterRequest payload) {
         if (payload == null || payload.getEmail() == null) {
             return new RegisterResponse(null, false, "Email is required", 400);
+        }
+        if (payload.getOtp() == null || payload.getOtp().isBlank()) {
+            return new RegisterResponse(null, false, "Verification code is required", 400);
+        }
+        if (payload.getPassword() == null || payload.getPassword().isBlank()) {
+            return new RegisterResponse(null, false, "Password is required", 400);
+        }
+        if (!emailOtpService.verifyOtp(payload.getEmail(), payload.getOtp())) {
+            return new RegisterResponse(null, false, "Invalid or expired verification code", 400);
         }
 
         try {

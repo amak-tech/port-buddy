@@ -21,21 +21,15 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * Request to send a one-time registration code to the given email address.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class RegisterRequest {
+public class RegisterOtpRequest {
 
     @JsonProperty("email")
     private String email;
-
-    @JsonProperty("name")
-    private String name;
-
-    @JsonProperty("password")
-    private String password;
-
-    @JsonProperty("otp")
-    private String otp;
 }

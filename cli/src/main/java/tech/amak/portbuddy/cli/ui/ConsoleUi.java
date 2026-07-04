@@ -35,7 +35,6 @@ import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.cli.config.ConfigurationService;
 import tech.amak.portbuddy.common.ClientConfig;
 import tech.amak.portbuddy.common.TunnelType;
-import tech.amak.portbuddy.common.dto.auth.RegisterRequest;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -64,28 +63,121 @@ public class ConsoleUi implements HttpLogSink, NetTrafficSink {
     private Runnable onExit;
 
     /**
-     * Prompts the user for registration details using the console.
-     * When no API key is initialized, the user should only be asked for the email address.
+     * The action the user chooses when the CLI has no API token yet.
+     */
+    public enum InitialAction {
+        REGISTER,
+        INIT
+    }
+
+    /**
+     * Asks the user whether they want to register a new account or initialize the CLI with an existing token.
      *
-     * @return a RegisterRequest containing the input data (email only)
+     * @return the chosen action
      * @throws IOException if an I/O error occurs or console is not available
      */
-    public static RegisterRequest promptForUserRegistration() throws IOException {
+    public static InitialAction promptInitialAction() throws IOException {
         try (final var terminal = buildTerminal()) {
             final var reader = LineReaderBuilder.builder().terminal(terminal).build();
+            final var writer = terminal.writer();
+            writer.println("No API token found. How would you like to continue?");
+            writer.println("  1) Register a new account");
+            writer.println("  2) Initialize with an existing access token");
+            writer.flush();
 
-            String email;
             while (true) {
-                email = reader.readLine("Email: ");
+                final var choice = reader.readLine("Choose [1/2]: ");
+                final var trimmed = choice == null ? "" : choice.trim();
+                if ("1".equals(trimmed)) {
+                    return InitialAction.REGISTER;
+                }
+                if ("2".equals(trimmed)) {
+                    return InitialAction.INIT;
+                }
+                writer.println("Please enter 1 or 2.");
+                writer.flush();
+            }
+        }
+    }
+
+    /**
+     * Prompts for a valid email address.
+     *
+     * @return the entered email
+     * @throws IOException if an I/O error occurs or console is not available
+     */
+    public static String promptEmail() throws IOException {
+        try (final var terminal = buildTerminal()) {
+            final var reader = LineReaderBuilder.builder().terminal(terminal).build();
+            while (true) {
+                final var email = reader.readLine("Email: ");
                 if (isValidEmail(email)) {
-                    break;
+                    return email.trim();
                 }
                 terminal.writer().println("Invalid email address. Please try again.");
                 terminal.flush();
             }
+        }
+    }
 
-            // Only email is required for registration. Name and password are set on the server side.
-            return new RegisterRequest(email, null, null);
+    /**
+     * Prompts for the 4-digit one-time code sent by email.
+     *
+     * @return the entered code
+     * @throws IOException if an I/O error occurs or console is not available
+     */
+    public static String promptOtp() throws IOException {
+        try (final var terminal = buildTerminal()) {
+            final var reader = LineReaderBuilder.builder().terminal(terminal).build();
+            while (true) {
+                final var code = reader.readLine("Enter the 4-digit code sent to your email: ");
+                final var trimmed = code == null ? "" : code.trim();
+                if (trimmed.matches("\\d{4}")) {
+                    return trimmed;
+                }
+                terminal.writer().println("The code must be 4 digits. Please try again.");
+                terminal.flush();
+            }
+        }
+    }
+
+    /**
+     * Prompts for a (masked) account password.
+     *
+     * @return the entered password
+     * @throws IOException if an I/O error occurs or console is not available
+     */
+    public static String promptPassword() throws IOException {
+        try (final var terminal = buildTerminal()) {
+            final var reader = LineReaderBuilder.builder().terminal(terminal).build();
+            while (true) {
+                final var password = reader.readLine("Choose a password: ", '*');
+                if (password != null && password.length() >= 8) {
+                    return password;
+                }
+                terminal.writer().println("Password must be at least 8 characters. Please try again.");
+                terminal.flush();
+            }
+        }
+    }
+
+    /**
+     * Prompts for an existing access token.
+     *
+     * @return the entered token
+     * @throws IOException if an I/O error occurs or console is not available
+     */
+    public static String promptApiToken() throws IOException {
+        try (final var terminal = buildTerminal()) {
+            final var reader = LineReaderBuilder.builder().terminal(terminal).build();
+            while (true) {
+                final var token = reader.readLine("Access token: ");
+                if (token != null && !token.isBlank()) {
+                    return token.trim();
+                }
+                terminal.writer().println("Access token must not be empty. Please try again.");
+                terminal.flush();
+            }
         }
     }
 

@@ -47,6 +47,7 @@ import tech.amak.portbuddy.server.db.repo.UserAccountRepository;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
 import tech.amak.portbuddy.server.security.JwtService;
 import tech.amak.portbuddy.server.service.ApiTokenService;
+import tech.amak.portbuddy.server.service.user.EmailOtpService;
 import tech.amak.portbuddy.server.service.user.PasswordResetService;
 import tech.amak.portbuddy.server.service.user.UserProvisioningService;
 import tech.amak.portbuddy.server.service.user.UserProvisioningService.ProvisionedUser;
@@ -66,6 +67,9 @@ class AuthControllerTest {
 
     @MockitoBean
     private UserProvisioningService userProvisioningService;
+
+    @MockitoBean
+    private EmailOtpService emailOtpService;
 
     @MockitoBean
     private ApiTokenService apiTokenService;
@@ -93,11 +97,12 @@ class AuthControllerTest {
 
     @Test
     void register_shouldReturnApiKey() throws Exception {
-        final var request = new RegisterRequest("test@example.com", "Test User", "password");
+        final var request = new RegisterRequest("test@example.com", "Test User", "password", "1234");
         final var userId = UUID.randomUUID();
         final var accountId = UUID.randomUUID();
         final var apiKey = "test-api-key";
 
+        when(emailOtpService.verifyOtp("test@example.com", "1234")).thenReturn(true);
         when(userProvisioningService.createLocalUser(any(), any(), any()))
             .thenReturn(new ProvisionedUser(userId, accountId, "Test Account", Set.of(Role.ACCOUNT_ADMIN)));
 
@@ -114,7 +119,7 @@ class AuthControllerTest {
 
     @Test
     void register_shouldReturnError_whenMissingFields() throws Exception {
-        final var request = new RegisterRequest(null, "Test User", "password");
+        final var request = new RegisterRequest(null, "Test User", "password", "1234");
 
         mockMvc.perform(post("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -123,6 +128,31 @@ class AuthControllerTest {
             .andExpect(jsonPath("$.success").value(false))
             .andExpect(jsonPath("$.message").value("Email is required"))
             .andExpect(jsonPath("$.statusCode").value(400));
+    }
+
+    @Test
+    void register_shouldReturnError_whenOtpInvalid() throws Exception {
+        final var request = new RegisterRequest("test@example.com", "Test User", "password", "0000");
+
+        when(emailOtpService.verifyOtp("test@example.com", "0000")).thenReturn(false);
+
+        mockMvc.perform(post("/api/auth/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.message").value("Invalid or expired verification code"))
+            .andExpect(jsonPath("$.statusCode").value(400));
+    }
+
+    @Test
+    void requestRegistrationOtp_shouldReturnNoContent() throws Exception {
+        final var request = new tech.amak.portbuddy.common.dto.auth.RegisterOtpRequest("test@example.com");
+
+        mockMvc.perform(post("/api/auth/register/request-otp")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isNoContent());
     }
 
     @Test
