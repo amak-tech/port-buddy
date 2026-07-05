@@ -74,11 +74,11 @@ public class AuthController {
         final var cliClientVersion = payload == null ? null : payload.getCliClientVersion();
         if (cliClientVersion == null || cliClientVersion.isBlank()) {
             throw new ResponseStatusException(HttpStatus.UPGRADE_REQUIRED,
-                "CLI client version is missing or not supported. Please upgrade your port-buddy CLI.");
+                "CLI client version is missing or not supported. Please upgrade your portbuddy CLI.");
         }
         if (!isCliVersionSupported(cliClientVersion.trim(), properties.cli().minVersion())) {
             throw new ResponseStatusException(HttpStatus.UPGRADE_REQUIRED,
-                "Your port-buddy CLI is outdated. Please upgrade to the latest version.");
+                "Your portbuddy CLI is outdated. Please upgrade to the latest version.");
         }
         final var validatedOpt = apiTokenService.validateAndGetApiKey(apiToken);
         if (validatedOpt.isEmpty()) {

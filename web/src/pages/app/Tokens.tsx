@@ -134,7 +134,7 @@ export default function Tokens() {
             </div>
             
             <div className="mt-4 p-3 bg-slate-900/50 rounded border border-slate-800 text-slate-400 text-xs font-mono">
-               port-buddy init {justCreatedToken}
+               portbuddy init {justCreatedToken}
             </div>
           </div>
         )}
