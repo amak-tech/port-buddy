@@ -57,6 +57,7 @@ public class SecurityConfig {
                     "/api/auth/token-exchange",
                     "/api/auth/login",
                     "/api/auth/register",
+                    "/api/auth/register/request-otp",
                     "/api/webhooks/stripe").permitAll()
                 .requestMatchers("/api/auth/password-reset/**").permitAll()
                 .requestMatchers("/api/internal/**").permitAll()

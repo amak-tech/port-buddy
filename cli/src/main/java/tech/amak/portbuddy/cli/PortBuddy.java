@@ -36,6 +36,7 @@ import tech.amak.portbuddy.common.ClientConfig;
 import tech.amak.portbuddy.common.TunnelType;
 import tech.amak.portbuddy.common.dto.ExposeRequest;
 import tech.amak.portbuddy.common.dto.ExposeResponse;
+import tech.amak.portbuddy.common.dto.auth.RegisterOtpRequest;
 import tech.amak.portbuddy.common.dto.auth.RegisterRequest;
 import tech.amak.portbuddy.common.dto.auth.RegisterResponse;
 import tech.amak.portbuddy.common.dto.auth.TokenExchangeRequest;
@@ -415,35 +416,88 @@ public class PortBuddy {
             return true;
         }
 
-        System.out.println("No API key found. Please sign up.");
+        final var serverUrl = config.getServerUrl();
+        if (serverUrl == null || serverUrl.isBlank()) {
+            System.err.println("Error: Server URL is not configured. Please check your application.yml.");
+            return false;
+        }
 
         try {
-            final var request = ConsoleUi.promptForUserRegistration();
-            if (request == null) {
-                System.err.println("Registration cancelled or failed to get details.");
-                return false;
+            final var action = ConsoleUi.promptInitialAction();
+            if (action == ConsoleUi.InitialAction.INIT) {
+                final var token = ConsoleUi.promptApiToken();
+                configurationService.saveApiToken(token);
+                config.setApiToken(token);
+                System.out.println("Access token saved. You're now authenticated.");
+                return true;
             }
 
-            final var serverUrl = config.getServerUrl();
-            if (serverUrl == null || serverUrl.isBlank()) {
-                System.err.println("Error: Server URL is not configured. Please check your application.yml.");
+            // Register a new account: email -> OTP -> password.
+            final var email = ConsoleUi.promptEmail();
+            if (!requestOtp(serverUrl, email)) {
                 return false;
             }
+            System.out.println("A 4-digit verification code has been sent to " + email + ".");
+            final var otp = ConsoleUi.promptOtp();
+            final var password = ConsoleUi.promptPassword();
 
+            final var request = new RegisterRequest(email, null, password, otp);
             final var newApiKey = registerUser(serverUrl, request);
             configurationService.saveApiToken(newApiKey);
             config.setApiToken(newApiKey);
             System.out.println("Registration successful! API key saved.");
             return true;
         } catch (final Exception e) {
-            log.debug("Registration failed", e);
-            System.err.println("Registration failed: " + e.getMessage());
-            if (e.getMessage() == null) {
-                System.err.println("Error details: " + e.getClass().getName());
-                e.printStackTrace(System.err); // Print stack trace to see exactly where NPE happens
-            }
+            log.debug("Authentication setup failed", e);
+            System.err.println("Authentication setup failed: " + e.getMessage());
             return false;
         }
+    }
+
+    /**
+     * Requests a one-time registration code to be emailed to the given address.
+     * Returns true on success; on failure prints any server-provided reason and returns false.
+     */
+    private boolean requestOtp(final String baseUrl, final String email) {
+        try {
+            final var url = baseUrl + (baseUrl.endsWith("/") ? "" : "/") + "api/auth/register/request-otp";
+            final var json = MAPPER.writeValueAsString(new RegisterOtpRequest(email));
+            final var request = new Request.Builder()
+                .url(url)
+                .post(RequestBody.create(json, MediaType.parse("application/json")))
+                .build();
+
+            try (final var response = http.newCall(request).execute()) {
+                if (response.isSuccessful()) {
+                    return true;
+                }
+                log.warn("Request OTP failed: {} {}", response.code(), response.message());
+                final var reason = extractErrorMessage(response.body() == null ? null : response.body().string());
+                System.err.println(reason != null ? reason
+                    : "Failed to send verification code. Please try again later.");
+                return false;
+            }
+        } catch (final Exception e) {
+            log.warn("Request OTP call error: {}", e.toString());
+            System.err.println("Failed to send verification code. Please try again later.");
+            return false;
+        }
+    }
+
+    private String extractErrorMessage(final String body) {
+        if (body == null || body.isBlank()) {
+            return null;
+        }
+        try {
+            final var node = MAPPER.readTree(body);
+            final var message = node.get("message");
+            if (message != null && !message.asText().isBlank()) {
+                return message.asText();
+            }
+        } catch (final Exception ignore) {
+            // not JSON; fall through
+        }
+        return null;
     }
 
     private String registerUser(final String baseUrl,

@@ -122,7 +122,7 @@ export default function Tunnels() {
             <h3 className="text-lg font-medium text-white mb-2">No tunnels found</h3>
             <p className="text-slate-400 mb-6">Start your first tunnel using the CLI.</p>
             <code className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-indigo-400 font-mono">
-              port-buddy 8080
+              portbuddy 8080
             </code>
           </div>
         ) : (

@@ -28,7 +28,8 @@ type AuthState = {
     loginWithGoogle: () => void
     loginWithGithub: () => void
     loginWithEmail: (email: string, pass: string) => Promise<void>
-    register: (email: string, pass: string, name?: string) => Promise<void>
+    requestRegisterOtp: (email: string) => Promise<void>
+    register: (email: string, pass: string, otp: string, name?: string) => Promise<void>
     logout: () => Promise<void>
     refresh: () => Promise<void>
     switchAccount: (accountId: string) => Promise<void>
@@ -152,16 +153,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await refresh()
     }, [refresh])
 
-    const register = useCallback(async (email: string, pass: string, name?: string) => {
+    const requestRegisterOtp = useCallback(async (email: string) => {
+        await apiJson<void>('/api/auth/register/request-otp', {
+            method: 'POST',
+            body: JSON.stringify({ email })
+        }, { skipAuth: true })
+    }, [])
+
+    const register = useCallback(async (email: string, pass: string, otp: string, name?: string) => {
         const res = await apiJson<{ success: boolean, message?: string }>('/api/auth/register', {
             method: 'POST',
-            body: JSON.stringify({ email, password: pass, name })
+            body: JSON.stringify({ email, password: pass, otp, name })
         }, { skipAuth: true })
-        
+
         if (!res.success) {
             throw new Error(res.message || 'Registration failed')
         }
-        
+
         await loginWithEmail(email, pass)
     }, [loginWithEmail])
 
@@ -195,12 +203,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loading, 
         loginWithGoogle, 
         loginWithGithub,
-        loginWithEmail, 
+        loginWithEmail,
+        requestRegisterOtp,
         register,
-        logout, 
+        logout,
         refresh,
         switchAccount
-    }), [user, loading, loginWithGoogle, loginWithGithub, loginWithEmail, register, logout, refresh, switchAccount])
+    }), [user, loading, loginWithGoogle, loginWithGithub, loginWithEmail, requestRegisterOtp, register, logout, refresh, switchAccount])
 
     return (
         <AuthContext.Provider value={value}>
