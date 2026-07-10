@@ -7,8 +7,8 @@ import { Link } from 'react-router-dom'
 
 const comparisonData = [
   { feature: 'HTTP Tunnels', pro: true, team: true },
-  { feature: 'TCP Tunnels', pro: true, team: true },
   { feature: 'UDP Tunnels', pro: true, team: true },
+  { feature: 'TCP Tunnels', pro: '5+ tunnels', team: true },
   { feature: 'SSL for HTTP', pro: true, team: true },
   { feature: 'Static Subdomains', pro: true, team: true },
   { feature: 'Custom Domains', pro: true, team: true },
@@ -42,7 +42,7 @@ export default function PlanComparison() {
           <div className="space-y-4 mb-8 flex-1">
             <div className="flex gap-3 text-sm text-slate-300">
               <CheckIcon className="w-5 h-5 text-indigo-400 flex-shrink-0" />
-              <span>1 free tunnel included</span>
+              <span>1 free HTTP or UDP tunnel</span>
             </div>
             <div className="flex gap-3 text-sm text-slate-300">
               <CheckIcon className="w-5 h-5 text-indigo-400 flex-shrink-0" />
@@ -50,11 +50,11 @@ export default function PlanComparison() {
             </div>
             <div className="flex gap-3 text-sm text-slate-300">
               <CheckIcon className="w-5 h-5 text-indigo-400 flex-shrink-0" />
-              <span>HTTP, TCP & UDP support</span>
+              <span>TCP tunnels with 5+ tunnels</span>
             </div>
              <div className="flex gap-3 text-sm text-slate-300">
               <CheckIcon className="w-5 h-5 text-indigo-400 flex-shrink-0" />
-              <span>$1/mo per extra tunnel</span>
+              <span>$1/mo per extra tunnel (5+ pack)</span>
             </div>
           </div>
           <Link to="/login" className="btn w-full justify-center glass hover:bg-white/10">
@@ -138,6 +138,11 @@ export default function PlanComparison() {
           </tbody>
         </table>
       </div>
+
+      <p className="text-center text-slate-500 text-sm mt-8">
+        HTTP and UDP tunnels are available on every plan. TCP tunnels require at least 5 tunnels
+        (add extra tunnels on Pro, or use the Team plan).
+      </p>
     </div>
   )
 }

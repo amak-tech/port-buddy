@@ -16,7 +16,9 @@ package tech.amak.portbuddy.server.service;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -74,8 +76,9 @@ class TunnelServiceTest {
             new AppProperties.Subscriptions(
                 Duration.ofDays(3),
                 Duration.ofHours(1),
+                5,
                 new AppProperties.Subscriptions.Tunnels(
-                    Map.of(Plan.PRO, 1, Plan.TEAM, 10), Map.of(Plan.PRO, 1, Plan.TEAM, 5))),
+                    Map.of(Plan.PRO, 1, Plan.TEAM, 10), Map.of(Plan.PRO, 5, Plan.TEAM, 5))),
             null
         );
         tunnelService = new TunnelService(
@@ -210,7 +213,66 @@ class TunnelServiceTest {
             "6.6.6.6", "curl/7.68.0"));
     }
 
+    @Test
+    void isTcpEnabled_ProPlanBelowThreshold_False() {
+        account.setPlan(Plan.PRO);
+        account.setExtraTunnels(4);
+        assertFalse(tunnelService.isTcpEnabled(account));
+    }
+
+    @Test
+    void isTcpEnabled_ProPlanAtThreshold_True() {
+        account.setPlan(Plan.PRO);
+        account.setExtraTunnels(5);
+        assertTrue(tunnelService.isTcpEnabled(account));
+    }
+
+    @Test
+    void isTcpEnabled_TeamPlanNoExtra_True() {
+        account.setPlan(Plan.TEAM);
+        account.setExtraTunnels(0);
+        assertTrue(tunnelService.isTcpEnabled(account));
+    }
+
+    @Test
+    void createNetTunnel_TcpFreeTier_ThrowsException() {
+        account.setPlan(Plan.PRO);
+        account.setExtraTunnels(0);
+        when(tunnelRepository.countByAccountIdAndStatusIn(any(), any())).thenReturn(0L);
+
+        final var exception = assertThrows(IllegalStateException.class, () -> tunnelService.createNetTunnel(
+            account, UUID.randomUUID(), null, createNetRequest(TunnelType.TCP), "127.0.0.1", "curl/7.68.0"));
+
+        assertEquals(
+            "TCP tunnels require at least 5 tunnels. Add more tunnels or upgrade to the Team plan.",
+            exception.getMessage());
+    }
+
+    @Test
+    void createNetTunnel_UdpFreeTier_Success() {
+        account.setPlan(Plan.PRO);
+        account.setExtraTunnels(0);
+        when(tunnelRepository.countByAccountIdAndStatusIn(any(), any())).thenReturn(0L);
+
+        assertDoesNotThrow(() -> tunnelService.createNetTunnel(
+            account, UUID.randomUUID(), null, createNetRequest(TunnelType.UDP), "127.0.0.1", "curl/7.68.0"));
+    }
+
+    @Test
+    void createNetTunnel_TcpWithEnoughExtraTunnels_Success() {
+        account.setPlan(Plan.PRO);
+        account.setExtraTunnels(5);
+        when(tunnelRepository.countByAccountIdAndStatusIn(any(), any())).thenReturn(0L);
+
+        assertDoesNotThrow(() -> tunnelService.createNetTunnel(
+            account, UUID.randomUUID(), null, createNetRequest(TunnelType.TCP), "127.0.0.1", "curl/7.68.0"));
+    }
+
     private ExposeRequest createRequest() {
         return new ExposeRequest(TunnelType.HTTP, "http", "localhost", 8080, null, null, null);
+    }
+
+    private ExposeRequest createNetRequest(final TunnelType type) {
+        return new ExposeRequest(type, "tcp", "localhost", 5432, null, null, null);
     }
 }

@@ -325,7 +325,7 @@ export default function Landing() {
           <FeatureCard 
             icon={<ServerIcon className="w-6 h-6 text-cyan-400" />}
             title="TCP & UDP Tunnels"
-            description="Expose any TCP or UDP service. Databases, SSH, RDP, game servers, IoT protocols, and more."
+            description="Expose UDP services for free, and unlock TCP (databases, SSH, RDP) with 5+ tunnels or the Team plan."
           />
           <FeatureCard 
             icon={<ShieldCheckIcon className="w-6 h-6 text-green-400" />}
@@ -544,9 +544,9 @@ export default function Landing() {
             question="Can I use my own domain?" 
             answer="Absolutely. You can connect your own domain name (e.g., tunnel.yourcompany.com) and we will automatically handle SSL certificates for you." 
           />
-          <FaqItem 
-            question="Do you support TCP tunnels?" 
-            answer="Yes, TCP and UDP tunnels are supported. This is perfect for exposing databases, game servers, or RDP/SSH connections." 
+          <FaqItem
+            question="Do you support TCP tunnels?"
+            answer="Yes. HTTP and UDP tunnels are available on every plan, including the free tier. TCP tunnels — perfect for databases, RDP, or SSH — require at least 5 tunnels: add extra tunnels on the Pro plan, or use the Team plan."
           />
         </div>
       </section>

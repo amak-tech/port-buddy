@@ -102,6 +102,9 @@ public class TunnelService {
                                         final String clientIp,
                                         final String userAgent) {
         checkTunnelLimit(account);
+        if (request.tunnelType() == TunnelType.TCP) {
+            checkTcpAllowed(account);
+        }
         return createTunnel(account.getId(), userId, apiKeyId, request, null, null, clientIp, userAgent);
     }
 
@@ -122,6 +125,29 @@ public class TunnelService {
             throw new IllegalStateException(
                 "Subscription is not active (current status: %s). Please check your billing information."
                     .formatted(status));
+        }
+    }
+
+    /**
+     * Determines whether an account is entitled to open TCP tunnels. TCP is a paid capability:
+     * it is available to TEAM accounts (whose base plan is a paid commitment) and to any account
+     * that has purchased at least {@code app.subscriptions.tcp-min-extra-tunnels} extra tunnels.
+     *
+     * @param account the account entity
+     * @return {@code true} if the account may open TCP tunnels
+     */
+    public boolean isTcpEnabled(final AccountEntity account) {
+        if (account.getPlan() == Plan.TEAM) {
+            return true;
+        }
+        return account.getExtraTunnels() >= properties.subscriptions().tcpMinExtraTunnels();
+    }
+
+    private void checkTcpAllowed(final AccountEntity account) {
+        if (!isTcpEnabled(account)) {
+            throw new IllegalStateException(
+                "TCP tunnels require at least %d tunnels. Add more tunnels or upgrade to the Team plan."
+                    .formatted(properties.subscriptions().tcpMinExtraTunnels()));
         }
     }
 

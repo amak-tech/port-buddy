@@ -105,6 +105,8 @@ export default function DocsOverview() {
         <h2 className="text-2xl font-bold text-white mb-6">TCP Tunnels</h2>
         <p className="text-slate-400 mb-6">
           TCP mode allows you to expose any TCP-based service, such as databases or SSH.
+          TCP tunnels are a paid capability: your account needs at least 5 tunnels
+          (add extra tunnels on the Pro plan, or use the Team plan).
         </p>
         <h3 className="text-lg font-semibold text-white mb-3">Usage</h3>
         <CodeBlock code="portbuddy tcp 5432" />
@@ -221,10 +223,11 @@ Start-ScheduledTask -TaskName portbuddy-tcp-22`} />
             <h3 className="text-xl font-bold text-white mb-2">Pro</h3>
             <p className="text-indigo-400 font-bold mb-4">$0 / mo</p>
             <ul className="text-sm text-slate-400 space-y-2">
-              <li>• 1 free tunnel at a time</li>
+              <li>• 1 free HTTP/UDP tunnel at a time</li>
+              <li>• TCP tunnels with 5+ tunnels</li>
               <li>• Custom domains</li>
               <li>• Static subdomains</li>
-              <li>• $1/mo per extra tunnel</li>
+              <li>• $1/mo per extra tunnel (5+ pack)</li>
             </ul>
           </div>
           <div className="bg-slate-900/50 border border-indigo-500/30 rounded-xl p-6 shadow-lg shadow-indigo-500/10">
