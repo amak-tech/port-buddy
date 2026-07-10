@@ -54,15 +54,16 @@ export default function Billing() {
       price: '$0', 
       description: 'Everything you need for personal exposure.',
       features: [
-        'HTTP, TCP, UDP tunnels',
+        'HTTP & UDP tunnels',
+        'TCP tunnels with 5+ tunnels',
         'SSL for HTTP tunnels',
         'Static subdomains',
         'Custom domains',
         'Private tunnels',
         'Web socket support',
-        '1 free tunnel at a time',
-        '$1/mo per extra tunnel'
-      ] 
+        '1 free HTTP/UDP tunnel at a time',
+        '$1/mo per extra tunnel (5+ pack)'
+      ]
     },
     { 
       key: 'team', 
@@ -72,12 +73,13 @@ export default function Billing() {
       description: 'For teams and collaborative projects.',
       features: [
         'Everything in Pro',
+        'TCP tunnels included',
         'Team members',
         'SSO (Coming soon)',
         'Priority support',
         '10 free tunnels at a time',
         '$1/mo per extra tunnel'
-      ] 
+      ]
     },
   ]
 
@@ -91,7 +93,7 @@ export default function Billing() {
   const planPrice = currentPlanKey === 'team' ? 10 : 0
   const extraCost = effectiveExtra * 1
   const totalMonthly = planPrice + extraCost
-  const increment = currentPlanKey === 'team' ? 5 : 1
+  const increment = 5
 
   const getLimitForPlan = (planKey: string) => {
     return planKey === 'team' ? 10 : 1;
@@ -333,6 +335,12 @@ export default function Billing() {
                     >
                       <PlusIcon className="w-5 h-5" />
                     </button>
+                  </div>
+
+                  <div className={`text-xs mb-4 ${user?.tcpEnabled ? 'text-green-400' : 'text-slate-500'}`}>
+                    {user?.tcpEnabled
+                      ? 'TCP tunnels enabled ✓'
+                      : 'Add 5 tunnels (or upgrade to Team) to enable TCP tunnels.'}
                   </div>
 
                   {pendingExtra !== null && pendingExtra !== extraTunnels && (

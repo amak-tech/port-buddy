@@ -34,12 +34,16 @@ app:
   subscriptions:
     grace-period: 3d
     check-interval: 1h
+    # Minimum number of extra tunnels an account must have purchased to use TCP tunnels.
+    # Keep this equal to tunnels.increment.pro so the smallest PRO purchase already unlocks TCP.
+    tcp-min-extra-tunnels: 5
     tunnels:
       base:
         pro: 1
         team: 10
       increment:
-        pro: 1
+        # pro increment is kept equal to tcp-min-extra-tunnels (extra tunnels sold in blocks of 5)
+        pro: 5
         team: 5
 
   jwt:

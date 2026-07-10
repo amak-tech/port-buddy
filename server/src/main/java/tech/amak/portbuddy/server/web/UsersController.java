@@ -285,6 +285,7 @@ public class UsersController {
             account.getId(), TunnelService.ACTIVE_STATUSES));
         dto.setStripeCustomerId(account.getStripeCustomerId());
         dto.setBlocked(account.isBlocked());
+        dto.setTcpEnabled(tunnelService.isTcpEnabled(account));
         return dto;
     }
 
@@ -337,6 +338,7 @@ public class UsersController {
         private String stripeCustomerId;
         private String checkoutUrl;
         private boolean blocked;
+        private boolean tcpEnabled;
     }
 
     @Data

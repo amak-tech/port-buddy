@@ -153,9 +153,10 @@ public class UsersControllerTest {
         final var subscriptions = new AppProperties.Subscriptions(
             null,
             null,
+            5,
             new AppProperties.Subscriptions.Tunnels(
                 Map.of(Plan.PRO, 1, Plan.TEAM, 10),
-                Map.of(Plan.PRO, 1, Plan.TEAM, 5)
+                Map.of(Plan.PRO, 5, Plan.TEAM, 5)
             )
         );
         when(properties.subscriptions()).thenReturn(subscriptions);
@@ -164,10 +165,10 @@ public class UsersControllerTest {
     @Test
     void updateExtraTunnels_withoutSubscription_shouldReturnCheckoutUrl() throws Exception {
         final var request = new UsersController.UpdateTunnelsRequest();
-        request.setExtraTunnels(1);
+        request.setExtraTunnels(5);
 
         final var checkoutUrl = "https://checkout.stripe.com/test";
-        when(stripeService.createCheckoutSession(any(), eq(Plan.PRO), eq(1))).thenReturn(checkoutUrl);
+        when(stripeService.createCheckoutSession(any(), eq(Plan.PRO), eq(5))).thenReturn(checkoutUrl);
 
         mockMvc.perform(patch("/api/users/me/account/tunnels")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -185,17 +186,17 @@ public class UsersControllerTest {
         account.setStripeSubscriptionId("sub_123");
 
         final var request = new UsersController.UpdateTunnelsRequest();
-        request.setExtraTunnels(1);
+        request.setExtraTunnels(5);
 
         mockMvc.perform(patch("/api/users/me/account/tunnels")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request))
                 .principal(new JwtAuthenticationToken(createJwt(List.of("ACCOUNT_ADMIN")))))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.extraTunnels").value(1))
+            .andExpect(jsonPath("$.extraTunnels").value(5))
             .andExpect(jsonPath("$.checkoutUrl").isEmpty());
 
-        verify(stripeService).updateExtraTunnels(account, 1);
+        verify(stripeService).updateExtraTunnels(account, 5);
         verify(accountRepository).save(account);
     }
 
@@ -203,7 +204,7 @@ public class UsersControllerTest {
     void updateExtraTunnels_proPlan_zeroExtra_withSubscription_shouldCancelSubscription() throws Exception {
         account.setStripeSubscriptionId("sub_123");
         account.setPlan(Plan.PRO);
-        account.setExtraTunnels(1);
+        account.setExtraTunnels(5);
 
         final var request = new UsersController.UpdateTunnelsRequest();
         request.setExtraTunnels(0);

@@ -38,6 +38,7 @@ public record AppProperties(
     public record Subscriptions(
         Duration gracePeriod,
         Duration checkInterval,
+        Integer tcpMinExtraTunnels,
         Tunnels tunnels
     ) {
         public record Tunnels(Map<Plan, Integer> base, Map<Plan, Integer> increment) {
