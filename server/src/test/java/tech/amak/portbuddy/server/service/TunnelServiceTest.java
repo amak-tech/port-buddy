@@ -50,6 +50,7 @@ import tech.amak.portbuddy.server.db.entity.TunnelStatus;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.TunnelRepository;
 import tech.amak.portbuddy.server.exception.IpBlacklistedException;
+import tech.amak.portbuddy.server.exception.SubscriptionException;
 import tech.amak.portbuddy.server.tunnel.TunnelRegistry;
 
 @ExtendWith(MockitoExtension.class)
@@ -100,7 +101,7 @@ class TunnelServiceTest {
     @Test
     void checkTunnelLimit_InactiveSubscription_ThrowsException() {
         account.setSubscriptionStatus("past_due");
-        assertThrows(IllegalStateException.class, () -> tunnelService.createHttpTunnel(
+        assertThrows(SubscriptionException.class, () -> tunnelService.createHttpTunnel(
             account, UUID.randomUUID(), null, createRequest(), "http://abc.pb.dev", new DomainEntity(), "127.0.0.1", "curl/7.68.0"));
     }
 
@@ -116,7 +117,7 @@ class TunnelServiceTest {
         when(tunnelRepository.findById(tunnelId)).thenReturn(Optional.of(tunnel));
         when(accountRepository.findById(account.getId())).thenReturn(Optional.of(account));
 
-        assertThrows(IllegalStateException.class, () -> tunnelService.markConnected(tunnelId));
+        assertThrows(SubscriptionException.class, () -> tunnelService.markConnected(tunnelId));
     }
 
     @Test
@@ -131,7 +132,7 @@ class TunnelServiceTest {
         when(tunnelRepository.findById(tunnelId)).thenReturn(Optional.of(tunnel));
         when(accountRepository.findById(account.getId())).thenReturn(Optional.of(account));
 
-        assertThrows(IllegalStateException.class, () -> tunnelService.heartbeat(tunnelId));
+        assertThrows(SubscriptionException.class, () -> tunnelService.heartbeat(tunnelId));
     }
 
     @Test
@@ -139,7 +140,7 @@ class TunnelServiceTest {
         when(tunnelRepository.countByAccountIdAndStatusIn(any(), any())).thenReturn(1L);
         account.setExtraTunnels(0);
 
-        final var exception = assertThrows(IllegalStateException.class, () -> tunnelService.createHttpTunnel(
+        final var exception = assertThrows(SubscriptionException.class, () -> tunnelService.createHttpTunnel(
             account, UUID.randomUUID(), null, createRequest(), "http://abc.pb.dev", new DomainEntity(), "127.0.0.1", "curl/7.68.0"));
 
         assertEquals("Tunnel limit reached for your plan (1). Please upgrade or add more tunnels.",
@@ -189,7 +190,7 @@ class TunnelServiceTest {
         account.setPlan(Plan.PRO);
         account.setExtraTunnels(1);
 
-        assertThrows(IllegalStateException.class, () -> tunnelService.createHttpTunnel(
+        assertThrows(SubscriptionException.class, () -> tunnelService.createHttpTunnel(
             account, UUID.randomUUID(), null, createRequest(), "http://abc.pb.dev", new DomainEntity(), "127.0.0.1", "curl/7.68.0"));
     }
 
@@ -198,7 +199,7 @@ class TunnelServiceTest {
         account.setSubscriptionStatus(null);
         account.setPlan(Plan.TEAM);
 
-        assertThrows(IllegalStateException.class, () -> tunnelService.createHttpTunnel(
+        assertThrows(SubscriptionException.class, () -> tunnelService.createHttpTunnel(
             account, UUID.randomUUID(), null, createRequest(), "http://abc.pb.dev", new DomainEntity(), "127.0.0.1", "curl/7.68.0"));
     }
 
@@ -240,7 +241,7 @@ class TunnelServiceTest {
         account.setExtraTunnels(0);
         when(tunnelRepository.countByAccountIdAndStatusIn(any(), any())).thenReturn(0L);
 
-        final var exception = assertThrows(IllegalStateException.class, () -> tunnelService.createNetTunnel(
+        final var exception = assertThrows(SubscriptionException.class, () -> tunnelService.createNetTunnel(
             account, UUID.randomUUID(), null, createNetRequest(TunnelType.TCP), "127.0.0.1", "curl/7.68.0"));
 
         assertEquals(

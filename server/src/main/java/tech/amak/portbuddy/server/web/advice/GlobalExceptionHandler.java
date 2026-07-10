@@ -49,7 +49,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
+    @ExceptionHandler(SubscriptionException.class)
     public ProblemDetail handleIllegalArgumentException(final SubscriptionException ex) {
         log.error(ex.getMessage());
         return ProblemDetail.forStatusAndDetail(HttpStatus.PAYMENT_REQUIRED, ex.getMessage());

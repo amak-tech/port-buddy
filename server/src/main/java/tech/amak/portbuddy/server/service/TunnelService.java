@@ -160,7 +160,7 @@ public class TunnelService {
         final int totalLimit = calculateTunnelLimit(account);
 
         if (currentTunnels >= totalLimit) {
-            throw new IllegalStateException(
+            throw new SubscriptionException(
                 "Tunnel limit reached for your plan (%d). Please upgrade or add more tunnels.".formatted(totalLimit));
         }
     }
