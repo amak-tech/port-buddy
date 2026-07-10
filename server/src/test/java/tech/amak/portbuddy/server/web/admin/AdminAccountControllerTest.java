@@ -33,6 +33,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import tech.amak.portbuddy.server.db.entity.AccountEntity;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
+import tech.amak.portbuddy.server.service.IpBlacklistService;
 import tech.amak.portbuddy.server.service.TunnelService;
 
 @ExtendWith(MockitoExtension.class)
@@ -45,6 +46,9 @@ class AdminAccountControllerTest {
 
     @Mock
     private TunnelService tunnelService;
+
+    @Mock
+    private IpBlacklistService ipBlacklistService;
 
     @InjectMocks
     private AdminAccountController adminAccountController;
@@ -68,6 +72,7 @@ class AdminAccountControllerTest {
 
         verify(accountRepository).save(account);
         verify(tunnelService).closeAllTunnels(account);
+        verify(ipBlacklistService).blacklistAccountIps(accountId);
         assert (account.isBlocked());
     }
 }

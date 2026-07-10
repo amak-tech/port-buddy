@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -46,6 +47,7 @@ import tech.amak.portbuddy.server.db.entity.TunnelEntity;
 import tech.amak.portbuddy.server.db.entity.TunnelStatus;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.TunnelRepository;
+import tech.amak.portbuddy.server.security.IpBlacklistedException;
 import tech.amak.portbuddy.server.tunnel.TunnelRegistry;
 
 @ExtendWith(MockitoExtension.class)
@@ -59,6 +61,8 @@ class TunnelServiceTest {
     private TunnelRegistry tunnelRegistry;
     @Mock
     private NetProxyClient netProxyClient;
+    @Mock
+    private IpBlacklistService ipBlacklistService;
 
     private TunnelService tunnelService;
     private AccountEntity account;
@@ -75,7 +79,8 @@ class TunnelServiceTest {
             null
         );
         tunnelService = new TunnelService(
-            tunnelRepository, accountRepository, properties, Optional.empty(), tunnelRegistry, netProxyClient);
+            tunnelRepository, accountRepository, properties, Optional.empty(), tunnelRegistry, netProxyClient,
+            ipBlacklistService);
         account = new AccountEntity();
         account.setId(UUID.randomUUID());
         account.setPlan(Plan.PRO);
@@ -192,6 +197,17 @@ class TunnelServiceTest {
 
         assertThrows(IllegalStateException.class, () -> tunnelService.createHttpTunnel(
             account, UUID.randomUUID(), null, createRequest(), "http://abc.pb.dev", new DomainEntity(), "127.0.0.1", "curl/7.68.0"));
+    }
+
+    @Test
+    void createTunnel_BlacklistedClientIp_ThrowsException() {
+        when(tunnelRepository.countByAccountIdAndStatusIn(any(), any())).thenReturn(0L);
+        doThrow(new IpBlacklistedException("Client IP is blacklisted"))
+            .when(ipBlacklistService).assertNotBlacklisted("6.6.6.6");
+
+        assertThrows(IpBlacklistedException.class, () -> tunnelService.createHttpTunnel(
+            account, UUID.randomUUID(), null, createRequest(), "http://abc.pb.dev", new DomainEntity(),
+            "6.6.6.6", "curl/7.68.0"));
     }
 
     private ExposeRequest createRequest() {

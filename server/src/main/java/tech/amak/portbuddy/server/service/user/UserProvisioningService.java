@@ -39,6 +39,7 @@ import tech.amak.portbuddy.server.db.repo.UserAccountRepository;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
 import tech.amak.portbuddy.server.mail.UserCreatedEvent;
 import tech.amak.portbuddy.server.service.DomainService;
+import tech.amak.portbuddy.server.service.IpBlacklistService;
 import tech.amak.portbuddy.server.service.PortReservationService;
 
 @Service
@@ -54,15 +55,26 @@ public class UserProvisioningService {
     private final PortReservationService portReservationService;
     private final ApplicationEventPublisher eventPublisher;
     private final PasswordResetService passwordResetService;
+    private final IpBlacklistService ipBlacklistService;
 
     public record ProvisionedUser(UUID userId, UUID accountId, String accountName, Set<Role> roles) {
     }
 
     /**
      * Creates a new local user with email and password.
+     *
+     * @param email    the user email
+     * @param name     the user display name
+     * @param password the raw password
+     * @param clientIp the client IP address of the request; rejected if blacklisted
      */
     @Transactional
-    public ProvisionedUser createLocalUser(final String email, final String name, final String password) {
+    public ProvisionedUser createLocalUser(final String email,
+                                           final String name,
+                                           final String password,
+                                           final String clientIp) {
+        ipBlacklistService.assertNotBlacklisted(clientIp);
+
         final var normalizedEmail = normalizeEmail(email);
         if (normalizedEmail == null) {
             throw new IllegalArgumentException("Email is required");
@@ -139,6 +151,7 @@ public class UserProvisioningService {
      * @param firstName  optional first name
      * @param lastName   optional last name
      * @param avatarUrl  optional avatar URL
+     * @param clientIp   the client IP address of the request; a new account/user is rejected if blacklisted
      * @return identifiers of provisioned user and owning account
      */
     @Transactional
@@ -147,7 +160,8 @@ public class UserProvisioningService {
                                      final String email,
                                      final String firstName,
                                      final String lastName,
-                                     final String avatarUrl) {
+                                     final String avatarUrl,
+                                     final String clientIp) {
         final var normalizedEmail = normalizeEmail(email);
 
         // If user already exists by provider/externalId, allow sign-in even when current OAuth response
@@ -229,6 +243,9 @@ public class UserProvisioningService {
                 return new ProvisionedUser(user.getId(), account.getId(), account.getName(), userAccount.getRoles());
             }
         }
+
+        // Reject creation of a brand new account/user from a blacklisted client IP
+        ipBlacklistService.assertNotBlacklisted(clientIp);
 
         // Create new account and user
         final var account = new AccountEntity();

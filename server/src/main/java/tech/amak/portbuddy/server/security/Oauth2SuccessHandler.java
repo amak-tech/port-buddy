@@ -134,9 +134,9 @@ public class Oauth2SuccessHandler implements AuthenticationSuccessHandler {
 
         // Ensure user + account exist or updated
         final var provisioned = provisionOrRedirectOnMissingEmail(
-            response, provider, externalId, email, firstName, lastName, picture);
+            response, provider, externalId, email, firstName, lastName, picture, request.getRemoteAddr());
         if (provisioned == null) {
-            // Redirect already sent (e.g., missing email). Stop further processing.
+            // Redirect already sent (e.g., missing email or blacklisted IP). Stop further processing.
             return;
         }
 
@@ -217,15 +217,25 @@ public class Oauth2SuccessHandler implements AuthenticationSuccessHandler {
         final String email,
         final String firstName,
         final String lastName,
-        final String picture) throws IOException {
+        final String picture,
+        final String clientIp) throws IOException {
         try {
-            return userProvisioningService.provision(provider, externalId, email, firstName, lastName, picture);
+            return userProvisioningService.provision(
+                provider, externalId, email, firstName, lastName, picture, clientIp);
         } catch (final MissingEmailException ex) {
             final var url = properties.gateway().url()
                             + "/auth/callback?error="
                             + URLEncoder.encode("missing_email", UTF_8)
                             + "&message="
                             + URLEncoder.encode("Email is required to sign in", UTF_8);
+            response.sendRedirect(url);
+            return null;
+        } catch (final IpBlacklistedException ex) {
+            final var url = properties.gateway().url()
+                            + "/auth/callback?error="
+                            + URLEncoder.encode("ip_blacklisted", UTF_8)
+                            + "&message="
+                            + URLEncoder.encode("Access denied from this network", UTF_8);
             response.sendRedirect(url);
             return null;
         }

@@ -100,7 +100,8 @@ class Oauth2SuccessHandlerTest {
 
         final var userId = UUID.randomUUID();
         final var accountId = UUID.randomUUID();
-        when(userProvisioningService.provision(anyString(), anyString(), anyString(), anyString(), anyString(), any()))
+        when(userProvisioningService.provision(
+            anyString(), anyString(), anyString(), anyString(), anyString(), any(), any()))
             .thenReturn(new UserProvisioningService.ProvisionedUser(
                 userId, accountId, "Test Account", Collections.emptySet()));
         when(jwtService.createToken(any(), anyString(), any())).thenReturn("mock-token");
@@ -144,7 +145,7 @@ class Oauth2SuccessHandlerTest {
         final var userId = UUID.randomUUID();
         final var accountId = UUID.randomUUID();
         when(userProvisioningService.provision(
-            eq("github"), eq("123"), eq("primary@example.com"), anyString(), anyString(), any()))
+            eq("github"), eq("123"), eq("primary@example.com"), anyString(), anyString(), any(), any()))
             .thenReturn(new UserProvisioningService.ProvisionedUser(
                 userId, accountId, "Test Account", Collections.emptySet()));
         when(jwtService.createToken(any(), anyString(), any())).thenReturn("mock-token");
@@ -163,7 +164,8 @@ class Oauth2SuccessHandlerTest {
         final var principal = new DefaultOAuth2User(List.of(), attributes, "id");
         final var authentication = new OAuth2AuthenticationToken(principal, List.of(), "other-provider");
 
-        when(userProvisioningService.provision(anyString(), anyString(), eq(null), anyString(), anyString(), any()))
+        when(userProvisioningService.provision(
+            anyString(), anyString(), eq(null), anyString(), anyString(), any(), any()))
             .thenThrow(new MissingEmailException("Email is required"));
 
         handler.onAuthenticationSuccess(request, response, authentication);

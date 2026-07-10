@@ -67,6 +67,10 @@ public interface TunnelRepository extends JpaRepository<TunnelEntity, UUID> {
 
     long countByAccountIdAndStatusIn(UUID accountId, List<TunnelStatus> statuses);
 
+    @Query("SELECT DISTINCT t.clientIp FROM TunnelEntity t "
+        + "WHERE t.accountId = :accountId AND t.clientIp IS NOT NULL")
+    List<String> findDistinctClientIpsByAccountId(@Param("accountId") UUID accountId);
+
     List<TunnelEntity> findByAccountIdAndStatusInOrderByLastHeartbeatAtAscCreatedAtAsc(
         UUID accountId, List<TunnelStatus> statuses);
 

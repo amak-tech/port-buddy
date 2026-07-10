@@ -31,6 +31,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import lombok.RequiredArgsConstructor;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
+import tech.amak.portbuddy.server.service.IpBlacklistService;
 import tech.amak.portbuddy.server.service.TunnelService;
 import tech.amak.portbuddy.server.web.admin.dto.AdminAccountRow;
 
@@ -41,6 +42,7 @@ public class AdminAccountController {
 
     private final AccountRepository accountRepository;
     private final TunnelService tunnelService;
+    private final IpBlacklistService ipBlacklistService;
 
     /**
      * Returns a list of accounts for the admin page using a single native SQL query.
@@ -70,6 +72,7 @@ public class AdminAccountController {
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found"));
         if (!account.isBlocked()) {
             account.setBlocked(true);
+            ipBlacklistService.blacklistAccountIps(accountId);
             accountRepository.save(account);
             tunnelService.closeAllTunnels(account);
         }
@@ -89,6 +92,7 @@ public class AdminAccountController {
         if (account.isBlocked()) {
             account.setBlocked(false);
             accountRepository.save(account);
+            ipBlacklistService.removeAccountIps(accountId);
         }
     }
 }

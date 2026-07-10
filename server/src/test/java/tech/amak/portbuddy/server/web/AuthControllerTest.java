@@ -45,6 +45,7 @@ import tech.amak.portbuddy.server.db.entity.UserEntity;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.UserAccountRepository;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
+import tech.amak.portbuddy.server.security.IpBlacklistedException;
 import tech.amak.portbuddy.server.security.JwtService;
 import tech.amak.portbuddy.server.service.ApiTokenService;
 import tech.amak.portbuddy.server.service.user.EmailOtpService;
@@ -103,7 +104,7 @@ class AuthControllerTest {
         final var apiKey = "test-api-key";
 
         when(emailOtpService.verifyOtp("test@example.com", "1234")).thenReturn(true);
-        when(userProvisioningService.createLocalUser(any(), any(), any()))
+        when(userProvisioningService.createLocalUser(any(), any(), any(), any()))
             .thenReturn(new ProvisionedUser(userId, accountId, "Test Account", Set.of(Role.ACCOUNT_ADMIN)));
 
         when(apiTokenService.createToken(accountId, userId, "prtb-client"))
@@ -115,6 +116,22 @@ class AuthControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.apiKey").value(apiKey))
             .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    void register_shouldReturn403_whenIpBlacklisted() throws Exception {
+        final var request = new RegisterRequest("test@example.com", "Test User", "password", "1234");
+
+        when(emailOtpService.verifyOtp("test@example.com", "1234")).thenReturn(true);
+        when(userProvisioningService.createLocalUser(any(), any(), any(), any()))
+            .thenThrow(new IpBlacklistedException("Client IP is blacklisted"));
+
+        mockMvc.perform(post("/api/auth/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.statusCode").value(403));
     }
 
     @Test

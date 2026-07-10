@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.dto.auth.RegisterOtpRequest;
@@ -39,6 +40,7 @@ import tech.amak.portbuddy.server.config.AppProperties;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.UserAccountRepository;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
+import tech.amak.portbuddy.server.security.IpBlacklistedException;
 import tech.amak.portbuddy.server.security.JwtService;
 import tech.amak.portbuddy.server.service.ApiTokenService;
 import tech.amak.portbuddy.server.service.user.EmailOtpService;
@@ -151,7 +153,8 @@ public class AuthController {
      * Registers a new local user after verifying the emailed one-time code, and returns an API key.
      */
     @PostMapping("/register")
-    public RegisterResponse register(final @RequestBody RegisterRequest payload) {
+    public RegisterResponse register(final @RequestBody RegisterRequest payload,
+                                     final HttpServletRequest request) {
         if (payload == null || payload.getEmail() == null) {
             return new RegisterResponse(null, false, "Email is required", 400);
         }
@@ -169,11 +172,15 @@ public class AuthController {
             final var provisioned = userProvisioningService.createLocalUser(
                 payload.getEmail(),
                 payload.getName(),
-                payload.getPassword()
+                payload.getPassword(),
+                request.getRemoteAddr()
             );
             final var createdToken = apiTokenService.createToken(
                 provisioned.accountId(), provisioned.userId(), "prtb-client");
             return new RegisterResponse(createdToken.token(), true, "User registered successfully", 200);
+        } catch (final IpBlacklistedException e) {
+            log.warn(e.getMessage());
+            return new RegisterResponse(null, false, e.getMessage(), 403);
         } catch (final IllegalArgumentException e) {
             log.error(e.getMessage(), e);
             return new RegisterResponse(null, false, e.getMessage(), 400);

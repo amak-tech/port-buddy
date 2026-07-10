@@ -52,6 +52,7 @@ public class TunnelService {
     private final Optional<ThreatFoxService> threatfoxService;
     private final TunnelRegistry tunnelRegistry;
     private final NetProxyClient netProxyClient;
+    private final IpBlacklistService ipBlacklistService;
 
     /**
      * Creates a new HTTP tunnel using the database entity id as the tunnel id.
@@ -208,6 +209,8 @@ public class TunnelService {
                                       final DomainEntity domain,
                                       final String clientIp,
                                       final String userAgent) {
+
+        ipBlacklistService.assertNotBlacklisted(clientIp);
 
         threatfoxService.ifPresent(threatfox -> {
             threatfox.checkThreat(request.host(), request.port());
