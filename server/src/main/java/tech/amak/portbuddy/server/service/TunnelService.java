@@ -351,7 +351,16 @@ public class TunnelService {
     public void markConnected(final UUID tunnelId) {
         findByTunnelId(tunnelId).ifPresent(entity -> {
             accountRepository.findById(entity.getAccountId())
-                .ifPresent(this::checkSubscriptionStatus);
+                .ifPresent(account -> {
+                    checkSubscriptionStatus(account);
+                    // Re-check TCP entitlement on (re)connect so tunnels created before the TCP
+                    // paywall (or before the account lost entitlement) cannot be re-established for free.
+                    // Heartbeat intentionally skips this, so a currently-live CLI keeps running until
+                    // it disconnects; the block takes effect on the next connect.
+                    if (entity.getType() == TunnelType.TCP) {
+                        checkTcpAllowed(account);
+                    }
+                });
 
             entity.setStatus(TunnelStatus.CONNECTED);
             entity.setLastHeartbeatAt(OffsetDateTime.now());

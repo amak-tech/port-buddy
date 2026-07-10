@@ -121,6 +121,59 @@ class TunnelServiceTest {
     }
 
     @Test
+    void markConnected_TcpTunnelNotEntitled_ThrowsException() {
+        final var tunnelId = UUID.randomUUID();
+        final var tunnel = new TunnelEntity();
+        tunnel.setId(tunnelId);
+        tunnel.setAccountId(account.getId());
+        tunnel.setType(TunnelType.TCP);
+
+        account.setPlan(Plan.PRO);
+        account.setExtraTunnels(0);
+
+        when(tunnelRepository.findById(tunnelId)).thenReturn(Optional.of(tunnel));
+        when(accountRepository.findById(account.getId())).thenReturn(Optional.of(account));
+
+        assertThrows(SubscriptionException.class, () -> tunnelService.markConnected(tunnelId));
+    }
+
+    @Test
+    void markConnected_TcpTunnelEntitled_Success() {
+        final var tunnelId = UUID.randomUUID();
+        final var tunnel = new TunnelEntity();
+        tunnel.setId(tunnelId);
+        tunnel.setAccountId(account.getId());
+        tunnel.setType(TunnelType.TCP);
+
+        account.setPlan(Plan.PRO);
+        account.setExtraTunnels(5);
+
+        when(tunnelRepository.findById(tunnelId)).thenReturn(Optional.of(tunnel));
+        when(accountRepository.findById(account.getId())).thenReturn(Optional.of(account));
+
+        assertDoesNotThrow(() -> tunnelService.markConnected(tunnelId));
+    }
+
+    @Test
+    void heartbeat_TcpTunnelNotEntitled_DoesNotThrow() {
+        // Entitlement is enforced only on (re)connect, not on heartbeat, so a currently-live
+        // CLI keeps running until it disconnects.
+        final var tunnelId = UUID.randomUUID();
+        final var tunnel = new TunnelEntity();
+        tunnel.setId(tunnelId);
+        tunnel.setAccountId(account.getId());
+        tunnel.setType(TunnelType.TCP);
+
+        account.setPlan(Plan.PRO);
+        account.setExtraTunnels(0);
+
+        when(tunnelRepository.findById(tunnelId)).thenReturn(Optional.of(tunnel));
+        when(accountRepository.findById(account.getId())).thenReturn(Optional.of(account));
+
+        assertDoesNotThrow(() -> tunnelService.heartbeat(tunnelId));
+    }
+
+    @Test
     void heartbeat_InactiveSubscription_ThrowsException() {
         final var tunnelId = UUID.randomUUID();
         final var tunnel = new TunnelEntity();
