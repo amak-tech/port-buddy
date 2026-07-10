@@ -40,7 +40,7 @@ import tech.amak.portbuddy.server.config.AppProperties;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.UserAccountRepository;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
-import tech.amak.portbuddy.server.security.IpBlacklistedException;
+import tech.amak.portbuddy.server.exception.IpBlacklistedException;
 import tech.amak.portbuddy.server.security.JwtService;
 import tech.amak.portbuddy.server.service.ApiTokenService;
 import tech.amak.portbuddy.server.service.user.EmailOtpService;

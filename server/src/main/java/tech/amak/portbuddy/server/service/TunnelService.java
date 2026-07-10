@@ -36,6 +36,7 @@ import tech.amak.portbuddy.server.db.entity.TunnelEntity;
 import tech.amak.portbuddy.server.db.entity.TunnelStatus;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.TunnelRepository;
+import tech.amak.portbuddy.server.exception.AccountBlockedException;
 import tech.amak.portbuddy.server.service.threatfox.ThreatFoxService;
 import tech.amak.portbuddy.server.tunnel.TunnelRegistry;
 
@@ -106,7 +107,8 @@ public class TunnelService {
 
     private void checkSubscriptionStatus(final AccountEntity account) {
         if (account.isBlocked()) {
-            throw new IllegalStateException("Account is blocked. Please contact support.");
+            throw new AccountBlockedException(
+                "Account [%s] is blocked. Please contact support.".formatted(account.getId()));
         }
         final var status = account.getSubscriptionStatus();
         if (status == null) {

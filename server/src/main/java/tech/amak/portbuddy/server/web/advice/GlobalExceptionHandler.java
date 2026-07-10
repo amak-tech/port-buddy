@@ -22,7 +22,9 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import lombok.extern.slf4j.Slf4j;
-import tech.amak.portbuddy.server.security.IpBlacklistedException;
+import tech.amak.portbuddy.server.exception.AccountBlockedException;
+import tech.amak.portbuddy.server.exception.IpBlacklistedException;
+import tech.amak.portbuddy.server.exception.ThreatBlockedException;
 
 @Slf4j
 @RestControllerAdvice
@@ -34,7 +36,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ProblemDetail.forStatusAndDetail(ex.getStatusCode(), ex.getReason());
     }
 
-    @ExceptionHandler(IpBlacklistedException.class)
+    @ExceptionHandler({IpBlacklistedException.class, ThreatBlockedException.class, AccountBlockedException.class})
     public ProblemDetail handleIpBlacklisted(final IpBlacklistedException ex) {
         log.warn(ex.getMessage());
         return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());

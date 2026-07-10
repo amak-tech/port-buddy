@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-package tech.amak.portbuddy.server.security;
+package tech.amak.portbuddy.server.exception;
 
 /**
  * Thrown when an action (tunnel creation or account/user signup) is attempted from a

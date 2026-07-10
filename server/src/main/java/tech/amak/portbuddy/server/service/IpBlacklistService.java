@@ -24,7 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.server.db.entity.IpBlacklistEntity;
 import tech.amak.portbuddy.server.db.repo.IpBlacklistRepository;
 import tech.amak.portbuddy.server.db.repo.TunnelRepository;
-import tech.amak.portbuddy.server.security.IpBlacklistedException;
+import tech.amak.portbuddy.server.exception.IpBlacklistedException;
 
 @Service
 @RequiredArgsConstructor
@@ -80,7 +80,7 @@ public class IpBlacklistService {
     public void assertNotBlacklisted(final String clientIp) {
         if (clientIp != null && ipBlacklistRepository.existsByIpAddress(clientIp)) {
             log.warn("Rejected request from blacklisted IP {}", clientIp);
-            throw new IpBlacklistedException("Client IP is blacklisted");
+            throw new IpBlacklistedException("Client IP [%s] is blacklisted".formatted(clientIp));
         }
     }
 }

@@ -25,7 +25,7 @@ import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import tech.amak.portbuddy.server.security.ThreatBlockedException;
+import tech.amak.portbuddy.server.exception.ThreatBlockedException;
 
 @Slf4j
 @Service
@@ -155,14 +155,14 @@ public class ThreatFoxService {
 
         if (isBlacklisted(normalizeHost)) {
             log.warn("[Threatfox] Domain {} matches ioc", host);
-            throw new ThreatBlockedException("Target domain is blacklisted: " + host);
+            throw new ThreatBlockedException("[Threatfox] Target domain [%s] is blacklisted".formatted(normalizeHost));
         }
 
         final var hostPort = normalizeHost + ":" + port;
 
         if (isBlacklisted(hostPort)) {
             log.warn("[Threatfox] {} matches ioc", hostPort);
-            throw new ThreatBlockedException("Target is blacklisted: " + hostPort);
+            throw new ThreatBlockedException("[Threatfox] Target IP [%s] is blacklisted".formatted(hostPort));
         }
     }
 }

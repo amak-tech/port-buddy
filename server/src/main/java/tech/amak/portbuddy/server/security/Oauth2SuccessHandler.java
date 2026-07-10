@@ -35,6 +35,7 @@ import org.springframework.web.client.RestClient;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import tech.amak.portbuddy.server.config.AppProperties;
+import tech.amak.portbuddy.server.exception.IpBlacklistedException;
 import tech.amak.portbuddy.server.service.user.MissingEmailException;
 import tech.amak.portbuddy.server.service.user.UserProvisioningService;
 

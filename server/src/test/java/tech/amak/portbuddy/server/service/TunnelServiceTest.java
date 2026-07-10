@@ -47,7 +47,7 @@ import tech.amak.portbuddy.server.db.entity.TunnelEntity;
 import tech.amak.portbuddy.server.db.entity.TunnelStatus;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.TunnelRepository;
-import tech.amak.portbuddy.server.security.IpBlacklistedException;
+import tech.amak.portbuddy.server.exception.IpBlacklistedException;
 import tech.amak.portbuddy.server.tunnel.TunnelRegistry;
 
 @ExtendWith(MockitoExtension.class)

@@ -34,7 +34,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import tech.amak.portbuddy.server.db.entity.IpBlacklistEntity;
 import tech.amak.portbuddy.server.db.repo.IpBlacklistRepository;
 import tech.amak.portbuddy.server.db.repo.TunnelRepository;
-import tech.amak.portbuddy.server.security.IpBlacklistedException;
+import tech.amak.portbuddy.server.exception.IpBlacklistedException;
 
 @ExtendWith(MockitoExtension.class)
 class IpBlacklistServiceTest {
