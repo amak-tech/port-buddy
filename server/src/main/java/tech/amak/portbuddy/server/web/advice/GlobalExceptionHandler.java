@@ -24,6 +24,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.server.exception.AccountBlockedException;
 import tech.amak.portbuddy.server.exception.IpBlacklistedException;
+import tech.amak.portbuddy.server.exception.SubscriptionException;
 import tech.amak.portbuddy.server.exception.ThreatBlockedException;
 
 @Slf4j
@@ -46,6 +47,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     public ProblemDetail handleIllegalArgumentException(final IllegalArgumentException ex) {
         log.error(ex.getMessage(), ex);
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ProblemDetail handleIllegalArgumentException(final SubscriptionException ex) {
+        log.error(ex.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.PAYMENT_REQUIRED, ex.getMessage());
     }
 
     @ExceptionHandler(Exception.class)

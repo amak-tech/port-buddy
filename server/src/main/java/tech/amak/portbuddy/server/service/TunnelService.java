@@ -37,6 +37,7 @@ import tech.amak.portbuddy.server.db.entity.TunnelStatus;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.TunnelRepository;
 import tech.amak.portbuddy.server.exception.AccountBlockedException;
+import tech.amak.portbuddy.server.exception.SubscriptionException;
 import tech.amak.portbuddy.server.service.threatfox.ThreatFoxService;
 import tech.amak.portbuddy.server.tunnel.TunnelRegistry;
 
@@ -119,10 +120,10 @@ public class TunnelService {
             if (account.getPlan() == Plan.PRO && account.getExtraTunnels() == 0) {
                 return;
             }
-            throw new IllegalStateException("No active subscription found. Please check your billing information.");
+            throw new SubscriptionException("No active subscription found. Please check your billing information.");
         }
         if (!"active".equals(status)) {
-            throw new IllegalStateException(
+            throw new SubscriptionException(
                 "Subscription is not active (current status: %s). Please check your billing information."
                     .formatted(status));
         }
@@ -145,7 +146,7 @@ public class TunnelService {
 
     private void checkTcpAllowed(final AccountEntity account) {
         if (!isTcpEnabled(account)) {
-            throw new IllegalStateException(
+            throw new SubscriptionException(
                 "TCP tunnels require at least %d tunnels. Add more tunnels or upgrade to the Team plan."
                     .formatted(properties.subscriptions().tcpMinExtraTunnels()));
         }
