@@ -37,7 +37,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler({IpBlacklistedException.class, ThreatBlockedException.class, AccountBlockedException.class})
-    public ProblemDetail handleIpBlacklisted(final IpBlacklistedException ex) {
+    public ProblemDetail handleIpBlacklisted(final Exception ex) {
         log.warn(ex.getMessage());
         return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
     }
