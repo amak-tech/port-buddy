@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
@@ -347,7 +348,10 @@ public class TunnelService {
      * @param tunnelId The unique identifier of the tunnel to update. If null or
      *                 the tunnel is not found, no action is taken.
      */
-    @Transactional
+    // REQUIRES_NEW so a failed subscription/entitlement re-check rolls back only this call and does not
+    // poison an ambient transaction (e.g. TunnelWebSocketHandler#afterConnectionEstablished), letting that
+    // caller catch the exception and tear the connection down cleanly.
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void markConnected(final UUID tunnelId) {
         findByTunnelId(tunnelId).ifPresent(entity -> {
             accountRepository.findById(entity.getAccountId())

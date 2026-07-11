@@ -33,6 +33,8 @@ import tech.amak.portbuddy.common.tunnel.HttpTunnelMessage;
 import tech.amak.portbuddy.common.tunnel.MessageEnvelope;
 import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
 import tech.amak.portbuddy.common.utils.IdUtils;
+import tech.amak.portbuddy.server.exception.AccountBlockedException;
+import tech.amak.portbuddy.server.exception.SubscriptionException;
 import tech.amak.portbuddy.server.service.TunnelService;
 
 @Slf4j
@@ -51,14 +53,42 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
 
         tunnelService.findByTunnelId(tunnelId).ifPresentOrElse(
             tunnel -> {
+                // Re-check the account's subscription/entitlement on every (re)connect before wiring up
+                // the tunnel, so a tunnel created while the account was in good standing cannot be
+                // re-established after the subscription lapses or the account is blocked.
+                try {
+                    tunnelService.markConnected(tunnelId);
+                } catch (final SubscriptionException | AccountBlockedException e) {
+                    log.warn("Rejecting tunnel {} on connect: {}", tunnelId, e.getMessage());
+                    sendExit(session);
+                    closeWebsocket(session, CloseStatus.POLICY_VIOLATION);
+                    return;
+                }
                 registry.register(tunnel, session);
-                tunnelService.markConnected(tunnelId);
                 log.info("Tunnel session established: {}", tunnelId);
             },
             () -> {
                 log.warn("Tunnel not found for id={}", tunnelId);
                 closeWebsocket(session, CloseStatus.NORMAL);
             });
+    }
+
+    /**
+     * Sends an EXIT control message so the CLI shuts down cleanly instead of reconnecting in a loop.
+     * Mirrors {@link TunnelRegistry#closeTunnel} for sessions that were never registered.
+     */
+    private void sendExit(final WebSocketSession session) {
+        if (!session.isOpen()) {
+            return;
+        }
+        try {
+            final var exit = new ControlMessage();
+            exit.setType(ControlMessage.Type.EXIT);
+            exit.setTs(System.currentTimeMillis());
+            session.sendMessage(new TextMessage(mapper.writeValueAsString(exit)));
+        } catch (final Exception e) {
+            log.debug("Failed to send EXIT to tunnel session: {}", e.toString());
+        }
     }
 
     private void closeWebsocket(final WebSocketSession session,

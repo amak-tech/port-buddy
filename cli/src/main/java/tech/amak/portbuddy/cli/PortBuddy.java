@@ -67,7 +67,7 @@ public class PortBuddy {
      *
      * @param args command line arguments
      */
-    public static void main(final String[] args) {
+    static void main(final String[] args) {
         final var portBuddy = new PortBuddy();
         final var exitCode = portBuddy.execute(args);
         System.exit(exitCode);
@@ -322,7 +322,7 @@ public class PortBuddy {
 
         try {
             final var url = baseUrl + "/api/expose/"
-                            + (tunnelType == TunnelType.HTTP ? "http" : "net");
+                + (tunnelType == TunnelType.HTTP ? "http" : "net");
 
             final var json = MAPPER.writeValueAsString(requestBody);
             final var request = new Request.Builder()
@@ -347,7 +347,7 @@ public class PortBuddy {
         } catch (final Exception e) {
             log.warn("Expose {} tunnel call error: {}", tunnelType, e.toString());
             System.err.println("Failed to contact server to create " + tunnelType + " tunnel. "
-                               + "Please check your connection and try again.");
+                + "Please check your connection and try again.");
             return null;
         }
     }
@@ -368,7 +368,7 @@ public class PortBuddy {
             case 403 -> System.err.println(reason != null ? reason
                 : "Your account is blocked. Please contact support.");
             case 401 -> System.err.println("Authentication failed. Please re-initialize CLI with a valid API Key.\n"
-                                           + "Example: portbuddy init {API_TOKEN}");
+                + "Example: portbuddy init {API_TOKEN}");
             default -> System.err.println(reason != null ? reason
                 : "Failed to create " + tunnelType + " tunnel (server returned status " + status + ").");
         }
@@ -419,7 +419,7 @@ public class PortBuddy {
         } catch (final Exception e) {
             log.warn("Token exchange call error: {}", e.toString());
             System.err.println("Failed to reach the server for authentication. "
-                               + "Please check your connection and try again.");
+                + "Please check your connection and try again.");
             return null;
         }
     }
