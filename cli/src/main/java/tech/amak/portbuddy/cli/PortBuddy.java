@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.MediaType;
@@ -49,7 +48,6 @@ import tech.amak.portbuddy.common.dto.auth.TokenExchangeResponse;
 @Slf4j
 public class PortBuddy {
 
-    private static final String OUTDATED = "outdated";
     private static final int EXIT_OK = 0;
     private static final int EXIT_ERROR = 1;
     private static final int EXIT_USAGE = 2;
@@ -218,18 +216,8 @@ public class PortBuddy {
 
         final var apiKey = config.getApiToken();
         final var jwt = exchangeApiTokenForJwt(config.getServerUrl(), apiKey);
-        if (Objects.equals(jwt, OUTDATED)) {
-            System.err.println("""
-                Your portbuddy CLI is outdated.
-                Please upgrade to the latest version and try again.""");
-            return EXIT_ERROR;
-        }
-
         if (jwt == null || jwt.isBlank()) {
-            System.err.println("""
-                Failed to authenticate with the provided API Key.
-                CLI must be initialized with a valid API Key.
-                Example: portbuddy init {API_TOKEN}""");
+            // exchangeApiTokenForJwt already printed a specific reason.
             return EXIT_ERROR;
         }
 
@@ -237,7 +225,7 @@ public class PortBuddy {
             final var expose = callExposeTunnel(config.getServerUrl(), jwt,
                 new ExposeRequest(mode, hostPort.scheme, hostPort.host, hostPort.port, domain, null, passcode));
             if (expose == null) {
-                System.err.println("Failed to contact server to create tunnel");
+                // callExposeTunnel already printed a specific reason.
                 return EXIT_ERROR;
             }
 
@@ -276,8 +264,12 @@ public class PortBuddy {
             final var scheme = mode == TunnelType.UDP ? "udp" : "tcp";
             final var expose = callExposeTunnel(config.getServerUrl(), jwt,
                 new ExposeRequest(mode, scheme, hostPort.host, hostPort.port, null, portReservation, null));
-            if (expose == null || expose.publicHost() == null || expose.publicPort() == null) {
-                System.err.println("Failed to contact server to create " + mode + " tunnel");
+            if (expose == null) {
+                // callExposeTunnel already printed a specific reason.
+                return EXIT_ERROR;
+            }
+            if (expose.publicHost() == null || expose.publicPort() == null) {
+                System.err.println("Failed to create " + mode + " tunnel: server did not return a public endpoint.");
                 return EXIT_ERROR;
             }
             final var localInfo = String.format("%s %s:%d", mode.name().toLowerCase(), hostPort.host, hostPort.port);
@@ -340,24 +332,54 @@ public class PortBuddy {
                 .build();
 
             try (final var response = http.newCall(request).execute()) {
+                final var bodyStr = response.body() == null ? null : response.body().string();
                 if (!response.isSuccessful()) {
                     log.warn("Expose {} failed: {} {}", tunnelType, response.code(), response.message());
-                    if (response.code() == 401) {
-                        System.err.println("Authentication failed. Please re-initialize CLI with a valid API Key.\n"
-                                           + "Example: portbuddy init {API_TOKEN}");
-                    }
+                    printExposeError(baseUrl, response.code(), bodyStr, tunnelType);
                     return null;
                 }
-                final var body = response.body();
-                if (body == null) {
+                if (bodyStr == null) {
+                    System.err.println("Failed to create " + tunnelType + " tunnel: empty response from server.");
                     return null;
                 }
-                return MAPPER.readValue(body.string(), ExposeResponse.class);
+                return MAPPER.readValue(bodyStr, ExposeResponse.class);
             }
         } catch (final Exception e) {
             log.warn("Expose {} tunnel call error: {}", tunnelType, e.toString());
+            System.err.println("Failed to contact server to create " + tunnelType + " tunnel. "
+                               + "Please check your connection and try again.");
             return null;
         }
+    }
+
+    /**
+     * Prints a user-facing message for a failed expose call, reusing the server-provided reason
+     * (RFC 7807 {@code detail}) and adding actionable guidance based on the HTTP status.
+     */
+    private void printExposeError(final String baseUrl, final int status, final String body,
+                                  final TunnelType tunnelType) {
+        final var reason = extractErrorMessage(body);
+        switch (status) {
+            case 402 -> {
+                System.err.println(reason != null ? reason
+                    : "Your subscription does not allow this tunnel. Please check your billing information.");
+                System.err.println("Manage your subscription: " + billingUrl(baseUrl));
+            }
+            case 403 -> System.err.println(reason != null ? reason
+                : "Your account is blocked. Please contact support.");
+            case 401 -> System.err.println("Authentication failed. Please re-initialize CLI with a valid API Key.\n"
+                                           + "Example: portbuddy init {API_TOKEN}");
+            default -> System.err.println(reason != null ? reason
+                : "Failed to create " + tunnelType + " tunnel (server returned status " + status + ").");
+        }
+    }
+
+    /**
+     * Builds the billing/subscription management page URL from the configured server URL.
+     */
+    private static String billingUrl(final String serverUrl) {
+        final var base = serverUrl.endsWith("/") ? serverUrl.substring(0, serverUrl.length() - 1) : serverUrl;
+        return base + "/app/billing";
     }
 
     /**
@@ -376,18 +398,17 @@ public class PortBuddy {
                 .build();
 
             try (final var response = http.newCall(request).execute()) {
+                final var bodyStr = response.body() == null ? null : response.body().string();
                 if (!response.isSuccessful()) {
                     log.warn("Token exchange failed: {} {}", response.code(), response.message());
-                    if (response.code() == 426) {
-                        return OUTDATED;
-                    }
+                    printAuthError(response.code(), bodyStr);
                     return null;
                 }
-                final var body = response.body();
-                if (body == null) {
+                if (bodyStr == null) {
+                    System.err.println("Failed to authenticate: empty response from server.");
                     return null;
                 }
-                final var resp = MAPPER.readValue(body.string(), TokenExchangeResponse.class);
+                final var resp = MAPPER.readValue(bodyStr, TokenExchangeResponse.class);
                 final var accessToken = resp.getAccessToken() == null ? "" : resp.getAccessToken();
                 final var tokenType = resp.getTokenType() == null ? "" : resp.getTokenType();
                 if (!accessToken.isBlank() && (tokenType.isBlank() || "Bearer".equalsIgnoreCase(tokenType))) {
@@ -397,7 +418,28 @@ public class PortBuddy {
             }
         } catch (final Exception e) {
             log.warn("Token exchange call error: {}", e.toString());
+            System.err.println("Failed to reach the server for authentication. "
+                               + "Please check your connection and try again.");
             return null;
+        }
+    }
+
+    /**
+     * Prints a user-facing message for a failed token-exchange (authentication) call, reusing the
+     * server-provided reason where useful and adding guidance based on the HTTP status.
+     */
+    private void printAuthError(final int status, final String body) {
+        final var reason = extractErrorMessage(body);
+        switch (status) {
+            case 426 -> System.err.println("""
+                Your portbuddy CLI is outdated.
+                Please upgrade to the latest version and try again.""");
+            case 403 -> System.err.println(reason != null ? reason
+                : "Your account is blocked. Please contact support.");
+            default -> System.err.println("""
+                Failed to authenticate with the provided API Key.
+                CLI must be initialized with a valid API Key.
+                Example: portbuddy init {API_TOKEN}""");
         }
     }
 
@@ -490,6 +532,11 @@ public class PortBuddy {
         }
         try {
             final var node = MAPPER.readTree(body);
+            // Spring ProblemDetail (RFC 7807) carries the reason in "detail"; other endpoints use "message".
+            final var detail = node.get("detail");
+            if (detail != null && !detail.asText().isBlank()) {
+                return detail.asText();
+            }
             final var message = node.get("message");
             if (message != null && !message.asText().isBlank()) {
                 return message.asText();
