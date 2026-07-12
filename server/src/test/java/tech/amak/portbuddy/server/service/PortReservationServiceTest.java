@@ -15,7 +15,9 @@
 package tech.amak.portbuddy.server.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -31,6 +33,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import tech.amak.portbuddy.server.config.AppProperties;
 import tech.amak.portbuddy.server.db.entity.AccountEntity;
 import tech.amak.portbuddy.server.db.entity.PortReservationEntity;
+import tech.amak.portbuddy.server.db.entity.TunnelEntity;
 import tech.amak.portbuddy.server.db.entity.TunnelStatus;
 import tech.amak.portbuddy.server.db.entity.UserEntity;
 import tech.amak.portbuddy.server.db.repo.PortReservationRepository;
@@ -157,5 +160,34 @@ class PortReservationServiceTest {
 
         final var result = service.updateReservation(account, id, null, null, name);
         assertEquals(name, result.getName());
+    }
+
+    @Test
+    void resolveForNetExpose_ReusesReservationFromPreviousTunnel_SkipsIfDeleted() {
+        final String localHost = "localhost";
+        final int localPort = 8080;
+
+        final var deletedReservation = new PortReservationEntity();
+        deletedReservation.setDeleted(true);
+
+        final var prevTunnel = new TunnelEntity();
+        prevTunnel.setPortReservation(deletedReservation);
+
+        final var activeReservation = new PortReservationEntity();
+        activeReservation.setDeleted(false);
+
+        when(tunnelRepository.findFirstByAccountIdAndLocalHostAndLocalPortAndPortReservationIsNotNullOrderByCreatedAtDesc(
+            account.getId(), localHost, localPort))
+            .thenReturn(Optional.of(prevTunnel));
+
+        // Should skip deletedReservation and fall back to finding or creating another one
+        when(repository.findAllByAccount(account)).thenReturn(List.of(activeReservation));
+        when(tunnelRepository.existsByPortReservationAndStatusNot(activeReservation, TunnelStatus.CLOSED))
+            .thenReturn(false);
+
+        final var result = service.resolveForNetExpose(account, user, localHost, localPort, null);
+
+        assertEquals(activeReservation, result);
+        assertNotEquals(deletedReservation, result);
     }
 }

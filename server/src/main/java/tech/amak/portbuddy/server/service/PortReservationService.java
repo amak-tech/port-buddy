@@ -196,7 +196,7 @@ public class PortReservationService {
                 account.getId(), localHost, localPort);
         if (prev.isPresent()) {
             final var res = prev.get().getPortReservation();
-            if (res != null && !isReservationInUse(res)) {
+            if (res != null && !res.isDeleted() && !isReservationInUse(res)) {
                 return res;
             }
         }
