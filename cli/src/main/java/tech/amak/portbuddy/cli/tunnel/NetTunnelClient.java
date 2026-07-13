@@ -59,8 +59,8 @@ import tech.amak.portbuddy.common.tunnel.WsTunnelMessage;
 @RequiredArgsConstructor
 public class NetTunnelClient {
 
-    private final String proxyHost;
-    private final int proxyHttpPort;
+    private final String serverHost;
+    private final int serverPort;
     /**
      * Whether the WebSocket should use TLS (wss). Must reflect the scheme of the configured server URL.
      */
@@ -121,7 +121,7 @@ public class NetTunnelClient {
                                  + "?type=" + tunnelType.name().toLowerCase()
                                  + "&port=" + expectedPublicPort
                                  + publicHostParam;
-                final var url = toWebSocketUrl(scheme + proxyHost + ":" + proxyHttpPort, path);
+                final var url = toWebSocketUrl(scheme + serverHost + ":" + serverPort, path);
                 final var request = new Request.Builder().url(url);
                 if (authToken != null && !authToken.isBlank()) {
                     request.addHeader("Authorization", "Bearer " + authToken);
@@ -584,7 +584,7 @@ public class NetTunnelClient {
     }
 
     private void postStatus(final String path) throws Exception {
-        final var base = (secure ? "https://" : "http://") + proxyHost + ":" + proxyHttpPort;
+        final var base = (secure ? "https://" : "http://") + serverHost + ":" + serverPort;
         final var url = base + path;
         final var body = RequestBody.create("{}", MediaType.parse("application/json"));
         final var builder = new Request.Builder().url(url).post(body);
