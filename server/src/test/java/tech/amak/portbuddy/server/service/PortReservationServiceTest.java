@@ -17,7 +17,6 @@ package tech.amak.portbuddy.server.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -176,8 +175,9 @@ class PortReservationServiceTest {
         final var activeReservation = new PortReservationEntity();
         activeReservation.setDeleted(false);
 
-        when(tunnelRepository.findFirstByAccountIdAndLocalHostAndLocalPortAndPortReservationIsNotNullOrderByCreatedAtDesc(
-            account.getId(), localHost, localPort))
+        when(tunnelRepository
+            .findFirstByAccountIdAndLocalHostAndLocalPortAndPortReservationIsNotNullOrderByCreatedAtDesc(
+                account.getId(), localHost, localPort))
             .thenReturn(Optional.of(prevTunnel));
 
         // Should skip deletedReservation and fall back to finding or creating another one

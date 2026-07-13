@@ -236,7 +236,7 @@ public class Oauth2SuccessHandler implements AuthenticationSuccessHandler {
                             + "/auth/callback?error="
                             + URLEncoder.encode("ip_blacklisted", UTF_8)
                             + "&message="
-                            + URLEncoder.encode("Access denied from this network", UTF_8);
+                            + URLEncoder.encode("Access denied", UTF_8);
             response.sendRedirect(url);
             return null;
         }

@@ -74,7 +74,8 @@ public interface AccountRepository extends JpaRepository<AccountEntity, UUID> {
             d.day::date as "date",
             (SELECT count(*) FROM users u WHERE u.created_at::date = d.day) as new_users_count,
             (SELECT count(*) FROM tunnels t WHERE t.created_at::date = d.day) as tunnels_count,
-            (SELECT count(*) FROM stripe_events s WHERE s.created_at::date = d.day) as payment_events
+            (SELECT count(*) FROM stripe_events s WHERE s.created_at::date = d.day
+                                                            and s.type <> 'checkout.session.expired') as payment_events
         FROM days d
         ORDER BY d.day DESC
         """, nativeQuery = true)

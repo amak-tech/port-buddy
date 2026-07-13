@@ -80,7 +80,7 @@ public class IpBlacklistService {
     public void assertNotBlacklisted(final String clientIp) {
         if (clientIp != null && ipBlacklistRepository.existsByIpAddress(clientIp)) {
             log.warn("Rejected request from blacklisted IP {}", clientIp);
-            throw new IpBlacklistedException("Client IP [%s] is blacklisted".formatted(clientIp));
+            throw new IpBlacklistedException("Account is blocked");
         }
     }
 }
