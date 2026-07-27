@@ -17,8 +17,6 @@ package tech.amak.portbuddy.server.service;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.stripe.exception.StripeException;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.server.db.entity.AccountEntity;
@@ -26,7 +24,7 @@ import tech.amak.portbuddy.server.db.repo.AccountRepository;
 
 /**
  * Central place for blocking/unblocking an account and the side effects that accompany it
- * (canceling any paid subscription, closing active tunnels, seeding the IP and payload-signature
+ * (pausing any paid subscription, closing active tunnels, seeding the IP and payload-signature
  * blacklists). Shared by the admin endpoint and by automatic threat responses so both follow the
  * exact same flow.
  */
@@ -41,7 +39,7 @@ public class AccountBlockingService {
     private final StripeService stripeService;
 
     /**
-     * Blocks the account (if not already blocked): flips the flag, cancels any active paid
+     * Blocks the account (if not already blocked): flips the flag, pauses any active paid
      * subscription, tears down its active tunnels, and adds its tunnels' client IPs and payload
      * signatures to the respective blacklists. Idempotent.
      *
@@ -53,7 +51,6 @@ public class AccountBlockingService {
             return;
         }
         account.setBlocked(true);
-        cancelActiveSubscription(account);
         accountRepository.save(account);
         tunnelService.closeAllTunnels(account);
         ipBlacklistService.blacklistAccountIps(account.getId());
@@ -61,31 +58,8 @@ public class AccountBlockingService {
     }
 
     /**
-     * Cancels the account's paid Stripe subscription (if any) so a blocked account stops being
-     * billed, and optimistically reflects the cancellation locally. A Stripe failure is logged but
-     * does not abort the block — blocking is a security action that must still take effect.
-     *
-     * @param account the account being blocked
-     */
-    private void cancelActiveSubscription(final AccountEntity account) {
-        if (account.getStripeSubscriptionId() == null) {
-            return;
-        }
-        final var subscriptionId = account.getStripeSubscriptionId();
-        try {
-            stripeService.cancelSubscription(account);
-        } catch (final StripeException e) {
-            log.error("Failed to cancel Stripe subscription {} while blocking account {}: {}",
-                subscriptionId, account.getId(), e.getMessage());
-            return;
-        }
-        account.setSubscriptionStatus("canceled");
-        account.setStripeSubscriptionId(null);
-        log.info("Canceled subscription {} for blocked account {}", subscriptionId, account.getId());
-    }
-
-    /**
-     * Unblocks the account (if blocked) and removes the blacklist entries it contributed. Idempotent.
+     * Unblocks the account (if blocked): flips the flag, resumes its paused subscription (if any),
+     * and removes the blacklist entries it contributed. Idempotent.
      *
      * @param account the account to unblock
      */
@@ -99,4 +73,5 @@ public class AccountBlockingService {
         ipBlacklistService.removeAccountIps(account.getId());
         log.info("Unblocked account {}", account.getId());
     }
+
 }

@@ -28,6 +28,7 @@ import com.stripe.param.SubscriptionUpdateParams;
 import com.stripe.param.billingportal.SessionCreateParams;
 import com.stripe.param.checkout.SessionCreateParams.LineItem;
 import com.stripe.param.checkout.SessionCreateParams.Mode;
+import com.stripe.param.common.EmptyParam;
 
 import lombok.extern.slf4j.Slf4j;
 import tech.amak.portbuddy.common.Plan;
@@ -48,9 +49,9 @@ public class StripeService {
     /**
      * Creates a checkout session for the given account and plan.
      *
-     * @param account       the account
-     * @param plan          the plan
-     * @param extraTunnels  the number of extra tunnels
+     * @param account      the account
+     * @param plan         the plan
+     * @param extraTunnels the number of extra tunnels
      * @return the checkout session URL
      * @throws StripeException if Stripe API call fails
      */
@@ -137,6 +138,48 @@ public class StripeService {
      */
     public void cancelSubscription(final AccountEntity account) throws StripeException {
         cancelSubscription(account.getStripeSubscriptionId());
+    }
+
+    /**
+     * Pauses the given subscription in Stripe by marking its collection as paused, so a blocked
+     * account stops being billed while keeping the subscription intact for later resumption.
+     *
+     * @param account the account
+     * @throws StripeException if Stripe API call fails
+     */
+    public void pauseSubscription(final AccountEntity account) throws StripeException {
+        final var subscriptionId = account.getStripeSubscriptionId();
+        if (subscriptionId == null) {
+            return;
+        }
+        log.info("Pausing Stripe subscription: {}", subscriptionId);
+        final var subscription = Subscription.retrieve(subscriptionId);
+        final var params = SubscriptionUpdateParams.builder()
+            .setPauseCollection(SubscriptionUpdateParams.PauseCollection.builder()
+                .setBehavior(SubscriptionUpdateParams.PauseCollection.Behavior.VOID)
+                .build())
+            .build();
+        subscription.update(params);
+    }
+
+    /**
+     * Resumes the given subscription in Stripe by clearing its paused collection, so a previously
+     * paused account starts being billed again.
+     *
+     * @param account the account
+     * @throws StripeException if Stripe API call fails
+     */
+    public void resumeSubscription(final AccountEntity account) throws StripeException {
+        final var subscriptionId = account.getStripeSubscriptionId();
+        if (subscriptionId == null) {
+            return;
+        }
+        log.info("Resuming Stripe subscription: {}", subscriptionId);
+        final var subscription = Subscription.retrieve(subscriptionId);
+        final var params = SubscriptionUpdateParams.builder()
+            .setPauseCollection(EmptyParam.EMPTY)
+            .build();
+        subscription.update(params);
     }
 
     /**
