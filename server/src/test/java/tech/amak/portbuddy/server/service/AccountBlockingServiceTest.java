@@ -14,12 +14,8 @@
 
 package tech.amak.portbuddy.server.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -30,9 +26,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import com.stripe.exception.ApiConnectionException;
-import com.stripe.exception.StripeException;
 
 import tech.amak.portbuddy.server.db.entity.AccountEntity;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
@@ -46,8 +39,6 @@ class AccountBlockingServiceTest {
     private TunnelService tunnelService;
     @Mock
     private IpBlacklistService ipBlacklistService;
-    @Mock
-    private StripeService stripeService;
 
     @InjectMocks
     private AccountBlockingService service;
@@ -65,54 +56,6 @@ class AccountBlockingServiceTest {
         verify(accountRepository).save(account);
         verify(tunnelService).closeAllTunnels(account);
         verify(ipBlacklistService).blacklistAccountIps(accountId);
-    }
-
-    @Test
-    void blockAccount_withPaidSubscription_cancelsSubscription() throws StripeException {
-        final var account = new AccountEntity();
-        account.setId(UUID.randomUUID());
-        account.setBlocked(false);
-        account.setStripeSubscriptionId("sub_123");
-        account.setSubscriptionStatus("active");
-
-        service.blockAccount(account);
-
-        assertTrue(account.isBlocked());
-        verify(stripeService).cancelSubscription(account);
-        assertEquals("canceled", account.getSubscriptionStatus());
-        assertNull(account.getStripeSubscriptionId());
-    }
-
-    @Test
-    void blockAccount_withoutSubscription_doesNotCallStripe() throws StripeException {
-        final var account = new AccountEntity();
-        account.setId(UUID.randomUUID());
-        account.setBlocked(false);
-
-        service.blockAccount(account);
-
-        assertTrue(account.isBlocked());
-        verify(stripeService, never()).cancelSubscription(any(AccountEntity.class));
-    }
-
-    @Test
-    void blockAccount_whenStripeFails_stillBlocks() throws StripeException {
-        final var accountId = UUID.randomUUID();
-        final var account = new AccountEntity();
-        account.setId(accountId);
-        account.setBlocked(false);
-        account.setStripeSubscriptionId("sub_123");
-        account.setSubscriptionStatus("active");
-
-        doThrow(new ApiConnectionException("stripe down")).when(stripeService).cancelSubscription(account);
-
-        service.blockAccount(account);
-
-        assertTrue(account.isBlocked());
-        verify(accountRepository).save(account);
-        verify(tunnelService).closeAllTunnels(account);
-        // subscription id is retained so it can be retried/reconciled later
-        assertEquals("sub_123", account.getStripeSubscriptionId());
     }
 
     @Test

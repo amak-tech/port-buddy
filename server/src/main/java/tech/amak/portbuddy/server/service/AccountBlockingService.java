@@ -36,7 +36,6 @@ public class AccountBlockingService {
     private final AccountRepository accountRepository;
     private final TunnelService tunnelService;
     private final IpBlacklistService ipBlacklistService;
-    private final StripeService stripeService;
 
     /**
      * Blocks the account (if not already blocked): flips the flag, pauses any active paid
