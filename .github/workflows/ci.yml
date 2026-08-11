@@ -34,6 +34,10 @@ jobs:
       - name: Build with Maven
         run: ./mvnw clean package
 
+      - name: Verify SEO output of the built site
+        working-directory: web
+        run: node scripts/seo-check.mjs
+
   build-backend:
     name: Build and Push Docker Images to YC CR
     needs: build
@@ -60,6 +64,10 @@ jobs:
 
       - name: Build with Maven
         run: ./mvnw clean package -pl web -pl eureka -pl gateway -pl net-proxy -pl server -pl ssl-service -am -DskipTests
+
+      - name: Verify SEO output of the built site
+        working-directory: web
+        run: node scripts/seo-check.mjs
 
       - name: Login to Yandex Cloud Container Registry
         id: login-cr

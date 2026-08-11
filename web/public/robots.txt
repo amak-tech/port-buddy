@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /app/
-Sitemap: https://portbuddy.dev/sitemap.xml

@@ -1,17 +1,28 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { 
+import {
   CommandLineIcon,
-  ClipboardDocumentIcon, 
+  ClipboardDocumentIcon,
   CheckIcon,
   ComputerDesktopIcon
 } from '@heroicons/react/24/outline'
+import { EXTRA_TUNNEL_NOTE, PLAN_LIST, freeTunnelsLabel, type Plan } from '../config/plans'
+import JsonLd from '../lib/seo/JsonLd'
+import { breadcrumbListSchema } from '../lib/seo/schemas'
+
+// Breadcrumbs only: the install steps live behind per-OS tabs, so only the active tab is rendered
+// and a HowTo would describe steps that are not on the page.
+const installSchema = breadcrumbListSchema([
+  { name: 'Home', path: '/' },
+  { name: 'Installation', path: '/install' }
+])
 
 export default function Installation() {
   const [activeTab, setActiveTab] = useState<'macos' | 'linux' | 'windows' | 'docker'>('macos')
 
   return (
     <div className="min-h-screen flex flex-col">
+      <JsonLd data={installSchema} />
       <div className="flex-1 relative pt-12 pb-12 md:pb-20">
         {/* Background gradients */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/20 via-slate-900/0 to-slate-900/0 pointer-events-none" />
@@ -171,17 +182,9 @@ export default function Installation() {
           </div>
 
           <div className="mt-12 grid md:grid-cols-2 gap-6">
-            <PlanLimitCard 
-              plan="Pro Plan"
-              limit="1 free tunnel"
-              description="Perfect for individual developers. $1/mo for each additional concurrent tunnel."
-              isPro
-            />
-            <PlanLimitCard 
-              plan="Team Plan"
-              limit="10 free tunnels"
-              description="Built for teams and power users. $1/mo for each additional concurrent tunnel."
-            />
+            {PLAN_LIST.map((plan) => (
+              <PlanLimitCard key={plan.id} plan={plan} isPro={plan.id === 'pro'} />
+            ))}
           </div>
 
           <div className="mt-12 grid md:grid-cols-3 gap-6">
@@ -273,19 +276,19 @@ function InfoCard({ title, description }: { title: string, description: string }
   )
 }
 
-function PlanLimitCard({ plan, limit, description, isPro }: { plan: string, limit: string, description: string, isPro?: boolean }) {
+function PlanLimitCard({ plan, isPro }: { plan: Plan, isPro?: boolean }) {
   return (
     <div className={`relative p-6 rounded-2xl border ${isPro ? 'border-indigo-500/30 bg-indigo-500/5' : 'border-slate-800 bg-slate-900/30'}`}>
       <div className="flex justify-between items-start mb-4">
         <div>
-          <h4 className="text-lg font-bold text-white mb-1">{plan}</h4>
+          <h4 className="text-lg font-bold text-white mb-1">{`${plan.name} Plan`}</h4>
           <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-            {limit}
+            {freeTunnelsLabel(plan)}
           </div>
         </div>
       </div>
       <p className="text-slate-400 text-sm leading-relaxed">
-        {description}
+        {`${plan.shortTagline} ${EXTRA_TUNNEL_NOTE}`}
       </p>
     </div>
   )

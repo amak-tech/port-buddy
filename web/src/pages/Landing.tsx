@@ -31,8 +31,31 @@ import {
   UserIcon
 } from '@heroicons/react/24/outline'
 import PlanComparison from '../components/PlanComparison'
+import JsonLd from '../lib/seo/JsonLd'
+import {
+  faqPageSchema,
+  organizationSchema,
+  softwareApplicationSchema,
+  webSiteSchema,
+  type FaqEntry
+} from '../lib/seo/schemas'
+import {
+  EXTRA_TUNNEL_PRICE,
+  PLANS,
+  PRICE_CURRENCY_SYMBOL,
+  TCP_MIN_TUNNELS,
+  TCP_REQUIREMENT,
+  priceLabel
+} from '../config/plans'
 
 // --- Content (single source of truth for copy + structured data) ---
+
+const { pro, team } = PLANS
+
+/** Rendered as the hero paragraph and reused as the SoftwareApplication description. */
+const HERO_DESCRIPTION = 'Port Buddy gives any port on your machine a public HTTPS URL. Test webhooks, '
+  + 'demo work in progress, debug on a real phone, or share a local database — without deploying, '
+  + 'opening firewall ports or setting up a VPN.'
 
 const problems: { icon: React.ReactNode, problem: string, solution: string, command: string }[] = [
   {
@@ -106,7 +129,7 @@ const features: { icon: React.ReactNode, title: string, description: string }[] 
     icon: <ServerIcon className="w-6 h-6 text-cyan-400" />,
     title: 'TCP and UDP tunnels',
     description: 'Not just HTTP. UDP tunnels are available on every plan; TCP tunnels (databases, SSH, RDP) '
-      + 'need 5+ tunnels or the Team plan.'
+      + `need ${TCP_MIN_TUNNELS}+ tunnels or the ${team.name} plan.`
   },
   {
     icon: <BoltIcon className="w-6 h-6 text-yellow-400" />,
@@ -122,7 +145,7 @@ const features: { icon: React.ReactNode, title: string, description: string }[] 
   }
 ]
 
-const faqs: { question: string, answer: string }[] = [
+const faqs: FaqEntry[] = [
   {
     question: 'What is Port Buddy?',
     answer: 'Port Buddy is a tunneling service for developers. You run one command against a local port and '
@@ -137,9 +160,10 @@ const faqs: { question: string, answer: string }[] = [
   },
   {
     question: 'Is there a free plan?',
-    answer: 'Yes. The Pro plan starts at $0/month with one free HTTP or UDP tunnel and no credit card. '
-      + 'Extra tunnels cost $1/month each, and the Team plan is $10/month with 10 tunnels included plus '
-      + 'team member management.'
+    answer: `Yes. The ${pro.name} plan starts at ${priceLabel(pro)}/month with one free HTTP or UDP tunnel `
+      + `and no credit card. Extra tunnels cost ${PRICE_CURRENCY_SYMBOL}${EXTRA_TUNNEL_PRICE}/month each, `
+      + `and the ${team.name} plan is ${priceLabel(team)}/month with ${team.freeTunnels} tunnels included `
+      + 'plus team member management.'
   },
   {
     question: 'Is my traffic secure?',
@@ -150,8 +174,8 @@ const faqs: { question: string, answer: string }[] = [
   {
     question: 'Can I expose a database, SSH or a game server?',
     answer: 'Yes. Use portbuddy tcp 5432 for Postgres, or portbuddy udp 19132 for UDP services such as '
-      + 'Minecraft Bedrock. UDP tunnels are included on every plan; TCP tunnels require at least 5 tunnels, '
-      + 'which you get by adding extra tunnels on Pro or by using the Team plan.'
+      + `Minecraft Bedrock. UDP tunnels are included on every plan; ${TCP_REQUIREMENT}, `
+      + `which you get by adding extra tunnels on ${pro.name} or by using the ${team.name} plan.`
   },
   {
     question: 'Can I use my own domain name?',
@@ -170,15 +194,14 @@ const faqs: { question: string, answer: string }[] = [
   }
 ]
 
-const faqSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'FAQPage',
-  mainEntity: faqs.map(({ question, answer }) => ({
-    '@type': 'Question',
-    name: question,
-    acceptedAnswer: { '@type': 'Answer', text: answer }
-  }))
-}
+// Structured data for the homepage. Every block is generated from the content rendered below:
+// the hero paragraph, the pricing cards and the FAQ accordion.
+const landingSchemas = [
+  softwareApplicationSchema(HERO_DESCRIPTION),
+  organizationSchema(),
+  webSiteSchema(),
+  faqPageSchema(faqs)
+]
 
 // --- Helper Components ---
 
@@ -258,6 +281,8 @@ function ChevronDownIcon({ className }: { className?: string }) {
 export default function Landing() {
   return (
     <div className="flex flex-col gap-24 md:gap-32 pb-24">
+      <JsonLd data={landingSchemas} />
+
       {/* Hero */}
       <section className="relative pt-20 md:pt-28 overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-mesh-gradient opacity-40 pointer-events-none" />
@@ -272,9 +297,7 @@ export default function Landing() {
             </h1>
 
             <p className="text-lg md:text-xl text-slate-400 mb-10 leading-relaxed font-light max-w-2xl mx-auto">
-              Port Buddy gives any port on your machine a public HTTPS URL. Test webhooks, demo work in
-              progress, debug on a real phone, or share a local database — without deploying, opening
-              firewall ports or setting up a VPN.
+              {HERO_DESCRIPTION}
             </p>
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-4 mb-10">
@@ -461,7 +484,7 @@ export default function Landing() {
             Simple, transparent pricing
           </h2>
           <p className="text-slate-400 text-lg">
-            Start free with one tunnel. Add tunnels for $1/month when you need them.
+            {`Start free with one tunnel. Add tunnels for ${PRICE_CURRENCY_SYMBOL}${EXTRA_TUNNEL_PRICE}/month when you need them.`}
           </p>
         </div>
         <PlanComparison />
@@ -477,7 +500,6 @@ export default function Landing() {
             <FaqItem key={faq.question} {...faq} />
           ))}
         </div>
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       </section>
 
       {/* Final CTA */}

@@ -24,10 +24,19 @@ import {
   InformationCircleIcon
 } from '@heroicons/react/24/outline'
 import CodeBlock from '../../components/CodeBlock'
+import { PLAN_LIST, TCP_MIN_TUNNELS, priceLabel } from '../../config/plans'
+import JsonLd from '../../lib/seo/JsonLd'
+import { breadcrumbListSchema } from '../../lib/seo/schemas'
+
+const docsSchema = breadcrumbListSchema([
+  { name: 'Home', path: '/' },
+  { name: 'Documentation', path: '/docs' }
+])
 
 export default function DocsOverview() {
   return (
     <>
+      <JsonLd data={docsSchema} />
       <header className="mb-12">
         <div className="inline-flex items-center gap-2 text-indigo-400 font-medium mb-4">
           <BookOpenIcon className="w-5 h-5" />
@@ -104,9 +113,9 @@ export default function DocsOverview() {
       <section id="tcp-tunnels" className="mb-16 scroll-mt-24">
         <h2 className="text-2xl font-bold text-white mb-6">TCP Tunnels</h2>
         <p className="text-slate-400 mb-6">
-          TCP mode allows you to expose any TCP-based service, such as databases or SSH.
-          TCP tunnels are a paid capability: your account needs at least 5 tunnels
-          (add extra tunnels on the Pro plan, or use the Team plan).
+          {'TCP mode allows you to expose any TCP-based service, such as databases or SSH. '
+            + `TCP tunnels are a paid capability: your account needs at least ${TCP_MIN_TUNNELS} tunnels `
+            + '(add extra tunnels on the Pro plan, or use the Team plan).'}
         </p>
         <h3 className="text-lg font-semibold text-white mb-3">Usage</h3>
         <CodeBlock code="portbuddy tcp 5432" />
@@ -219,27 +228,22 @@ Start-ScheduledTask -TaskName portbuddy-tcp-22`} />
           Port Buddy offers two simple plans to suit your needs.
         </p>
         <div className="grid sm:grid-cols-2 gap-6">
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
-            <h3 className="text-xl font-bold text-white mb-2">Pro</h3>
-            <p className="text-indigo-400 font-bold mb-4">$0 / mo</p>
-            <ul className="text-sm text-slate-400 space-y-2">
-              <li>• 1 free HTTP/UDP tunnel at a time</li>
-              <li>• TCP tunnels with 5+ tunnels</li>
-              <li>• Custom domains</li>
-              <li>• Static subdomains</li>
-              <li>• $1/mo per extra tunnel (5+ pack)</li>
-            </ul>
-          </div>
-          <div className="bg-slate-900/50 border border-indigo-500/30 rounded-xl p-6 shadow-lg shadow-indigo-500/10">
-            <h3 className="text-xl font-bold text-white mb-2">Team</h3>
-            <p className="text-indigo-400 font-bold mb-4">$10 / mo</p>
-            <ul className="text-sm text-slate-400 space-y-2">
-              <li>• 10 free tunnels at a time</li>
-              <li>• Team members</li>
-              <li>• Priority support</li>
-              <li>• $1/mo per extra tunnel</li>
-            </ul>
-          </div>
+          {PLAN_LIST.map((plan) => (
+            <div
+              key={plan.id}
+              className={plan.id === 'team'
+                ? 'bg-slate-900/50 border border-indigo-500/30 rounded-xl p-6 shadow-lg shadow-indigo-500/10'
+                : 'bg-slate-900/50 border border-slate-800 rounded-xl p-6'}
+            >
+              <h3 className="text-xl font-bold text-white mb-2">{plan.name}</h3>
+              <p className="text-indigo-400 font-bold mb-4">{`${priceLabel(plan)} / mo`}</p>
+              <ul className="text-sm text-slate-400 space-y-2">
+                {plan.features.map((feature) => (
+                  <li key={feature}>{`• ${feature}`}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
       </section>
     </>

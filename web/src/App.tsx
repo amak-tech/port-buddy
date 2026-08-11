@@ -38,6 +38,47 @@ import Contacts from './pages/Contacts'
 import NotFound from './pages/NotFound'
 import ServerError from './pages/ServerError'
 import Passcode from './pages/Passcode'
+import { isIndexablePath } from './config/routes'
+import { canonicalUrl } from './config/site'
+
+function headElement<T extends HTMLElement>(selector: string, create: () => T): T {
+  const existing = document.head.querySelector<T>(selector)
+  if (existing) {
+    return existing
+  }
+  const created = create()
+  document.head.appendChild(created)
+  return created
+}
+
+/**
+ * Keeps the robots directive and the canonical URL right on client-rendered routes.
+ *
+ * Prerendered pages already ship both in their static HTML and this recomputes the same values, so
+ * the two stay byte-identical. Everything not in the sitemap — the dashboard, the account flows,
+ * 404s — is marked noindex,nofollow here (robots.txt disallows those paths as well).
+ */
+function RobotsAndCanonical() {
+  const { pathname } = useLocation()
+
+  useEffect(() => {
+    const robots = headElement<HTMLMetaElement>('meta[name="robots"]', () => {
+      const meta = document.createElement('meta')
+      meta.setAttribute('name', 'robots')
+      return meta
+    })
+    robots.setAttribute('content', isIndexablePath(pathname) ? 'index,follow' : 'noindex,nofollow')
+
+    const canonical = headElement<HTMLLinkElement>('link[rel="canonical"]', () => {
+      const link = document.createElement('link')
+      link.setAttribute('rel', 'canonical')
+      return link
+    })
+    canonical.setAttribute('href', canonicalUrl(pathname))
+  }, [pathname])
+
+  return null
+}
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -289,6 +330,7 @@ export default function App() {
           <Route path="/500" element={<ServerError/>} />
           <Route path="*" element={<NotFound/>} />
         </Routes>
+        <RobotsAndCanonical />
         <ScrollToTop />
         <ScrollToHash />
         <Outlet />
