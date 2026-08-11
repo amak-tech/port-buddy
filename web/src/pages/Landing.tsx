@@ -420,30 +420,6 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Testimonials (Trust Builder) */}
-      <section className="container">
-        <h2 className="text-3xl md:text-4xl font-bold text-center text-white mb-16">
-          Loved by developers
-        </h2>
-        <div className="grid md:grid-cols-3 gap-6">
-          <TestimonialCard 
-            quote="Finally, a tunneling tool that is simple, fast, and doesn't break. I use it daily for webhook testing."
-            author="Sarah Jenkins"
-            role="Senior Backend Engineer"
-          />
-          <TestimonialCard 
-            quote="The custom domain feature is a lifesaver. Being able to show clients a consistent URL during demos is huge."
-            author="David Chen"
-            role="Freelance Developer"
-          />
-          <TestimonialCard 
-            quote="I switched from ngrok because of the pricing, but stayed for the speed. Port Buddy is blazing fast."
-            author="Michael Rossi"
-            role="CTO @ StartupX"
-          />
-        </div>
-      </section>
-
       {/* Use Cases */}
       <section id="use-cases" className="container bg-slate-900/50 py-16 rounded-3xl border border-white/5 overflow-hidden">
         <div className="grid lg:grid-cols-2 gap-16 items-center px-4 md:px-12">
