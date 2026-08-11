@@ -11,6 +11,7 @@ import {
   prerenderRoutes,
   sitemapRoutes
 } from './src/config/routes'
+import { ANCHOR_REDIRECTS, ANCHOR_REDIRECT_SOURCE, docsPage } from './src/config/docs'
 
 const OUT_DIR = 'dist'
 
@@ -97,11 +98,66 @@ function templatePathFor(route: string): string | null {
   }
   if (route === '/' || route === '/index') return 'public/pages/index.html'
   if (route === '/install') return 'public/pages/install.html'
-  if (route === '/docs' || route.startsWith('/docs/')) return 'public/pages/docs.html'
+  // /docs and its child pages are generated from the docs manifest by docsTemplate().
   if (route === '/privacy') return 'public/pages/privacy.html'
   if (route === '/terms') return 'public/pages/terms.html'
   if (route === '/contacts') return 'public/pages/contacts.html'
   return null
+}
+
+function escapeAttribute(value: string): string {
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
+/**
+ * Builds the head template for a documentation page out of its manifest entry, so a page's title,
+ * description, canonical and social tags all come from the same record the sidebar and the sitemap
+ * read. Nine near-identical HTML files would only be nine chances to let one drift.
+ *
+ * og:type is `article` to match the guides: every docs page below the index is prose about one
+ * topic, not a site landing page.
+ */
+function docsTemplate(route: string, origin: string): string | null {
+  const page = docsPage(route)
+  if (!page) {
+    return null
+  }
+
+  const url = absoluteUrl(origin, page.path)
+  const title = escapeAttribute(page.title)
+  const description = escapeAttribute(page.description)
+  const tags = [
+    `<title>${title}</title>`,
+    `<meta name="description" content="${description}" />`,
+    `<meta property="og:title" content="${title}" />`,
+    `<meta property="og:description" content="${description}" />`,
+    `<meta property="og:url" content="${url}" />`,
+    ...(page.path === '/docs' ? [] : ['<meta property="og:type" content="article" />']),
+    `<meta name="twitter:title" content="${title}" />`,
+    `<meta name="twitter:description" content="${description}" />`,
+    `<link rel="canonical" href="${url}" />`
+  ]
+
+  return `<!DOCTYPE html><html lang="en"><head>\n${tags.map((tag) => `    ${tag}`).join('\n')}\n</head><body></body></html>`
+}
+
+/**
+ * The client-side shim for the anchors of the old single-page docs.
+ *
+ * A fragment is never sent to the server, so an old anchor link cannot be answered with a 301. This
+ * runs inline in <head> — before first paint, so there is no flash of the index, and with no
+ * network work of its own, so it does not hold the paint up either.
+ *
+ * It is injected into /docs and nowhere else, and it checks the pathname again at runtime, so it
+ * can never fire on a destination page and loop. An unknown hash is left completely alone.
+ */
+function anchorRedirectScript(): string {
+  const map = JSON.stringify(ANCHOR_REDIRECTS)
+  const source = JSON.stringify(ANCHOR_REDIRECT_SOURCE)
+  return '<script>(function(){try{var m=' + map + ';'
+    + 'if(location.pathname.replace(/\\/+$/,"")!==' + source + ')return;'
+    + 'var t=m[location.hash];'
+    + 'if(t&&t!==location.pathname)location.replace(t)}catch(e){}})();</script>'
 }
 
 function buildSitemap(origin: string): string {
@@ -196,6 +252,9 @@ function seoAssets(env: Record<string, string>): Plugin {
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd());
+  // Resolved exactly as the sitemap resolves it, so generated canonicals match sitemap entries byte
+  // for byte even when VITE_CANONICAL carries a trailing slash.
+  const origin = (env.VITE_CANONICAL || '').trim().replace(/\/+$/, '') || DEFAULT_SITE_ORIGIN;
 
   return {
     define: {
@@ -216,18 +275,31 @@ export default defineConfig(({ mode }) => {
             `<div id="root" data-prerendered-route="${route}">`
           );
 
-          const templatePath = templatePathFor(route);
-          if (templatePath) {
-            let template = fs.readFileSync(path.join(__dirname, templatePath), 'utf8');
+          let template = docsTemplate(route, origin);
 
-            // Replace environment variables
-            Object.keys(env).forEach((key) => {
-              if (key.startsWith('VITE_')) {
-                template = template.replace(new RegExp(`%${key}%`, 'g'), env[key]);
-              }
-            });
+          if (!template) {
+            const templatePath = templatePathFor(route);
+            if (templatePath) {
+              template = fs.readFileSync(path.join(__dirname, templatePath), 'utf8');
 
+              // Replace environment variables
+              Object.keys(env).forEach((key) => {
+                if (key.startsWith('VITE_')) {
+                  template = (template as string).replace(new RegExp(`%${key}%`, 'g'), env[key]);
+                }
+              });
+            }
+          }
+
+          if (template) {
             renderedRoute.html = mergeTemplateHead(renderedRoute.html, template);
+          }
+
+          if (route === ANCHOR_REDIRECT_SOURCE) {
+            renderedRoute.html = renderedRoute.html.replace(
+              '</head>',
+              `  ${anchorRedirectScript()}\n</head>`
+            );
           }
           return renderedRoute;
         }

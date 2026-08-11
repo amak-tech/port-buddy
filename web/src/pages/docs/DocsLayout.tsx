@@ -14,9 +14,11 @@
  */
 
 import { Link, Outlet, useLocation } from 'react-router-dom'
+import { DOCS_GROUPS, navEntriesInGroup } from '../../config/docs'
 
 export default function DocsLayout() {
   const location = useLocation()
+  const current = location.pathname.replace(/\/+$/, '') || '/'
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -27,40 +29,20 @@ export default function DocsLayout() {
           <div className="flex flex-col md:flex-row gap-12">
             {/* Sidebar Navigation */}
             <aside className="md:w-64 flex-shrink-0">
-              <div className="sticky top-24 space-y-8">
-                <div>
-                  <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 px-2">Getting Started</h3>
-                  <nav className="space-y-1">
-                    <SidebarLink to="/docs#introduction" label="Introduction" active={location.pathname === '/docs' && (!location.hash || location.hash === '#introduction')} />
-                    <SidebarLink to="/docs#installation" label="Installation" active={location.hash === '#installation'} />
-                    <SidebarLink to="/docs#authentication" label="Authentication" active={location.hash === '#authentication'} />
-                  </nav>
-                </div>
-                <div>
-                  <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 px-2">Tunnels</h3>
-                  <nav className="space-y-1">
-                    <SidebarLink to="/docs#http-tunnels" label="HTTP Tunnels" active={location.hash === '#http-tunnels'} />
-                    <SidebarLink to="/docs#tcp-tunnels" label="TCP Tunnels" active={location.hash === '#tcp-tunnels'} />
-                    <SidebarLink to="/docs#udp-tunnels" label="UDP Tunnels" active={location.hash === '#udp-tunnels'} />
-                  </nav>
-                </div>
-                <div>
-                  <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 px-2">Advanced</h3>
-                  <nav className="space-y-1">
-                    <SidebarLink to="/docs#run-as-service" label="Run as Service" active={location.hash === '#run-as-service'} />
-                    <SidebarLink to="/docs#custom-domains" label="Custom Domains" active={location.hash === '#custom-domains'} />
-                    <SidebarLink to="/docs#private-tunnels" label="Private Tunnels" active={location.hash === '#private-tunnels'} />
-                    <SidebarLink to="/docs#pricing-limits" label="Pricing & Limits" active={location.hash === '#pricing-limits'} />
-                  </nav>
-                </div>
-                <div>
-                  <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 px-2">How-to Guides</h3>
-                  <nav className="space-y-1">
-                    <SidebarLink to="/docs/guides/minecraft-server" label="Minecraft Server" active={location.pathname === '/docs/guides/minecraft-server'} />
-                    <SidebarLink to="/docs/guides/hytale-server" label="Hytale Server" active={location.pathname === '/docs/guides/hytale-server'} />
-                  </nav>
-                </div>
-              </div>
+              <nav className="sticky top-24 space-y-8" aria-label="Documentation">
+                {DOCS_GROUPS.map((group) => (
+                  <div key={group.id}>
+                    <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 px-2">{group.label}</h2>
+                    <ul className="space-y-1">
+                      {navEntriesInGroup(group.id).map((entry) => (
+                        <li key={entry.path}>
+                          <SidebarLink to={entry.path} label={entry.label} active={current === entry.path} />
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </nav>
             </aside>
 
             {/* Main Content */}
@@ -75,16 +57,13 @@ export default function DocsLayout() {
 }
 
 function SidebarLink({ to, label, active }: { to: string, label: string, active: boolean }) {
-  // If we are on a different page and the link is an anchor on /docs, we need to make sure we go to /docs first.
-  // The 'to' prop should be the full path (e.g., "/docs#introduction").
-  // However, ScrollToHash in App.tsx handles the scrolling.
-  
   return (
-    <Link 
-      to={to} 
+    <Link
+      to={to}
+      aria-current={active ? 'page' : undefined}
       className={`block px-2 py-1.5 text-sm rounded-lg transition-colors ${
-        active 
-          ? 'text-white bg-slate-800' 
+        active
+          ? 'text-white bg-slate-800'
           : 'text-slate-400 hover:text-white hover:bg-slate-800'
       }`}
     >

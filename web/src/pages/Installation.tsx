@@ -104,7 +104,7 @@ export default function Installation() {
                   </Step>
                   <div className="pt-2">
                     <p className="text-slate-400">
-                      Need to run in background? <Link to="/docs#run-as-service" className="text-indigo-400 hover:text-indigo-300 transition-colors">Run as a Service guide &rarr;</Link>
+                      Need to run in background? <Link to="/docs/run-as-a-service" className="text-indigo-400 hover:text-indigo-300 transition-colors">Run as a Service guide &rarr;</Link>
                     </p>
                   </div>
                 </div>
@@ -139,7 +139,7 @@ export default function Installation() {
                   </Step>
                   <div className="pt-2">
                     <p className="text-slate-400">
-                      Need to run in background? <Link to="/docs#run-as-service" className="text-indigo-400 hover:text-indigo-300 transition-colors">Run as a Service guide &rarr;</Link>
+                      Need to run in background? <Link to="/docs/run-as-a-service" className="text-indigo-400 hover:text-indigo-300 transition-colors">Run as a Service guide &rarr;</Link>
                     </p>
                   </div>
                 </div>

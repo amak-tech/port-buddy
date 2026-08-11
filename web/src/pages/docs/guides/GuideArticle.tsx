@@ -18,6 +18,7 @@ import { BookOpenIcon } from '@heroicons/react/24/outline'
 import CodeBlock from '../../../components/CodeBlock'
 import JsonLd from '../../../lib/seo/JsonLd'
 import { breadcrumbListSchema, howToSchema } from '../../../lib/seo/schemas'
+import { DocsBreadcrumbs } from '../DocsPage'
 
 /**
  * Renders a how-to guide from data and derives its HowTo structured data from the very same steps,
@@ -80,6 +81,14 @@ function RichText({ markup }: { markup: string }) {
   )
 }
 
+function guideTrail(guide: GuideDef) {
+  return [
+    { name: 'Home', path: '/' },
+    { name: 'Documentation', path: '/docs' },
+    { name: guide.title, path: guide.path }
+  ]
+}
+
 function guideSchemas(guide: GuideDef) {
   return [
     howToSchema({
@@ -95,11 +104,7 @@ function guideSchemas(guide: GuideDef) {
         }))
       }))
     }),
-    breadcrumbListSchema([
-      { name: 'Home', path: '/' },
-      { name: 'Documentation', path: '/docs' },
-      { name: guide.title, path: guide.path }
-    ])
+    breadcrumbListSchema(guideTrail(guide))
   ]
 }
 
@@ -107,6 +112,7 @@ export default function GuideArticle({ guide }: { guide: GuideDef }) {
   return (
     <>
       <JsonLd data={guideSchemas(guide)} />
+      <DocsBreadcrumbs trail={guideTrail(guide)} />
 
       <header className="mb-12">
         <div className="inline-flex items-center gap-2 text-indigo-400 font-medium mb-4">

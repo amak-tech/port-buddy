@@ -31,11 +31,13 @@ import http from 'node:http'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const SELF = fileURLToPath(import.meta.url)
+const ROOT = path.resolve(path.dirname(SELF), '..')
 const DIST = path.join(ROOT, 'dist')
+const REPO = path.resolve(ROOT, '..')
 const USE_BROWSER = !process.argv.includes('--no-browser')
 
-const CHECKS = ['table', 'json-ld', 'canonical', 'robots', 'metadata']
+const CHECKS = ['content', 'table', 'json-ld', 'canonical', 'robots', 'metadata', 'links']
 
 // --- tiny HTML helpers (the built pages are machine-generated, so patterns are enough) ---
 
@@ -103,6 +105,7 @@ function validateNode(node, trailPath, problems) {
 }
 
 const REQUIRED_PROPERTIES = {
+  TechArticle: ['headline', 'description', 'url'],
   SoftwareApplication: ['name', 'applicationCategory', 'operatingSystem', 'description', 'offers'],
   Organization: ['name', 'url', 'logo'],
   WebSite: ['name', 'url'],
@@ -200,10 +203,10 @@ function checkJsonLd(html, pathname) {
   const blocks = jsonLdBlocks(html)
   const expected = pathname === '/'
     ? ['SoftwareApplication', 'Organization', 'WebSite', 'FAQPage']
-    : pathname === '/install' || pathname === '/docs'
-      ? ['BreadcrumbList']
-      : pathname.startsWith('/docs/guides/')
-        ? ['BreadcrumbList', 'HowTo']
+    : pathname.startsWith('/docs/guides/')
+      ? ['BreadcrumbList', 'HowTo']
+      : pathname === '/install' || pathname === '/docs' || pathname.startsWith('/docs/')
+        ? ['BreadcrumbList']
         : []
 
   if (blocks.length === 0) {
@@ -248,6 +251,14 @@ function checkJsonLd(html, pathname) {
       for (const step of steps) {
         if (!pageText.includes(step.name)) problems.push(`HowTo step not rendered on the page: "${step.name}"`)
         if (!pageText.includes(step.text)) problems.push(`HowTo step text not rendered: "${step.text.slice(0, 60)}…"`)
+      }
+    }
+    if (data['@type'] === 'TechArticle') {
+      // The headline is the page's h1 and the description is its lead paragraph: both have to be
+      // text the visitor actually sees.
+      if (!pageText.includes(data.headline)) problems.push(`TechArticle headline not rendered: "${data.headline}"`)
+      if (!pageText.includes(data.description)) {
+        problems.push(`TechArticle description not rendered: "${String(data.description).slice(0, 60)}…"`)
       }
     }
     if (data['@type'] === 'BreadcrumbList') {
@@ -311,6 +322,196 @@ function checkMetadata(html) {
   if (/<meta\b[^>]*\bname="keywords"/.test(pageHead)) problems.push('meta keywords is still present')
 
   return { title: pageTitles[0], description: descriptions[0], problems }
+}
+
+/**
+ * The page's own content has to be in the file the crawler is handed, not injected once React
+ * boots: exactly one <h1>, and prose under it.
+ *
+ * The bar here is deliberately low — it asks "did this page render at all", not "is it any good".
+ * Whether a page has enough content to stand on its own is a separate, advisory report, because a
+ * thin page is an editorial problem and a blank one is a build failure.
+ */
+const UNRENDERED_WORDS = 40
+const THIN_CONTENT_WORDS = 250
+
+function bodyOf(html) {
+  const start = html.indexOf('<body')
+  return start === -1 ? html : html.slice(start)
+}
+
+/** Words of page prose: the chrome every page repeats (nav, sidebar, footer) does not count. */
+function contentWords(html) {
+  const stripped = bodyOf(html)
+    .replace(/<script[\s\S]*?<\/script>/g, '')
+    .replace(/<style[\s\S]*?<\/style>/g, '')
+    .replace(/<nav\b[\s\S]*?<\/nav>/g, '')
+    .replace(/<aside\b[\s\S]*?<\/aside>/g, '')
+    .replace(/<footer\b[\s\S]*?<\/footer>/g, '')
+  return textOf(stripped).split(/\s+/).filter(Boolean).length
+}
+
+function checkContent(html) {
+  const problems = []
+  const body = bodyOf(html)
+  const headings = [...body.matchAll(/<h1\b[^>]*>([\s\S]*?)<\/h1>/g)].map((match) => textOf(match[1]))
+
+  if (headings.length !== 1) problems.push(`${headings.length} <h1> elements, expected exactly 1`)
+  else if (headings[0] === '') problems.push('the <h1> is empty')
+
+  const words = contentWords(html)
+  if (words < UNRENDERED_WORDS) {
+    problems.push(`only ${words} words in the prerendered body (content is missing or client-injected)`)
+  }
+  return { heading: headings[0], words, problems }
+}
+
+// --- internal links ---
+
+const ASSET_EXTENSIONS = /\.(png|jpg|jpeg|svg|ico|webmanifest|xml|txt|js|mjs|css|map|sh|ps1|json)$/i
+
+function internalHrefs(html) {
+  return [...html.matchAll(/\bhref="(\/[^"]*)"/g)]
+    .map((match) => decodeEntities(match[1]))
+    .filter((href) => !ASSET_EXTENSIONS.test(href.split(/[?#]/)[0]))
+}
+
+/**
+ * A link resolves when it is a page in the sitemap, a static file in dist/, or one of the
+ * client-only routes robots.txt disallows (the dashboard and the account flows).
+ */
+function makeLinkResolver(sitemapPaths, privatePrefixes) {
+  return (href) => {
+    const pathname = href.split(/[?#]/)[0]
+    if (pathname === '' || pathname === '/') return true
+    const clean = pathname.replace(/\/+$/, '') || '/'
+    if (sitemapPaths.has(clean)) return true
+    if (privatePrefixes.some((prefix) => clean === prefix || clean.startsWith(`${prefix}/`))) return true
+    return fs.existsSync(path.join(DIST, distFileFor(clean))) || fs.existsSync(path.join(DIST, clean))
+  }
+}
+
+function checkLinks(html, resolves) {
+  const problems = []
+  for (const href of new Set(internalHrefs(html))) {
+    if (!resolves(href)) problems.push(`broken internal link: ${href}`)
+  }
+  return { problems }
+}
+
+// --- the anchor redirect shim ---
+
+/**
+ * Reads the shim's map out of the built /docs page rather than out of the source, so what is
+ * asserted is what actually ships.
+ */
+function anchorRedirectMap(html) {
+  const match = html.match(/<script>\(function\(\)\{try\{var m=(\{.*?\});/)
+  if (!match) return null
+  try {
+    return JSON.parse(match[1])
+  } catch {
+    return null
+  }
+}
+
+function checkAnchorRedirects(resolves) {
+  const problems = []
+  const docsIndex = path.join(DIST, 'docs', 'index.html')
+  if (!fs.existsSync(docsIndex)) {
+    return ['dist/docs/index.html is missing, so the anchor shim could not be checked']
+  }
+
+  const html = fs.readFileSync(docsIndex, 'utf8')
+  const map = anchorRedirectMap(html)
+  if (!map) {
+    return ['the /docs anchor redirect shim is missing or unparseable']
+  }
+
+  for (const [hash, target] of Object.entries(map)) {
+    if (!hash.startsWith('#')) problems.push(`anchor "${hash}" is not a fragment`)
+    if (!resolves(target)) problems.push(`anchor ${hash} redirects to ${target}, which does not resolve`)
+  }
+
+  // The shim must exist on /docs and nowhere else, or an old link could bounce forever.
+  for (const file of distHtmlFiles()) {
+    if (file === docsIndex) continue
+    if (anchorRedirectMap(fs.readFileSync(file, 'utf8'))) {
+      problems.push(`the anchor shim also ships on ${path.relative(DIST, file)} (redirect loop risk)`)
+    }
+  }
+  return problems
+}
+
+function distHtmlFiles(dir = DIST, found = []) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const target = path.join(dir, entry.name)
+    if (entry.isDirectory()) distHtmlFiles(target, found)
+    else if (entry.name.endsWith('.html')) found.push(target)
+  }
+  return found
+}
+
+// --- the rest of the repository ---
+
+const SOURCE_EXTENSIONS = /\.(ts|tsx|js|jsx|mjs|html|md|sh|ps1|java|yml|yaml)$/
+const SKIP_DIRECTORIES = new Set(['node_modules', 'dist', 'target', '.git', '.idea', 'pg_data', 'log', 'cert'])
+
+function sourceFiles(dir, found = []) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.isDirectory()) {
+      if (!SKIP_DIRECTORIES.has(entry.name)) sourceFiles(path.join(dir, entry.name), found)
+    } else if (SOURCE_EXTENSIONS.test(entry.name)) {
+      found.push(path.join(dir, entry.name))
+    }
+  }
+  return found
+}
+
+/**
+ * The old anchors are redirects, not destinations: nothing in the repository should still link to
+ * one. Written in two halves so this file does not match its own check.
+ */
+function checkNoDocsAnchors() {
+  const needle = '/docs' + '#'
+  const problems = []
+  for (const file of sourceFiles(REPO)) {
+    if (file === SELF) continue
+    const contents = fs.readFileSync(file, 'utf8')
+    if (!contents.includes(needle)) continue
+    contents.split('\n').forEach((line, index) => {
+      if (line.includes(needle)) {
+        problems.push(`${path.relative(REPO, file)}:${index + 1} still links to a ${needle} anchor`)
+      }
+    })
+  }
+  return problems
+}
+
+/**
+ * The gateway serves the prerendered HTML from an enumerated route, so a docs page that is in the
+ * sitemap but not in that list would 404 in production however well it builds.
+ */
+function checkGatewayRoutes(docsPaths) {
+  const config = path.join(REPO, 'gateway', 'src', 'main', 'resources', 'application.yml')
+  if (!fs.existsSync(config)) {
+    return ['gateway/src/main/resources/application.yml not found; docs routes were not verified']
+  }
+
+  const match = fs.readFileSync(config, 'utf8').match(/Path=\/docs\/\{page:([^}]+)\}/)
+  if (!match) {
+    return ['the gateway has no /docs/{page:…} route; the new docs pages would 404 in production']
+  }
+
+  const served = new Set(match[1].split('|').map((name) => `/docs/${name.trim()}`))
+  const problems = []
+  for (const docsPath of docsPaths) {
+    if (!served.has(docsPath)) problems.push(`the gateway does not serve ${docsPath} (add it to static_docs_route)`)
+  }
+  for (const servedPath of served) {
+    if (!docsPaths.includes(servedPath)) problems.push(`the gateway serves ${servedPath}, which is not in the sitemap`)
+  }
+  return problems
 }
 
 // --- private routes: rendered in Chromium, since they are client-side only ---
@@ -418,9 +619,15 @@ async function main() {
     }
   }
 
+  const sitemapPaths = new Set(urls.map((url) => pathnameOf(url).replace(/\/+$/, '') || '/'))
+  const privatePrefixes = [...new Set(disallowed.map((rule) => rule.replace(/[$/]+$/, '')))]
+    .filter((prefix) => prefix.startsWith('/') && prefix !== '/')
+  const resolves = makeLinkResolver(sitemapPaths, privatePrefixes)
+
   const seenTitles = new Map()
   const seenDescriptions = new Map()
   const rows = []
+  const thin = []
 
   for (const url of urls) {
     const pathname = pathnameOf(url)
@@ -435,6 +642,15 @@ async function main() {
       failures.push(`${pathname}: ${error.message}`)
       continue
     }
+
+    const content = checkContent(html)
+    results.content = content.problems.length === 0 ? 'pass' : 'FAIL'
+    routeFailures.push(...content.problems)
+    if (content.words < THIN_CONTENT_WORDS) thin.push({ route: pathname, words: content.words })
+
+    const links = checkLinks(html, resolves)
+    results.links = links.problems.length === 0 ? 'pass' : 'FAIL'
+    routeFailures.push(...links.problems)
 
     const table = checkComparisonTable(html)
     results.table = table.applicable ? (table.problems.length === 0 ? 'pass' : 'FAIL') : '-'
@@ -466,6 +682,16 @@ async function main() {
     failures.push(...routeFailures.map((problem) => `${pathname}: ${problem}`))
   }
 
+  // Sitewide checks: the anchor shim, the links left in the repository, and the gateway's route
+  // list. None of them belong to a single page, so they are reported outside the table.
+  const docsPaths = [...sitemapPaths].filter((pathname) => pathname.startsWith('/docs/') && !pathname.startsWith('/docs/guides/'))
+  const sitewide = [
+    ...checkAnchorRedirects(resolves),
+    ...checkNoDocsAnchors(),
+    ...checkGatewayRoutes(docsPaths)
+  ]
+  failures.push(...sitewide)
+
   if (USE_BROWSER) {
     const privatePaths = [...new Set(disallowed
       .filter((rule) => rule.endsWith('$'))
@@ -484,6 +710,16 @@ async function main() {
   printTable(rows)
 
   console.log(`\nrobots.txt: ${robots.split('\n').filter(Boolean).length} directives, sitemap.xml: ${urls.length} URLs`)
+  console.log(`sitewide: anchor shim, ${docsPaths.length} docs routes, repo-wide anchor grep — ${sitewide.length === 0 ? 'pass' : `${sitewide.length} problem(s)`}`)
+
+  if (thin.length > 0) {
+    // Advisory, not a failure: a short page is an editorial call, and failing the build on one
+    // would only invite padding, which ranks no better.
+    console.log(`\n${thin.length} page(s) under ${THIN_CONTENT_WORDS} words of prose:`)
+    for (const page of thin.sort((a, b) => a.words - b.words)) {
+      console.log(`  - ${page.route}: ${page.words} words`)
+    }
+  }
 
   if (failures.length > 0) {
     console.error(`\n${failures.length} problem(s):`)

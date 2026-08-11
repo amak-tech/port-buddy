@@ -125,6 +125,27 @@ export function breadcrumbListSchema(entries: readonly BreadcrumbEntry[]): JsonL
   }
 }
 
+/**
+ * A documentation page that teaches how to do something. Reference pages and link hubs do not get
+ * one: `description` must be the lead paragraph the page actually renders.
+ */
+export function techArticleSchema(input: {
+  headline: string
+  description: string
+  path: string
+}): JsonLdObject {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'TechArticle',
+    headline: input.headline,
+    description: input.description,
+    url: canonicalUrl(input.path),
+    inLanguage: 'en',
+    isPartOf: { '@id': WEBSITE_ID },
+    publisher: { '@id': ORGANIZATION_ID }
+  }
+}
+
 export type HowToStepInput = {
   name: string
   text: string

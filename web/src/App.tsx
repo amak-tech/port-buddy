@@ -5,6 +5,14 @@ import Landing from './pages/Landing'
 import Installation from './pages/Installation'
 import DocsLayout from './pages/docs/DocsLayout'
 import DocsOverview from './pages/docs/DocsOverview'
+import Authentication from './pages/docs/pages/Authentication'
+import HttpTunnels from './pages/docs/pages/HttpTunnels'
+import TcpTunnels from './pages/docs/pages/TcpTunnels'
+import UdpTunnels from './pages/docs/pages/UdpTunnels'
+import RunAsService from './pages/docs/pages/RunAsService'
+import CustomDomains from './pages/docs/pages/CustomDomains'
+import PrivateTunnels from './pages/docs/pages/PrivateTunnels'
+import CliReference from './pages/docs/pages/CliReference'
 import MinecraftGuide from './pages/docs/guides/MinecraftGuide'
 import HytaleGuide from './pages/docs/guides/HytaleGuide'
 import AcceptInvite from './pages/AcceptInvite'
@@ -292,6 +300,14 @@ export default function App() {
           <Route path="/install" element={<Installation/>} />
           <Route path="/docs" element={<DocsLayout/>}>
             <Route index element={<DocsOverview/>} />
+            <Route path="authentication" element={<Authentication/>} />
+            <Route path="http-tunnels" element={<HttpTunnels/>} />
+            <Route path="tcp-tunnels" element={<TcpTunnels/>} />
+            <Route path="udp-tunnels" element={<UdpTunnels/>} />
+            <Route path="run-as-a-service" element={<RunAsService/>} />
+            <Route path="custom-domains" element={<CustomDomains/>} />
+            <Route path="private-tunnels" element={<PrivateTunnels/>} />
+            <Route path="cli-reference" element={<CliReference/>} />
             <Route path="guides/minecraft-server" element={<MinecraftGuide/>} />
             <Route path="guides/hytale-server" element={<HytaleGuide/>} />
           </Route>

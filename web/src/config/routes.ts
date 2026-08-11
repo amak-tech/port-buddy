@@ -21,6 +21,8 @@
  * sitemap.xml and robots.txt from it), so it must stay free of JSX, browser APIs and env access.
  */
 
+import { DOCS_PAGES } from './docs'
+
 /** Used when VITE_CANONICAL is not set (local builds, dev server). */
 export const DEFAULT_SITE_ORIGIN = 'https://portbuddy.dev'
 
@@ -43,6 +45,15 @@ export const SITE_ROUTES: readonly SiteRoute[] = [
   { path: '/', prerender: true, sitemap: true, changefreq: 'daily', priority: 1.0 },
   { path: '/install', prerender: true, sitemap: true, changefreq: 'monthly', priority: 0.8 },
   { path: '/docs', prerender: true, sitemap: true, changefreq: 'monthly', priority: 0.8 },
+  // One route per documentation page, derived from the docs manifest so a new page cannot be
+  // prerendered without also reaching the sitemap (or the other way round).
+  ...DOCS_PAGES.map((page): SiteRoute => ({
+    path: page.path,
+    prerender: true,
+    sitemap: true,
+    changefreq: 'monthly',
+    priority: 0.7
+  })),
   { path: '/docs/guides/minecraft-server', prerender: true, sitemap: true, changefreq: 'monthly', priority: 0.8 },
   { path: '/docs/guides/hytale-server', prerender: true, sitemap: true, changefreq: 'monthly', priority: 0.8 },
   { path: '/contacts', prerender: true, sitemap: true, changefreq: 'monthly', priority: 0.3 },

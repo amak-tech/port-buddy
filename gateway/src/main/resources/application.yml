@@ -179,6 +179,18 @@ spring:
               filters:
                 - SetPath=/docs/guides/{guide}/index.html
 
+            # Documentation pages. Enumerated rather than /docs/{page} so an unknown docs URL still
+            # falls through to the SPA 404 instead of forwarding to a file that does not exist.
+            # The list is asserted against web/src/config/docs.ts by web/scripts/seo-check.mjs.
+            - id: static_docs_route
+              enabled: ${app.spa-fallback-enabled}
+              uri: forward:/
+              order: 2
+              predicates:
+                - Path=/docs/{page:authentication|http-tunnels|tcp-tunnels|udp-tunnels|run-as-a-service|custom-domains|private-tunnels|cli-reference}
+              filters:
+                - SetPath=/docs/{page}/index.html
+
             - id: static_route
               enabled: ${app.spa-fallback-enabled}
               uri: forward:/
