@@ -27,6 +27,20 @@ export default function RunAsService() {
         <p className="text-slate-400 mb-6">
           We provide helper scripts to set this up easily. You can run these scripts multiple times to set up different tunnels.
         </p>
+        <p className="text-slate-400 mb-6">
+          {'Both scripts install the same command you would type by hand, so the machine needs the '}
+          {'CLI '}
+          <Link to="/install" className="text-indigo-400 hover:underline">installed</Link>
+          {' and '}
+          <Link to="/docs/authentication" className="text-indigo-400 hover:underline">authenticated</Link>
+          {' first. The service runs under your account rather than a service identity, precisely '}
+          {'so it can find the token you saved. The mode is one of '}
+          <Link to="/docs/http-tunnels" className="text-indigo-400 hover:underline">http</Link>,{' '}
+          <Link to="/docs/tcp-tunnels" className="text-indigo-400 hover:underline">tcp</Link>
+          {' or '}
+          <Link to="/docs/udp-tunnels" className="text-indigo-400 hover:underline">udp</Link>
+          {', and the optional third argument exposes a host other than localhost.'}
+        </p>
 
         <div className="space-y-8">
           <div>
@@ -97,18 +111,70 @@ Start-ScheduledTask -TaskName portbuddy-tcp-22`} />
       </section>
 
       <section className="mb-16">
-        <h2 className="text-2xl font-bold text-white mb-6">Before you start</h2>
+        <h2 className="text-2xl font-bold text-white mb-6">What the scripts install</h2>
+        <p className="text-slate-400 mb-4">
+          {'On Linux the script writes a systemd unit to '}
+          <code className="text-indigo-300">/etc/systemd/system/</code>
+          {', enables it so it starts at boot, and starts it straight away. The unit waits for the '}
+          {'network, runs as the user who invoked sudo, and restarts five seconds after any '}
+          {'failure. Request logging is switched off, since nobody is watching the terminal.'}
+        </p>
         <p className="text-slate-400">
-          {'The machine needs the CLI '}
-          <Link to="/install" className="text-indigo-400 hover:underline">installed</Link>
-          {' and '}
-          <Link to="/docs/authentication" className="text-indigo-400 hover:underline">authenticated</Link>
-          {', because the service runs the same command you would type by hand. The mode argument '}
-          {'is one of '}
-          <Link to="/docs/http-tunnels" className="text-indigo-400 hover:underline">http</Link>,{' '}
-          <Link to="/docs/tcp-tunnels" className="text-indigo-400 hover:underline">tcp</Link>
-          {' or '}
-          <Link to="/docs/udp-tunnels" className="text-indigo-400 hover:underline">udp</Link>.
+          {'On Windows it registers a Scheduled Task that triggers at startup and runs as SYSTEM, '}
+          {'with your user profile pinned so the CLI still finds your token. A failed task is '}
+          {'retried three times at one-minute intervals, and it has no run-time limit.'}
+        </p>
+      </section>
+
+      <section className="mb-16">
+        <h2 className="text-2xl font-bold text-white mb-6">Logs</h2>
+        <p className="text-slate-400 mb-4">
+          The service writes to the platform's own log, so there is no Port Buddy log file to find:
+        </p>
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <p className="text-sm text-slate-500 mb-2 font-semibold">Linux:</p>
+            <CodeBlock code="journalctl -u portbuddy-tcp-22 -f" />
+          </div>
+          <div>
+            <p className="text-sm text-slate-500 mb-2 font-semibold">Windows:</p>
+            <CodeBlock code="Get-ScheduledTaskInfo -TaskName portbuddy-tcp-22" />
+          </div>
+        </div>
+        <p className="text-slate-400 mt-4">
+          The public address a tunnel was given is printed when it starts, so the log is also where
+          you look it up after a reboot.
+        </p>
+      </section>
+
+      <section className="mb-16">
+        <h2 className="text-2xl font-bold text-white mb-6">Updating and removing</h2>
+        <p className="text-slate-400 mb-4">
+          {'The unit points at the binary that was on your PATH when you installed it, so upgrading '}
+          {'the CLI in place needs nothing more than a restart. To change the port or mode, run the '}
+          {'setup script again with the new arguments and the same name.'}
+        </p>
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <p className="text-sm text-slate-500 mb-2 font-semibold">Linux:</p>
+            <CodeBlock code={`sudo systemctl disable --now portbuddy-tcp-22
+sudo rm /etc/systemd/system/portbuddy-tcp-22.service
+sudo systemctl daemon-reload`} />
+          </div>
+          <div>
+            <p className="text-sm text-slate-500 mb-2 font-semibold">Windows:</p>
+            <CodeBlock code="Unregister-ScheduledTask -TaskName portbuddy-tcp-22" />
+          </div>
+        </div>
+      </section>
+
+      <section className="mb-16">
+        <h2 className="text-2xl font-bold text-white mb-6">Running several at once</h2>
+        <p className="text-slate-400">
+          {'Each run of the script installs one service, named after the mode and port unless you '}
+          {'pass a name, so running it again for a different port simply adds a second service. '}
+          {'Two tunnels of the same mode and port on one machine need distinct names — and bear in '}
+          {'mind that each running tunnel counts against your plan’s concurrent tunnel limit.'}
         </p>
       </section>
     </DocsPage>

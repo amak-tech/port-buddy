@@ -69,8 +69,22 @@ export default function PrivateTunnels() {
           Scripts and API clients can skip the page by sending the passcode themselves, either as a
           query parameter or as a request header:
         </p>
-        <CodeBlock code={`curl "https://abc123.portbuddy.dev/?passcode=my-secret"
-curl -H "X-API-Key: my-secret" https://abc123.portbuddy.dev/`} />
+        <CodeBlock code={`curl "https://otter-4821.portbuddy.dev/?passcode=my-secret"
+curl -H "X-API-Key: my-secret" https://otter-4821.portbuddy.dev/`} />
+      </section>
+
+      <section className="mb-16">
+        <h2 className="text-2xl font-bold text-white mb-6">What a passcode is and is not</h2>
+        <p className="text-slate-400 mb-4">
+          {'A passcode is one shared secret for everyone who has the link. It keeps a demo, a '}
+          {'staging build or a webhook endpoint from being opened by whoever finds the URL — it is '}
+          {'not per-user authentication, and it does not replace your application’s own login.'}
+        </p>
+        <ul className="list-disc list-inside text-slate-400 space-y-2">
+          <li>Changing the passcode ends existing sessions: the cookie is checked against the current passcode on every request, so everyone is challenged again.</li>
+          <li>Removing it takes effect immediately, and the tunnel is public again from the next request.</li>
+          <li>A tunnel-level passcode disappears with the tunnel; a domain-level one outlives it, which is the safer default for anything long-lived.</li>
+        </ul>
       </section>
     </DocsPage>
   )

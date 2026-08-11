@@ -32,13 +32,15 @@ const OPTIONS: readonly Option[] = [
     flags: '-d, --domain',
     argument: '<domain>',
     applies: 'HTTP',
-    description: 'Request a specific subdomain, e.g. my-app, instead of a generated one.'
+    description: 'Use a subdomain your account already owns, given as a label (my-app) or in full '
+      + '(my-app.portbuddy.dev), instead of letting the server choose.'
   },
   {
     flags: '-pr, --port-reservation',
-    argument: '<host:port>',
+    argument: '<reservation>',
     applies: 'TCP, UDP',
-    description: 'Use a port reservation you own, so the public address stays the same across restarts.'
+    description: 'Pin the public address to one of your port reservations, named by its name, its '
+      + 'port, or its full host:port.'
   },
   {
     flags: '-pc, --passcode',
@@ -181,9 +183,10 @@ portbuddy https://localhost:8443  # local server that already speaks TLS`} />
         <h2 className="text-2xl font-bold text-white mb-6">Examples</h2>
         <CodeBlock code={`portbuddy init YOUR_API_TOKEN            # once per machine
 portbuddy 3000                           # expose a local web app
-portbuddy --domain=my-app 8080           # ask for a fixed subdomain
+portbuddy --domain=my-app 8080           # use a subdomain you own
 portbuddy -pc my-secret 3000             # require a passcode
 portbuddy tcp 5432                       # expose PostgreSQL
+portbuddy tcp 5432 -pr staging-db        # pin a reserved public port
 portbuddy udp 19132                      # expose a game server`} />
       </section>
     </DocsPage>

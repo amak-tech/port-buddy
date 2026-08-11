@@ -1,11 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import {
-  CommandLineIcon,
-  ClipboardDocumentIcon,
-  CheckIcon,
-  ComputerDesktopIcon
-} from '@heroicons/react/24/outline'
+import { CommandLineIcon, ComputerDesktopIcon } from '@heroicons/react/24/outline'
+import CodeBlock from '../components/CodeBlock'
 import { EXTRA_TUNNEL_NOTE, PLAN_LIST, freeTunnelsLabel, type Plan } from '../config/plans'
 import JsonLd from '../lib/seo/JsonLd'
 import { breadcrumbListSchema } from '../lib/seo/schemas'
@@ -232,32 +228,6 @@ function Step({ title, description, children }: { title: string, description: st
       <h3 className="text-lg font-semibold text-white mb-1">{title}</h3>
       <p className="text-slate-400 text-sm mb-4">{description}</p>
       {children}
-    </div>
-  )
-}
-
-function CodeBlock({ code }: { code: string }) {
-  const [copied, setCopied] = useState(false)
-
-  const copy = () => {
-    navigator.clipboard.writeText(code)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  return (
-    <div className="relative group">
-      <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 rounded-lg blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
-      <div className="relative bg-slate-950 border border-slate-800 rounded-lg p-4 font-mono text-sm text-slate-300 overflow-x-auto">
-        <pre>{code}</pre>
-        <button 
-          onClick={copy}
-          className="absolute top-3 right-3 p-2 rounded-md bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-700 transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
-          title="Copy to clipboard"
-        >
-          {copied ? <CheckIcon className="w-4 h-4 text-green-400" /> : <ClipboardDocumentIcon className="w-4 h-4" />}
-        </button>
-      </div>
     </div>
   )
 }
