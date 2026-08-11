@@ -16,11 +16,14 @@
 import { Link } from 'react-router-dom'
 import CodeBlock from '../../../components/CodeBlock'
 import DocsPage from '../DocsPage'
-import { TCP_MIN_TUNNELS } from '../../../config/plans'
+import {
+  BANDWIDTH_POLICY,
+  NGROK_COMPARISON_LINE,
+  TCP_ENTITLEMENT_DETAIL,
+  TCP_LONG
+} from '../../../config/plans'
 
-const LEAD = 'TCP mode allows you to expose any TCP-based service, such as databases or SSH. '
-  + `TCP tunnels are a paid capability: your account needs at least ${TCP_MIN_TUNNELS} tunnels `
-  + '(add extra tunnels on the Pro plan, or use the Team plan).'
+const LEAD = `TCP mode exposes any TCP-based service. ${TCP_LONG}`
 
 export default function TcpTunnels() {
   return (
@@ -35,6 +38,13 @@ export default function TcpTunnels() {
           {' — a host and a port, not a URL. There is no TLS and no hostname routing at this '}
           {'layer: whatever your local service speaks is what arrives, byte for byte.'}
         </p>
+      </section>
+
+      <section className="mb-16">
+        <h2 className="text-2xl font-bold text-white mb-6">What it costs</h2>
+        <p className="text-slate-400 mb-4">{TCP_ENTITLEMENT_DETAIL}</p>
+        <p className="text-slate-400 mb-4">{BANDWIDTH_POLICY}</p>
+        <p className="text-slate-500 text-sm">{NGROK_COMPARISON_LINE}</p>
       </section>
 
       <section className="mb-16">

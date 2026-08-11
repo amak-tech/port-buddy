@@ -145,11 +145,29 @@ public class TunnelService {
         return account.getExtraTunnels() >= properties.subscriptions().tcpMinExtraTunnels();
     }
 
+    /**
+     * Builds the message shown when TCP is refused. The CLI prints this verbatim, so it is a
+     * conversion surface: it states the price and where to pay it rather than a tunnel-count
+     * threshold the reader has to price up themselves. Mirrors the wording on the website —
+     * see {@code web/src/config/plans.ts}, enforced by {@code PricingConsistencyTest}.
+     *
+     * @return a one-line explanation of what TCP costs and how to enable it
+     */
+    private String tcpUpgradeMessage() {
+        final var subscriptions = properties.subscriptions();
+        final var pricing = subscriptions.pricing();
+        final var minExtra = subscriptions.tcpMinExtraTunnels();
+        final var tcpPrice = pricing.monthly(minExtra * pricing.extraTunnelPrice());
+
+        return "TCP tunnels start at %s (%d extra tunnels at %s each), or are included with the Team plan at %s. "
+            .formatted(tcpPrice, minExtra, pricing.monthly(pricing.extraTunnelPrice()),
+                pricing.monthly(pricing.teamPrice()))
+            + "Upgrade: " + properties.gateway().url() + pricing.upgradePath();
+    }
+
     private void checkTcpAllowed(final AccountEntity account) {
         if (!isTcpEnabled(account)) {
-            throw new SubscriptionException(
-                "TCP tunnels require at least %d tunnels. Add more tunnels or upgrade to the Team plan."
-                    .formatted(properties.subscriptions().tcpMinExtraTunnels()));
+            throw new SubscriptionException(tcpUpgradeMessage());
         }
     }
 

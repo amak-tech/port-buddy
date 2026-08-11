@@ -73,13 +73,15 @@ class TunnelServiceTest {
     @BeforeEach
     void setUp() {
         final var properties = new AppProperties(
-            null, null, null, null, null, null,
+            new AppProperties.Gateway("https://portbuddy.dev", "portbuddy.dev", null, null, null, null),
+            null, null, null, null, null,
             new AppProperties.Subscriptions(
                 Duration.ofDays(3),
                 Duration.ofHours(1),
                 5,
                 new AppProperties.Subscriptions.Tunnels(
-                    Map.of(Plan.PRO, 1, Plan.TEAM, 10), Map.of(Plan.PRO, 5, Plan.TEAM, 5))),
+                    Map.of(Plan.PRO, 1, Plan.TEAM, 10), Map.of(Plan.PRO, 5, Plan.TEAM, 5)),
+                new AppProperties.Subscriptions.Pricing("$", 1, 10, "/app/billing")),
             null
         );
         tunnelService = new TunnelService(
@@ -297,8 +299,11 @@ class TunnelServiceTest {
         final var exception = assertThrows(SubscriptionException.class, () -> tunnelService.createNetTunnel(
             account, UUID.randomUUID(), null, createNetRequest(TunnelType.TCP), "127.0.0.1", "curl/7.68.0"));
 
+        // The CLI prints this verbatim, so assert the whole line: it must carry a price and a URL,
+        // never a bare tunnel-count threshold.
         assertEquals(
-            "TCP tunnels require at least 5 tunnels. Add more tunnels or upgrade to the Team plan.",
+            "TCP tunnels start at $5/month (5 extra tunnels at $1/month each), or are included with "
+                + "the Team plan at $10/month. Upgrade: https://portbuddy.dev/app/billing",
             exception.getMessage());
     }
 

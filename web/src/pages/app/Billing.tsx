@@ -6,6 +6,16 @@ import { CheckIcon, ArrowLeftIcon, PlusIcon, MinusIcon } from '@heroicons/react/
 import { apiJson } from '../../lib/api'
 import PlanComparison from '../../components/PlanComparison'
 import { ConfirmModal } from '../../components/Modal'
+import {
+  EXTRA_TUNNEL_BLOCK,
+  EXTRA_TUNNEL_PRICE,
+  PLANS,
+  PLAN_LIST,
+  PRICE_CURRENCY_SYMBOL,
+  TCP_ENTITLEMENT_DETAIL,
+  priceLabel,
+  type PlanId
+} from '../../config/plans'
 
 export default function Billing() {
   usePageTitle('Billing')
@@ -47,41 +57,18 @@ export default function Billing() {
     }
   }, [searchParams, refresh, setSearchParams])
 
-  const plans: { key: 'pro' | 'team', name: string, price: string, period?: string, description: string, features: string[] }[] = [
-    { 
-      key: 'pro', 
-      name: 'Pro', 
-      price: '$0', 
-      description: 'Everything you need for personal exposure.',
-      features: [
-        'HTTP & UDP tunnels',
-        'TCP tunnels with 5+ tunnels',
-        'SSL for HTTP tunnels',
-        'Static subdomains',
-        'Custom domains',
-        'Private tunnels',
-        'Web socket support',
-        '1 free HTTP/UDP tunnel at a time',
-        '$1/mo per extra tunnel (5+ pack)'
-      ]
-    },
-    { 
-      key: 'team', 
-      name: 'Team', 
-      price: '$10', 
+  // Cards are built from the shared plan config rather than a local copy: this page used to carry
+  // its own hardcoded prices and feature list, which is how the site ended up describing TCP four
+  // different ways.
+  const plans: { key: PlanId, name: string, price: string, period: string, description: string, features: readonly string[] }[] =
+    PLAN_LIST.map((plan) => ({
+      key: plan.id,
+      name: plan.name,
+      price: priceLabel(plan),
       period: '/mo',
-      description: 'For teams and collaborative projects.',
-      features: [
-        'Everything in Pro',
-        'TCP tunnels included',
-        'Team members',
-        'SSO (Coming soon)',
-        'Priority support',
-        '10 free tunnels at a time',
-        '$1/mo per extra tunnel'
-      ]
-    },
-  ]
+      description: plan.tagline,
+      features: plan.features
+    }))
 
   const currentPlanKey = user?.plan || 'pro'
   const extraTunnels = user?.extraTunnels || 0
@@ -90,13 +77,13 @@ export default function Billing() {
   const subscriptionStatus = user?.subscriptionStatus
   const effectiveExtra = pendingExtra !== null ? pendingExtra : extraTunnels
 
-  const planPrice = currentPlanKey === 'team' ? 10 : 0
-  const extraCost = effectiveExtra * 1
+  const planPrice = PLANS[currentPlanKey as PlanId].priceMonthly
+  const extraCost = effectiveExtra * EXTRA_TUNNEL_PRICE
   const totalMonthly = planPrice + extraCost
-  const increment = 5
+  const increment = EXTRA_TUNNEL_BLOCK
 
   const getLimitForPlan = (planKey: string) => {
-    return planKey === 'team' ? 10 : 1;
+    return PLANS[planKey as PlanId].freeTunnels;
   };
 
   const handleUpdate = async () => {
@@ -308,13 +295,13 @@ export default function Billing() {
                     </div>
                     <div className="text-right">
                       <div className="text-xs text-slate-500 uppercase tracking-wider">Extra Tunnels</div>
-                      <div className="text-lg font-semibold text-indigo-400">+{effectiveExtra} (${extraCost}/mo)</div>
+                      <div className="text-lg font-semibold text-indigo-400">+{effectiveExtra} ({PRICE_CURRENCY_SYMBOL}{extraCost}/mo)</div>
                     </div>
                   </div>
 
                   <div className="flex justify-between items-center mb-6">
                     <div className="text-sm text-slate-400">Total Monthly</div>
-                    <div className="text-xl font-bold text-white">${totalMonthly}<span className="text-sm font-normal text-slate-500">/mo</span></div>
+                    <div className="text-xl font-bold text-white">{PRICE_CURRENCY_SYMBOL}{totalMonthly}<span className="text-sm font-normal text-slate-500">/mo</span></div>
                   </div>
                   
                   <div className="flex items-center gap-4 mb-4">
@@ -340,7 +327,7 @@ export default function Billing() {
                   <div className={`text-xs mb-4 ${user?.tcpEnabled ? 'text-green-400' : 'text-slate-500'}`}>
                     {user?.tcpEnabled
                       ? 'TCP tunnels enabled ✓'
-                      : 'Add 5 tunnels (or upgrade to Team) to enable TCP tunnels.'}
+                      : TCP_ENTITLEMENT_DETAIL}
                   </div>
 
                   {pendingExtra !== null && pendingExtra !== extraTunnels && (

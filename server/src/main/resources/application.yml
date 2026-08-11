@@ -37,6 +37,15 @@ app:
     # Minimum number of extra tunnels an account must have purchased to use TCP tunnels.
     # Keep this equal to tunnels.increment.pro so the smallest PRO purchase already unlocks TCP.
     tcp-min-extra-tunnels: 5
+    # Display-only prices, used to compose user-facing messages (the CLI prints them verbatim when a
+    # tunnel is refused). Authoritative amounts live in Stripe; these must match the Stripe prices
+    # behind app.stripe.price-ids AND web/src/config/plans.ts, which is the site's single source of
+    # truth. PricingConsistencyTest fails the build if this block and plans.ts disagree.
+    pricing:
+      currency-symbol: "$"
+      extra-tunnel-price: 1
+      team-price: 10
+      upgrade-path: /app/billing
     tunnels:
       base:
         pro: 1

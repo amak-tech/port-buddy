@@ -363,7 +363,12 @@ public class PortBuddy {
             case 402 -> {
                 System.err.println(reason != null ? reason
                     : "Your subscription does not allow this tunnel. Please check your billing information.");
-                System.err.println("Manage your subscription: " + billingUrl(baseUrl));
+                // Entitlement failures (e.g. TCP without a paid tunnel block) already come back with a
+                // price and an upgrade link in the server's message. Only add our own link when the
+                // server did not supply one, so the user is never given two competing URLs.
+                if (reason == null || !reason.contains("://")) {
+                    System.err.println("Manage your subscription: " + billingUrl(baseUrl));
+                }
             }
             case 403 -> System.err.println(reason != null ? reason
                 : "Your account is blocked. Please contact support.");

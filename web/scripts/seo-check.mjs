@@ -488,6 +488,87 @@ function checkNoDocsAnchors() {
   return problems
 }
 
+// --- TCP pricing: one figure, everywhere ---
+
+/**
+ * Re-derives the cheapest TCP price from the plan config's raw inputs rather than reading the
+ * derived constant. If someone hardcodes TCP_MIN_PRICE, or the arithmetic in plans.ts stops
+ * matching its own inputs, this disagrees with the page and the check fails.
+ */
+function expectedTcpPrice() {
+  const source = fs.readFileSync(path.join(ROOT, 'src', 'config', 'plans.ts'), 'utf8')
+  const constant = (name) => {
+    const found = source.match(new RegExp(`^(?:export )?const ${name} = (\\d+)\\s*$`, 'm'))
+    if (!found) throw new Error(`src/config/plans.ts no longer defines ${name}`)
+    return Number(found[1])
+  }
+  const viaExtraTunnels = constant('PRO_PRICE') + constant('TCP_MIN_EXTRA_TUNNELS') * constant('EXTRA_TUNNEL_PRICE')
+  return Math.min(viaExtraTunnels, constant('TEAM_PRICE'))
+}
+
+/** Every shape in which a page is allowed to quote the TCP price. */
+const TCP_PRICE_QUOTES = [
+  /TCP tunnels? (?:from|start at) \$(\d+)\/month/gi,
+  /TCP Tunnels\s+From \$(\d+)\/mo\b/gi
+]
+
+/**
+ * Phrasings that state a tunnel-count threshold with no money next to it. These are what the page
+ * used to say, and each one sent a visitor away to work out the price for themselves.
+ */
+const RIDDLE_PHRASINGS = [
+  /\b\d+\+ tunnels\b/i,
+  /at least \d+ tunnels\b/i,
+  /\(\d+\+ pack\)/i,
+  /TCP tunnels with \d+/i,
+  /TCP tunnels require/i
+]
+
+/**
+ * Asserts that every rendered route quotes the same TCP figure, and that the figure is the one the
+ * plan config derives. Eyeballing four pages is how they drifted apart in the first place.
+ */
+function checkTcpPricing(pages) {
+  let expected
+  try {
+    expected = expectedTcpPrice()
+  } catch (error) {
+    return [error.message]
+  }
+
+  const problems = []
+  const quotedBy = new Map()
+
+  for (const { pathname, html } of pages) {
+    const text = textOf(bodyOf(html))
+
+    for (const pattern of TCP_PRICE_QUOTES) {
+      for (const found of text.matchAll(pattern)) {
+        const figure = Number(found[1])
+        if (!quotedBy.has(figure)) quotedBy.set(figure, new Set())
+        quotedBy.get(figure).add(pathname)
+      }
+    }
+
+    for (const riddle of RIDDLE_PHRASINGS) {
+      const found = text.match(riddle)
+      if (found) problems.push(`${pathname} states a tunnel threshold with no price: "${found[0]}"`)
+    }
+  }
+
+  if (quotedBy.size === 0) {
+    return [...problems, 'no rendered route states a TCP price (expected it on / and /docs/tcp-tunnels)']
+  }
+
+  for (const [figure, routes] of quotedBy) {
+    if (figure !== expected) {
+      problems.push(`${[...routes].join(', ')} quote $${figure}/month for TCP, but plans.ts derives $${expected}`)
+    }
+  }
+
+  return problems
+}
+
 /**
  * The gateway serves the prerendered HTML from an enumerated route, so a docs page that is in the
  * sitemap but not in that list would 404 in production however well it builds.
@@ -628,6 +709,7 @@ async function main() {
   const seenDescriptions = new Map()
   const rows = []
   const thin = []
+  const rendered = []
 
   for (const url of urls) {
     const pathname = pathnameOf(url)
@@ -642,6 +724,8 @@ async function main() {
       failures.push(`${pathname}: ${error.message}`)
       continue
     }
+
+    rendered.push({ pathname, html })
 
     const content = checkContent(html)
     results.content = content.problems.length === 0 ? 'pass' : 'FAIL'
@@ -688,7 +772,8 @@ async function main() {
   const sitewide = [
     ...checkAnchorRedirects(resolves),
     ...checkNoDocsAnchors(),
-    ...checkGatewayRoutes(docsPaths)
+    ...checkGatewayRoutes(docsPaths),
+    ...checkTcpPricing(rendered)
   ]
   failures.push(...sitewide)
 

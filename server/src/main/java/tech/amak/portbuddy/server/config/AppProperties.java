@@ -39,9 +39,32 @@ public record AppProperties(
         Duration gracePeriod,
         Duration checkInterval,
         Integer tcpMinExtraTunnels,
-        Tunnels tunnels
+        Tunnels tunnels,
+        Pricing pricing
     ) {
         public record Tunnels(Map<Plan, Integer> base, Map<Plan, Integer> increment) {
+        }
+
+        /**
+         * Prices quoted in user-facing messages. Display only — nothing here is charged, Stripe is
+         * authoritative for that. Kept in config so a price change does not mean editing Java, and
+         * so the CLI can state a figure instead of asking the user to go and find one.
+         */
+        public record Pricing(
+            String currencySymbol,
+            Integer extraTunnelPrice,
+            Integer teamPrice,
+            String upgradePath
+        ) {
+            /**
+             * Formats a whole-dollar monthly amount, e.g. {@code $5/month}.
+             *
+             * @param amount the monthly amount in whole currency units
+             * @return the formatted price
+             */
+            public String monthly(final int amount) {
+                return "%s%d/month".formatted(currencySymbol, amount);
+            }
         }
     }
 

@@ -5,11 +5,14 @@
 import { CheckIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { Link } from 'react-router-dom'
 import {
+  BANDWIDTH_POLICY,
   INCLUDED_LABEL,
+  NGROK_COMPARISON_LINE,
   NOT_INCLUDED_LABEL,
   PLANS,
   PLAN_COMPARISON,
-  TCP_REQUIREMENT_NOTE,
+  TCP_ENTITLEMENT_DETAIL,
+  TCP_LONG,
   freeTunnelsLabel,
   priceLabel,
   type FeatureAvailability,
@@ -127,9 +130,15 @@ export default function PlanComparison() {
         </table>
       </div>
 
-      <p className="text-center text-slate-500 text-sm mt-8">
-        {TCP_REQUIREMENT_NOTE}
-      </p>
+      {/* The TCP price in full, immediately under the table that quotes it in short form. The
+          entitlement rule follows it rather than hiding in a footnote marker: people who want the
+          exact rule get it here, and nobody has to decode a threshold to find the price. */}
+      <div className="max-w-3xl mx-auto mt-8 space-y-3 text-center text-sm">
+        <p className="text-slate-400">{TCP_LONG}</p>
+        <p className="text-slate-500">{TCP_ENTITLEMENT_DETAIL}</p>
+        <p className="text-slate-400">{BANDWIDTH_POLICY}</p>
+        <p className="text-slate-500">{NGROK_COMPARISON_LINE}</p>
+      </div>
     </div>
   )
 }

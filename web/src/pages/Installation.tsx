@@ -2,7 +2,15 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CommandLineIcon, ComputerDesktopIcon } from '@heroicons/react/24/outline'
 import CodeBlock from '../components/CodeBlock'
-import { EXTRA_TUNNEL_NOTE, PLAN_LIST, freeTunnelsLabel, type Plan } from '../config/plans'
+import {
+  BANDWIDTH_POLICY,
+  EXTRA_TUNNEL_NOTE,
+  FREE_TIER_LINE,
+  PLAN_LIST,
+  TCP_SHORT,
+  freeTunnelsLabel,
+  type Plan
+} from '../config/plans'
 import JsonLd from '../lib/seo/JsonLd'
 import { breadcrumbListSchema } from '../lib/seo/schemas'
 
@@ -182,6 +190,12 @@ export default function Installation() {
               <PlanLimitCard key={plan.id} plan={plan} isPro={plan.id === 'pro'} />
             ))}
           </div>
+
+          {/* Someone who installed the CLI to expose a database hits `portbuddy tcp` next, so the
+              price belongs here rather than only on the pricing page. */}
+          <p className="mt-6 text-sm text-slate-400">
+            {`${FREE_TIER_LINE} ${TCP_SHORT}. ${BANDWIDTH_POLICY}`}
+          </p>
 
           <div className="mt-12 grid md:grid-cols-3 gap-6">
             <InfoCard 

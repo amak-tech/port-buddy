@@ -157,7 +157,8 @@ public class UsersControllerTest {
             new AppProperties.Subscriptions.Tunnels(
                 Map.of(Plan.PRO, 1, Plan.TEAM, 10),
                 Map.of(Plan.PRO, 5, Plan.TEAM, 5)
-            )
+            ),
+            new AppProperties.Subscriptions.Pricing("$", 1, 10, "/app/billing")
         );
         when(properties.subscriptions()).thenReturn(subscriptions);
     }

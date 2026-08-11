@@ -40,11 +40,16 @@ import {
   type FaqEntry
 } from '../lib/seo/schemas'
 import {
+  BANDWIDTH_POLICY,
+  EXTRA_TUNNEL_BLOCK,
   EXTRA_TUNNEL_PRICE,
+  FREE_TIER_LINE,
   PLANS,
   PRICE_CURRENCY_SYMBOL,
-  TCP_MIN_TUNNELS,
-  TCP_REQUIREMENT,
+  TCP_ENTITLEMENT_DETAIL,
+  TCP_LONG,
+  TCP_SHORT,
+  TCP_USE_CASES,
   priceLabel
 } from '../config/plans'
 
@@ -83,7 +88,7 @@ const problems: { icon: React.ReactNode, problem: string, solution: string, comm
     icon: <ServerIcon className="w-6 h-6 text-cyan-400" />,
     problem: 'Someone needs your local database or server',
     solution: 'Raw TCP and UDP tunnels forward Postgres, Redis, SSH, RDP and game servers — no VPN, no '
-      + 'router config, no firewall tickets.',
+      + `router config, no firewall tickets. UDP is free; ${TCP_SHORT.toLowerCase()}.`,
     command: 'portbuddy tcp 5432'
   }
 ]
@@ -128,8 +133,7 @@ const features: { icon: React.ReactNode, title: string, description: string }[] 
   {
     icon: <ServerIcon className="w-6 h-6 text-cyan-400" />,
     title: 'TCP and UDP tunnels',
-    description: 'Not just HTTP. UDP tunnels are available on every plan; TCP tunnels (databases, SSH, RDP) '
-      + `need ${TCP_MIN_TUNNELS}+ tunnels or the ${team.name} plan.`
+    description: `Not just HTTP. ${FREE_TIER_LINE} ${TCP_SHORT}, and they carry ${TCP_USE_CASES}.`
   },
   {
     icon: <BoltIcon className="w-6 h-6 text-yellow-400" />,
@@ -154,16 +158,16 @@ const faqs: FaqEntry[] = [
   },
   {
     question: 'How is it different from ngrok?',
-    answer: 'Port Buddy focuses on a simpler workflow and a lower price: static subdomains, custom domains '
-      + 'and private tunnels are available cheaply, and there is a free tier with one tunnel. It is also '
-      + 'open source under Apache 2.0, so you can read the code or run your own instance.'
+    answer: 'Port Buddy focuses on a simpler workflow: static subdomains, custom domains and private '
+      + 'tunnels are available on the free tier, which includes one tunnel and needs no credit card. It is '
+      + 'also open source under Apache 2.0, so you can read the code or run your own instance.'
   },
   {
     question: 'Is there a free plan?',
     answer: `Yes. The ${pro.name} plan starts at ${priceLabel(pro)}/month with one free HTTP or UDP tunnel `
-      + `and no credit card. Extra tunnels cost ${PRICE_CURRENCY_SYMBOL}${EXTRA_TUNNEL_PRICE}/month each, `
-      + `and the ${team.name} plan is ${priceLabel(team)}/month with ${team.freeTunnels} tunnels included `
-      + 'plus team member management.'
+      + `and no credit card. Extra tunnels cost ${PRICE_CURRENCY_SYMBOL}${EXTRA_TUNNEL_PRICE}/month each in `
+      + `blocks of ${EXTRA_TUNNEL_BLOCK}, and the ${team.name} plan is ${priceLabel(team)}/month with `
+      + `${team.freeTunnels} tunnels included plus team member management. ${BANDWIDTH_POLICY}`
   },
   {
     question: 'Is my traffic secure?',
@@ -174,8 +178,7 @@ const faqs: FaqEntry[] = [
   {
     question: 'Can I expose a database, SSH or a game server?',
     answer: 'Yes. Use portbuddy tcp 5432 for Postgres, or portbuddy udp 19132 for UDP services such as '
-      + `Minecraft Bedrock. UDP tunnels are included on every plan; ${TCP_REQUIREMENT}, `
-      + `which you get by adding extra tunnels on ${pro.name} or by using the ${team.name} plan.`
+      + `Minecraft Bedrock. ${TCP_LONG} ${TCP_ENTITLEMENT_DETAIL}`
   },
   {
     question: 'Can I use my own domain name?',
@@ -319,7 +322,7 @@ export default function Landing() {
 
             <ul className="flex flex-wrap justify-center gap-x-6 gap-y-3 text-sm text-slate-400">
               <li className="flex items-center gap-2">
-                <CheckIcon className="w-4 h-4 text-green-400" /> Free tier, no credit card
+                <CheckIcon className="w-4 h-4 text-green-400" /> {FREE_TIER_LINE}
               </li>
               <li className="flex items-center gap-2">
                 <CheckIcon className="w-4 h-4 text-green-400" /> macOS, Linux, Windows, Docker
@@ -484,7 +487,11 @@ export default function Landing() {
             Simple, transparent pricing
           </h2>
           <p className="text-slate-400 text-lg">
-            {`Start free with one tunnel. Add tunnels for ${PRICE_CURRENCY_SYMBOL}${EXTRA_TUNNEL_PRICE}/month when you need them.`}
+            {`${FREE_TIER_LINE} Add tunnels for ${PRICE_CURRENCY_SYMBOL}${EXTRA_TUNNEL_PRICE}/month in blocks `
+              + `of ${EXTRA_TUNNEL_BLOCK} when you need them, and ${TCP_SHORT.toLowerCase()}.`}
+          </p>
+          <p className="text-slate-400 text-lg mt-3">
+            {BANDWIDTH_POLICY}
           </p>
         </div>
         <PlanComparison />
