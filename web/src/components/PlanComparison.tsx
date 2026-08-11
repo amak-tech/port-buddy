@@ -107,30 +107,32 @@ export default function PlanComparison() {
       </div>
       
       <div className="overflow-x-auto glass rounded-3xl border border-white/5 p-4 md:p-8">
-        <table className="w-full text-left border-collapse">
+        {/* table-fixed + tighter mobile padding: without it the Team column is pushed outside the
+            scroll container on phones and reads as clipped text. */}
+        <table className="w-full table-fixed text-left border-collapse">
           <thead>
             <tr className="border-b border-white/5">
-              <th className="py-8 px-6 text-slate-500 font-bold uppercase tracking-widest text-xs">Feature</th>
-              <th className="py-8 px-6 text-white font-black text-center w-1/4 text-2xl tracking-tighter">Pro</th>
-              <th className="py-8 px-6 text-jb-blue font-black text-center w-1/4 text-2xl tracking-tighter">Team</th>
+              <th className="py-5 md:py-8 px-2 md:px-6 text-slate-500 font-bold uppercase tracking-widest text-[10px] md:text-xs">Feature</th>
+              <th className="py-5 md:py-8 px-2 md:px-6 text-white font-black text-center w-[30%] md:w-1/4 text-lg md:text-2xl tracking-tighter">Pro</th>
+              <th className="py-5 md:py-8 px-2 md:px-6 text-jb-blue font-black text-center w-[30%] md:w-1/4 text-lg md:text-2xl tracking-tighter">Team</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/[0.02]">
             {comparisonData.map((item, idx) => (
               <tr key={idx} className="group hover:bg-white/[0.02] transition-colors">
-                <td className="py-5 px-6 text-slate-300 font-medium group-hover:text-white transition-colors">{item.feature}</td>
-                <td className="py-5 px-6 text-center">
+                <td className="py-4 md:py-5 px-2 md:px-6 text-sm md:text-base text-slate-300 font-medium group-hover:text-white transition-colors">{item.feature}</td>
+                <td className="py-4 md:py-5 px-2 md:px-6 text-center">
                   {typeof item.pro === 'boolean' ? (
-                    item.pro ? <CheckIcon className="w-6 h-6 text-green-500 mx-auto" /> : <XMarkIcon className="w-6 h-6 text-slate-700 mx-auto" />
+                    item.pro ? <CheckIcon className="w-5 h-5 md:w-6 md:h-6 text-green-500 mx-auto" /> : <XMarkIcon className="w-5 h-5 md:w-6 md:h-6 text-slate-700 mx-auto" />
                   ) : (
-                    <span className="text-sm text-slate-400 font-mono">{item.pro}</span>
+                    <span className="text-xs md:text-sm text-slate-400 font-mono">{item.pro}</span>
                   )}
                 </td>
-                <td className="py-5 px-6 text-center">
+                <td className="py-4 md:py-5 px-2 md:px-6 text-center">
                   {typeof item.team === 'boolean' ? (
-                    item.team ? <CheckIcon className="w-6 h-6 text-jb-blue mx-auto" /> : <XMarkIcon className="w-6 h-6 text-slate-700 mx-auto" />
+                    item.team ? <CheckIcon className="w-5 h-5 md:w-6 md:h-6 text-jb-blue mx-auto" /> : <XMarkIcon className="w-5 h-5 md:w-6 md:h-6 text-slate-700 mx-auto" />
                   ) : (
-                    <span className="text-sm text-jb-blue font-bold font-mono">{item.team}</span>
+                    <span className="text-xs md:text-sm text-jb-blue font-bold font-mono">{item.team}</span>
                   )}
                 </td>
               </tr>
