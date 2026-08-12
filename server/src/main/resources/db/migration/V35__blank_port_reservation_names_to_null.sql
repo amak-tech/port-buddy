@@ -10,20 +10,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
 
-package tech.amak.portbuddy.server.web.dto;
-
-import java.time.OffsetDateTime;
-import java.util.UUID;
-
-public record PortReservationDto(
-    UUID id,
-    String publicHost,
-    String region,
-    Integer publicPort,
-    String name,
-    OffsetDateTime createdAt,
-    OffsetDateTime updatedAt
-) {
-}
+-- A blank name means "no name". Stored as an empty string it counted as a value for the
+-- (account_id, name) unique index, so a second unnamed reservation collided with the first.
+UPDATE port_reservations
+SET name = NULL
+WHERE name IS NOT NULL AND btrim(name) = '';

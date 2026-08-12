@@ -14,16 +14,14 @@
 
 package tech.amak.portbuddy.server.web.dto;
 
-import java.time.OffsetDateTime;
-import java.util.UUID;
-
-public record PortReservationDto(
-    UUID id,
-    String publicHost,
-    String region,
-    Integer publicPort,
-    String name,
-    OffsetDateTime createdAt,
-    OffsetDateTime updatedAt
+/**
+ * Result of checking whether a public port can still be reserved on a given host.
+ *
+ * @param available true when the port is inside the host's range and not taken
+ * @param reason    human-readable explanation when it is not available, otherwise {@code null}
+ */
+public record PortAvailabilityDto(
+    boolean available,
+    String reason
 ) {
 }

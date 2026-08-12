@@ -12,6 +12,9 @@ eureka:
       public-host: ${app.public-host}
       region: ${NET_PROXY_REGION:Netherlands/Amsterdam}
       coordinates: ${NET_PROXY_COORDINATES:52.378,4.9}
+      # Public ports reservable on this instance; server falls back to app.port-reservations.range when absent
+      port-range-min: ${NET_PROXY_PORT_RANGE_MIN:40000}
+      port-range-max: ${NET_PROXY_PORT_RANGE_MAX:60000}
 
 spring:
   application:

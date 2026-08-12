@@ -14,16 +14,12 @@
 
 package tech.amak.portbuddy.server.web.dto;
 
-import java.time.OffsetDateTime;
-import java.util.UUID;
-
-public record PortReservationDto(
-    UUID id,
-    String publicHost,
-    String region,
-    Integer publicPort,
-    String name,
-    OffsetDateTime createdAt,
-    OffsetDateTime updatedAt
+/**
+ * The lowest public port still free on a host.
+ *
+ * @param port the free port, or {@code null} when the host has no free ports left in its range
+ */
+public record NextFreePortDto(
+    Integer port
 ) {
 }

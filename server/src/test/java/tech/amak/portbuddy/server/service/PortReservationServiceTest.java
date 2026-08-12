@@ -15,8 +15,14 @@
 package tech.amak.portbuddy.server.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -159,6 +165,75 @@ class PortReservationServiceTest {
 
         final var result = service.updateReservation(account, id, null, null, name);
         assertEquals(name, result.getName());
+    }
+
+    @Test
+    void updateReservation_BlankName_ClearsNameWithoutUniquenessCheck() {
+        final UUID id = UUID.randomUUID();
+        final var existing = new PortReservationEntity();
+        existing.setId(id);
+        existing.setName("old-name");
+
+        when(repository.findByIdAndAccount(id, account)).thenReturn(Optional.of(existing));
+        when(repository.saveAndFlush(existing)).thenReturn(existing);
+
+        final var result = service.updateReservation(account, id, null, null, "  ");
+
+        assertNull(result.getName());
+        verify(repository, never()).existsByAccountAndName(any(), any());
+    }
+
+    @Test
+    void updateReservation_PortTakenOnHost_ThrowsPortAlreadyReserved() {
+        final UUID id = UUID.randomUUID();
+        final String host = "proxy-1.portbuddy.dev";
+        final var existing = new PortReservationEntity();
+        existing.setId(id);
+        existing.setPublicHost(host);
+        existing.setPublicPort(40000);
+
+        when(repository.findByIdAndAccount(id, account)).thenReturn(Optional.of(existing));
+        when(proxyDiscoveryService.findByHost(host))
+            .thenReturn(Optional.of(new ProxyDiscoveryService.ProxyHost(host, "NL/Amsterdam", 40000, 60000)));
+        when(repository.existsByPublicHostAndPublicPortAndIdNot(host, 40001, id)).thenReturn(true);
+
+        final var e = assertThrows(PortReservationService.PortAlreadyReservedException.class, () ->
+            service.updateReservation(account, id, null, 40001, null));
+        assertTrue(e.getMessage().contains("already reserved"));
+    }
+
+    @Test
+    void updateReservation_PortOutsideHostRange_ThrowsException() {
+        final UUID id = UUID.randomUUID();
+        final String host = "proxy-1.portbuddy.dev";
+        final var existing = new PortReservationEntity();
+        existing.setId(id);
+        existing.setPublicHost(host);
+        existing.setPublicPort(40000);
+
+        when(repository.findByIdAndAccount(id, account)).thenReturn(Optional.of(existing));
+        when(proxyDiscoveryService.findByHost(host))
+            .thenReturn(Optional.of(new ProxyDiscoveryService.ProxyHost(host, "NL/Amsterdam", 40000, 41000)));
+
+        assertThrows(IllegalArgumentException.class, () ->
+            service.updateReservation(account, id, null, 50000, null));
+    }
+
+    @Test
+    void isPortAvailable_UsesHostRangeAndExistingReservations() {
+        final String host = "proxy-1.portbuddy.dev";
+        final UUID excluded = UUID.randomUUID();
+        when(proxyDiscoveryService.findByHost(host))
+            .thenReturn(Optional.of(new ProxyDiscoveryService.ProxyHost(host, "NL/Amsterdam", 40000, 41000)));
+
+        // Out of the host's range
+        assertFalse(service.isPortAvailable(host, 50000, excluded));
+
+        when(repository.existsByPublicHostAndPublicPortAndIdNot(host, 40500, excluded)).thenReturn(true);
+        assertFalse(service.isPortAvailable(host, 40500, excluded));
+
+        when(repository.existsByPublicHostAndPublicPort(host, 40600)).thenReturn(false);
+        assertTrue(service.isPortAvailable(host, 40600, null));
     }
 
     @Test

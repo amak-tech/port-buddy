@@ -14,7 +14,9 @@
 
 package tech.amak.portbuddy.server.web;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
@@ -28,20 +30,23 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import lombok.RequiredArgsConstructor;
-import tech.amak.portbuddy.server.config.AppProperties;
 import tech.amak.portbuddy.server.db.entity.AccountEntity;
 import tech.amak.portbuddy.server.db.entity.PortReservationEntity;
 import tech.amak.portbuddy.server.db.repo.UserRepository;
 import tech.amak.portbuddy.server.service.PortReservationService;
 import tech.amak.portbuddy.server.service.ProxyDiscoveryService;
+import tech.amak.portbuddy.server.web.dto.NextFreePortDto;
+import tech.amak.portbuddy.server.web.dto.PortAvailabilityDto;
 import tech.amak.portbuddy.server.web.dto.PortRangeDto;
 import tech.amak.portbuddy.server.web.dto.PortReservationDto;
 import tech.amak.portbuddy.server.web.dto.PortReservationUpdateRequest;
+import tech.amak.portbuddy.server.web.dto.ProxyHostDto;
 
 @RestController
 @RequestMapping(path = "/api/ports", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -51,7 +56,6 @@ public class PortsController {
     private final PortReservationService reservationService;
     private final UserRepository userRepository;
     private final ProxyDiscoveryService proxyDiscoveryService;
-    private final AppProperties properties;
 
     /**
      * Retrieves a list of port reservations for the authenticated user's account.
@@ -62,8 +66,9 @@ public class PortsController {
     @GetMapping
     public List<PortReservationDto> list(final @AuthenticationPrincipal Jwt principal) {
         final var account = getAccount(principal);
+        final var regions = regionsByHost();
         return reservationService.getReservations(account).stream()
-            .map(PortsController::toDto)
+            .map(e -> toDto(e, regions.get(e.getPublicHost())))
             .toList();
     }
 
@@ -82,7 +87,7 @@ public class PortsController {
         final var account = getAccount(principal);
         final var reservation = reservationService.createReservation(account, user)
             .orElseThrow(() -> new RuntimeException("No available ports"));
-        return toDto(reservation);
+        return toDto(reservation, regionsByHost().get(reservation.getPublicHost()));
     }
 
     /**
@@ -117,7 +122,7 @@ public class PortsController {
         try {
             final var updated = reservationService
                 .updateReservation(account, id, body.publicHost(), body.publicPort(), body.name());
-            return toDto(updated);
+            return toDto(updated, regionsByHost().get(updated.getPublicHost()));
         } catch (final IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (final IllegalStateException e) {
@@ -126,21 +131,64 @@ public class PortsController {
     }
 
     /**
-     * Lists available tcp-proxy public hosts for selection.
+     * Lists available net-proxy instances a port can be reserved on, with their region and port range.
+     *
+     * @return the available proxies
      */
     @GetMapping("/hosts")
-    public List<String> hosts() {
-        return proxyDiscoveryService.listPublicHosts();
+    public List<ProxyHostDto> hosts() {
+        return proxyDiscoveryService.listProxies().stream()
+            .map(p -> new ProxyHostDto(p.host(), p.region(), p.portMin(), p.portMax()))
+            .toList();
     }
 
     /**
-     * Returns allowed port range for a given host. Currently same for all hosts, derived from config.
+     * Returns the allowed port range for a given host, falling back to the globally configured range when the
+     * proxy does not advertise one of its own.
+     *
+     * @param host the proxy public host
+     * @return the allowed port range
      */
     @GetMapping("/hosts/{host}/range")
     public PortRangeDto hostRange(@PathVariable("host") final String host) {
         // Not validating host existence here; UI should have called /hosts first
-        final var range = properties.portReservations().range();
+        final var range = reservationService.portRangeFor(host);
         return new PortRangeDto(range.min(), range.max());
+    }
+
+    /**
+     * Returns the lowest public port still free on a host, so the UI can propose one when the user switches proxy.
+     *
+     * @param host the proxy public host
+     * @return the lowest free port, or a {@code null} port when the host's range is exhausted
+     */
+    @GetMapping("/hosts/{host}/next-free-port")
+    public NextFreePortDto nextFreePort(@PathVariable("host") final String host) {
+        return new NextFreePortDto(reservationService.findNextFreePort(host).orElse(null));
+    }
+
+    /**
+     * Checks whether a public port can still be reserved on a host, so the UI can warn before saving.
+     *
+     * @param host      the proxy public host
+     * @param port      the public port to check
+     * @param excludeId reservation being edited, excluded from the conflict check
+     * @return whether the port is available and, if not, why
+     */
+    @GetMapping("/hosts/{host}/availability")
+    public PortAvailabilityDto availability(@PathVariable("host") final String host,
+                                            @RequestParam("port") final int port,
+                                            @RequestParam(name = "excludeId", required = false) final UUID excludeId) {
+        final var range = reservationService.portRangeFor(host);
+        if (port < range.min() || port > range.max()) {
+            return new PortAvailabilityDto(false,
+                "Port must be between " + range.min() + " and " + range.max() + " on " + host + ".");
+        }
+        if (!reservationService.isPortAvailable(host, port, excludeId)) {
+            return new PortAvailabilityDto(false,
+                "Port " + port + " on " + host + " is already reserved. Please choose another port.");
+        }
+        return new PortAvailabilityDto(true, null);
     }
 
     private AccountEntity getAccount(final Jwt jwt) {
@@ -154,10 +202,21 @@ public class PortsController {
             .getAccount();
     }
 
-    private static PortReservationDto toDto(final PortReservationEntity e) {
+    private Map<String, String> regionsByHost() {
+        final Map<String, String> regions = new HashMap<>();
+        for (final var proxy : proxyDiscoveryService.listProxies()) {
+            if (proxy.region() != null) {
+                regions.put(proxy.host(), proxy.region());
+            }
+        }
+        return regions;
+    }
+
+    private static PortReservationDto toDto(final PortReservationEntity e, final String region) {
         return new PortReservationDto(
             e.getId(),
             e.getPublicHost(),
+            region,
             e.getPublicPort(),
             e.getName(),
             e.getCreatedAt(),

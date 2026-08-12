@@ -33,6 +33,8 @@ public interface PortReservationRepository extends JpaRepository<PortReservation
 
     boolean existsByPublicHostAndPublicPort(String publicHost, Integer publicPort);
 
+    boolean existsByPublicHostAndPublicPortAndIdNot(String publicHost, Integer publicPort, UUID id);
+
     long countByPublicHost(String publicHost);
 
     @Query("select max(pr.publicPort) from PortReservationEntity pr where pr.publicHost = :host")

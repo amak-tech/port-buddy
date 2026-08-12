@@ -14,16 +14,13 @@
 
 package tech.amak.portbuddy.server.web.dto;
 
-import java.time.OffsetDateTime;
-import java.util.UUID;
-
-public record PortReservationDto(
-    UUID id,
-    String publicHost,
+/**
+ * A net-proxy instance a port can be reserved on, with the region it runs in and its reservable port range.
+ */
+public record ProxyHostDto(
+    String host,
     String region,
-    Integer publicPort,
-    String name,
-    OffsetDateTime createdAt,
-    OffsetDateTime updatedAt
+    int portMin,
+    int portMax
 ) {
 }

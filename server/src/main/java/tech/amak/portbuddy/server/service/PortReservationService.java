@@ -16,6 +16,7 @@ package tech.amak.portbuddy.server.service;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -67,13 +68,6 @@ public class PortReservationService {
             return Optional.empty();
         }
 
-        final var range = properties.portReservations().range();
-        final int min = range.min();
-        final int max = range.max();
-        if (min <= 0 || max <= 0 || min > max) {
-            throw new IllegalStateException("Invalid port range configuration: [" + min + ", " + max + "]");
-        }
-
         int attempts = 0;
         while (attempts++ < MAX_RETRIES) {
             // Order hosts by least reservations
@@ -82,6 +76,12 @@ public class PortReservationService {
                 .toList();
 
             for (final String host : orderedHosts) {
+                final var range = portRangeFor(host);
+                final int min = range.min();
+                final int max = range.max();
+                if (min <= 0 || max <= 0 || min > max) {
+                    throw new IllegalStateException("Invalid port range configuration: [" + min + ", " + max + "]");
+                }
                 final var nextPort = computeNextPort(host, min, max);
                 if (nextPort == null) {
                     // This host is exhausted, try next
@@ -231,30 +231,103 @@ public class PortReservationService {
             throw new IllegalStateException("Reservation is in use by active tunnels");
         }
 
+        final var previousHost = entity.getPublicHost();
+        final var previousPort = entity.getPublicPort();
+
         if (host != null) {
-            final var hosts = proxyDiscoveryService.listPublicHosts();
-            if (hosts.isEmpty() || !hosts.contains(host)) {
+            if (proxyDiscoveryService.findByHost(host).isEmpty()) {
                 throw new IllegalArgumentException("Unknown public host: " + host);
             }
             entity.setPublicHost(host);
         }
 
         if (port != null) {
-            final var range = properties.portReservations().range();
+            final var range = portRangeFor(entity.getPublicHost());
             if (port < range.min() || port > range.max()) {
-                throw new IllegalArgumentException("Port is out of allowed range");
+                throw new IllegalArgumentException(
+                    "Port must be between " + range.min() + " and " + range.max() + " on " + entity.getPublicHost());
             }
             entity.setPublicPort(port);
         }
 
-        if (name != null && !name.equals(entity.getName())) {
-            if (repository.existsByAccountAndName(account, name)) {
-                throw new IllegalArgumentException("Reservation with name '" + name + "' already exists");
-            }
-            entity.setName(name);
+        final var hostPortChanged = !Objects.equals(previousHost, entity.getPublicHost())
+            || !Objects.equals(previousPort, entity.getPublicPort());
+        if (hostPortChanged && repository.existsByPublicHostAndPublicPortAndIdNot(
+            entity.getPublicHost(), entity.getPublicPort(), entity.getId())) {
+            throw new PortAlreadyReservedException(entity.getPublicHost(), entity.getPublicPort());
         }
 
-        // Trigger unique check on save
-        return repository.saveAndFlush(entity);
+        if (name != null) {
+            // A blank name means "no name" — clearing it must not collide with other unnamed reservations
+            final var newName = name.isBlank() ? null : name.trim();
+            if (!Objects.equals(newName, entity.getName())) {
+                if (newName != null && repository.existsByAccountAndName(account, newName)) {
+                    throw new IllegalArgumentException("Reservation with name '" + newName + "' already exists");
+                }
+                entity.setName(newName);
+            }
+        }
+
+        try {
+            // Trigger unique check on save
+            return repository.saveAndFlush(entity);
+        } catch (final DataIntegrityViolationException e) {
+            // Lost a race against a concurrent reservation of the same host:port
+            throw new PortAlreadyReservedException(entity.getPublicHost(), entity.getPublicPort());
+        }
+    }
+
+    /**
+     * Tells whether a public port on a given host can still be reserved, i.e. it is inside that proxy's
+     * allowed range and not already taken by another (non-deleted) reservation.
+     *
+     * @param host      the proxy public host
+     * @param port      the public port to check
+     * @param excludeId reservation to ignore when checking for conflicts, typically the one being edited
+     * @return true when the port may be reserved
+     */
+    @Transactional(readOnly = true)
+    public boolean isPortAvailable(final String host, final int port, final UUID excludeId) {
+        final var range = portRangeFor(host);
+        if (port < range.min() || port > range.max()) {
+            return false;
+        }
+        return excludeId != null
+            ? !repository.existsByPublicHostAndPublicPortAndIdNot(host, port, excludeId)
+            : !repository.existsByPublicHostAndPublicPort(host, port);
+    }
+
+    /**
+     * Finds the lowest public port still free on a host, within that host's reservable range.
+     *
+     * @param host the proxy public host
+     * @return the lowest free port, or empty when the host's range is exhausted
+     */
+    @Transactional(readOnly = true)
+    public Optional<Integer> findNextFreePort(final String host) {
+        final var range = portRangeFor(host);
+        return repository.findMinimalFreePort(host, range.min(), range.max());
+    }
+
+    /**
+     * Resolves the reservable port range of a proxy, falling back to the globally configured range when the
+     * instance does not advertise one (or is not registered at all).
+     *
+     * @param host the proxy public host
+     * @return the allowed port range for that host
+     */
+    public AppProperties.PortReservations.Range portRangeFor(final String host) {
+        return proxyDiscoveryService.findByHost(host)
+            .map(p -> new AppProperties.PortReservations.Range(p.portMin(), p.portMax()))
+            .orElseGet(() -> properties.portReservations().range());
+    }
+
+    /**
+     * Raised when the requested host:port pair is already reserved by someone else.
+     */
+    public static class PortAlreadyReservedException extends IllegalStateException {
+        public PortAlreadyReservedException(final String host, final Integer port) {
+            super("Port " + port + " on " + host + " is already reserved. Please choose another port.");
+        }
     }
 }
