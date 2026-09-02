@@ -12,26 +12,26 @@
  limitations under the License.
 #>
 
+param(
+    [Parameter(Position=0, Mandatory=$true)]
+    [string]$Mode,
+
+    [Parameter(Position=1, Mandatory=$true)]
+    [string]$Port,
+
+    [Parameter(Position=2)]
+    [string]$HostName,
+
+    [Parameter(Mandatory=$false)]
+    [string]$Name
+)
+
 # Check if running as Administrator
 $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 if (-not $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
     Write-Warning "Please run as Administrator to register a service (Scheduled Task)."
     exit 1
 }
-
-param(
-    [Parameter(Position=0, Mandatory=$true)]
-    [string]$Mode,
-    
-    [Parameter(Position=1, Mandatory=$true)]
-    [string]$Port,
-    
-    [Parameter(Position=2)]
-    [string]$HostName,
-    
-    [Parameter(Mandatory=$false)]
-    [string]$Name
-)
 
 # Construct target argument
 if ([string]::IsNullOrEmpty($HostName)) {
