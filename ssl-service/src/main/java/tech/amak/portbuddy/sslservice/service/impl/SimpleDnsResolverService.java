@@ -15,7 +15,9 @@
 package tech.amak.portbuddy.sslservice.service.impl;
 
 import java.util.Hashtable;
+import java.util.List;
 import javax.naming.Context;
+import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
 import javax.naming.directory.DirContext;
@@ -33,31 +35,46 @@ import tech.amak.portbuddy.sslservice.service.DnsResolverService;
 @Slf4j
 public class SimpleDnsResolverService implements DnsResolverService {
 
+    private static final List<String> DNS_PROVIDERS = List.of(
+        "dns://1.1.1.1 dns://8.8.8.8",
+        "dns:"
+    );
+
     @Override
     public boolean isTxtRecordVisible(final String fqdn, final String expectedValue) {
-        try {
-            final var env = new Hashtable<String, String>();
-            env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.dns.DnsContextFactory");
-            env.put("com.sun.jndi.dns.timeout.initial", "2000");
-            env.put("com.sun.jndi.dns.timeout.retries", "1");
-            final DirContext ctx = new InitialDirContext(env);
-            final Attributes attrs = ctx.getAttributes(fqdn, new String[] {"TXT"});
-            final Attribute txt = attrs.get("TXT");
-            if (txt == null) {
-                return false;
-            }
-            final var values = txt.getAll();
-            while (values.hasMoreElements()) {
-                final var raw = String.valueOf(values.nextElement());
-                final var normalized = raw.replaceAll("^\"|\"$", "");
-                if (normalized.contains(expectedValue)) {
-                    return true;
+        for (final var providerUrl : DNS_PROVIDERS) {
+            DirContext ctx = null;
+            try {
+                final var env = new Hashtable<String, String>();
+                env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.dns.DnsContextFactory");
+                env.put(Context.PROVIDER_URL, providerUrl);
+                env.put("com.sun.jndi.dns.timeout.initial", "2000");
+                env.put("com.sun.jndi.dns.timeout.retries", "1");
+                ctx = new InitialDirContext(env);
+                final Attributes attrs = ctx.getAttributes(fqdn, new String[] {"TXT"});
+                final Attribute txt = attrs.get("TXT");
+                if (txt != null) {
+                    final var values = txt.getAll();
+                    while (values.hasMoreElements()) {
+                        final var raw = String.valueOf(values.nextElement());
+                        final var normalized = raw.replaceAll("^\"|\"$", "");
+                        if (normalized.contains(expectedValue)) {
+                            return true;
+                        }
+                    }
+                }
+            } catch (final Exception e) {
+                log.debug("TXT lookup failed for {} via {}: {}", fqdn, providerUrl, e.getMessage());
+            } finally {
+                if (ctx != null) {
+                    try {
+                        ctx.close();
+                    } catch (final NamingException e) {
+                        log.debug("Failed to close DNS context", e);
+                    }
                 }
             }
-            return false;
-        } catch (final Exception e) {
-            log.debug("TXT lookup failed for {}: {}", fqdn, e.getMessage());
-            return false;
         }
+        return false;
     }
 }

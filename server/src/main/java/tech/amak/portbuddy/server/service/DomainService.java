@@ -52,6 +52,10 @@ import tech.amak.portbuddy.server.db.repo.UserRepository;
 public class DomainService {
 
     private static final int MAX_RETRIES = 30;
+    private static final List<String> DNS_PROVIDERS = List.of(
+        "dns://1.1.1.1 dns://8.8.8.8",
+        "dns:"
+    );
 
     private final DomainRepository domainRepository;
     private final TunnelRepository tunnelRepository;
@@ -216,7 +220,9 @@ public class DomainService {
         final var domain = domainRepository.findByIdAndAccount(id, account)
             .orElseThrow(() -> new RuntimeException("Domain not found"));
 
-        final var normalizedCustomDomain = customDomain != null ? customDomain.toLowerCase() : null;
+        final var normalizedCustomDomain = customDomain != null
+            ? customDomain.trim().toLowerCase().replaceAll("\\.+$", "")
+            : null;
         if (!Objects.equals(domain.getCustomDomain(), normalizedCustomDomain)) {
             domain.setCustomDomain(normalizedCustomDomain);
             domain.setCnameVerified(false);
@@ -285,33 +291,56 @@ public class DomainService {
         return domain;
     }
 
-    private boolean checkCname(final String domain, final String expectedTarget) {
-        final var env = new Hashtable<String, String>();
-        env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.dns.DnsContextFactory");
-        DirContext ictx = null;
-        try {
-            ictx = new InitialDirContext(env);
-            final Attributes attrs = ictx.getAttributes(domain, new String[] {"CNAME"});
-            final Attribute cnameAttr = attrs.get("CNAME");
+    boolean checkCname(final String domain, final String expectedTarget) {
+        final var cleanDomain = domain.trim().endsWith(".")
+            ? domain.trim()
+            : domain.trim() + ".";
+        final var cleanExpected = expectedTarget.trim().endsWith(".")
+            ? expectedTarget.trim().substring(0, expectedTarget.trim().length() - 1)
+            : expectedTarget.trim();
 
-            if (cnameAttr != null) {
-                final String cname = (String) cnameAttr.get();
-                // Remove trailing dot if present
-                final String normalizedCname = cname.endsWith(".") ? cname.substring(0, cname.length() - 1) : cname;
-                return normalizedCname.equalsIgnoreCase(expectedTarget);
-            }
-        } catch (final NamingException e) {
-            log.debug("Failed to lookup CNAME for {}", domain, e);
-        } finally {
-            if (ictx != null) {
-                try {
-                    ictx.close();
-                } catch (final NamingException e) {
-                    log.debug("Failed to close DNS context", e);
+        for (final var providerUrl : DNS_PROVIDERS) {
+            final var env = new Hashtable<String, String>();
+            env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.dns.DnsContextFactory");
+            env.put(Context.PROVIDER_URL, providerUrl);
+            env.put("com.sun.jndi.dns.timeout.initial", "2000");
+            env.put("com.sun.jndi.dns.timeout.retries", "2");
+
+            DirContext ictx = null;
+            try {
+                ictx = createDnsContext(env);
+                final Attributes attrs = ictx.getAttributes(cleanDomain, new String[] {"CNAME"});
+                final Attribute cnameAttr = attrs.get("CNAME");
+
+                if (cnameAttr != null) {
+                    final String cname = String.valueOf(cnameAttr.get());
+                    // Remove trailing dot if present
+                    final String normalizedCname = cname.endsWith(".")
+                        ? cname.substring(0, cname.length() - 1)
+                        : cname;
+                    if (normalizedCname.equalsIgnoreCase(cleanExpected)) {
+                        return true;
+                    }
+                    log.warn("CNAME mismatch for {} via {}: expected {}, got {}",
+                        domain, providerUrl, cleanExpected, normalizedCname);
+                }
+            } catch (final NamingException e) {
+                log.warn("Failed to lookup CNAME for {} via {}: {}", domain, providerUrl, e.getMessage());
+            } finally {
+                if (ictx != null) {
+                    try {
+                        ictx.close();
+                    } catch (final NamingException e) {
+                        log.debug("Failed to close DNS context", e);
+                    }
                 }
             }
         }
         return false;
+    }
+
+    DirContext createDnsContext(final Hashtable<String, String> env) throws NamingException {
+        return new InitialDirContext(env);
     }
 
     /**

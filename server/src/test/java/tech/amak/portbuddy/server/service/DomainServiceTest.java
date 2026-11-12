@@ -23,7 +23,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -31,6 +35,11 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import javax.naming.Context;
+import javax.naming.NamingException;
+import javax.naming.directory.BasicAttribute;
+import javax.naming.directory.BasicAttributes;
+import javax.naming.directory.DirContext;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,6 +56,7 @@ import tech.amak.portbuddy.server.db.entity.AccountEntity;
 import tech.amak.portbuddy.server.db.entity.DomainEntity;
 import tech.amak.portbuddy.server.db.entity.TunnelEntity;
 import tech.amak.portbuddy.server.db.entity.TunnelStatus;
+import tech.amak.portbuddy.server.db.entity.UserEntity;
 import tech.amak.portbuddy.server.db.repo.AccountRepository;
 import tech.amak.portbuddy.server.db.repo.DomainRepository;
 import tech.amak.portbuddy.server.db.repo.TunnelRepository;
@@ -282,5 +292,137 @@ class DomainServiceTest {
         assertNull(domain.getCustomDomain());
         assertFalse(domain.isCnameVerified());
         verify(domainRepository).save(domain);
+    }
+
+    @Test
+    void updateCustomDomain_NormalizesWhitespaceCaseAndTrailingDots() {
+        final var id = UUID.randomUUID();
+        final var domain = new DomainEntity();
+        domain.setId(id);
+        domain.setAccount(account);
+        domain.setCnameVerified(true);
+        domain.setSslActive(true);
+
+        when(domainRepository.findByIdAndAccount(id, account)).thenReturn(Optional.of(domain));
+        when(domainRepository.save(any(DomainEntity.class))).thenAnswer(i -> i.getArguments()[0]);
+
+        final var updated = domainService.updateCustomDomain(id, account, "  DrZ.Sites.BD.  ");
+
+        assertEquals("drz.sites.bd", updated.getCustomDomain());
+        assertFalse(updated.isCnameVerified());
+        assertFalse(updated.isSslActive());
+        verify(domainRepository).save(domain);
+    }
+
+    @Test
+    void verifyCname_SuccessViaPublicDns() throws Exception {
+        final var id = UUID.randomUUID();
+        final var userId = UUID.randomUUID();
+        final var domain = new DomainEntity();
+        domain.setId(id);
+        domain.setSubdomain("falcon-6204");
+        domain.setDomain("portbuddy.dev");
+        domain.setCustomDomain("drz.sites.bd");
+        domain.setAccount(account);
+
+        final var user = new UserEntity();
+        user.setId(userId);
+        user.setEmail("user@example.com");
+
+        when(domainRepository.findByIdAndAccount(id, account)).thenReturn(Optional.of(domain));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(domainRepository.save(any(DomainEntity.class))).thenAnswer(i -> i.getArguments()[0]);
+
+        final var dirContext = mock(DirContext.class);
+        final var attrs = new BasicAttributes(true);
+        attrs.put(new BasicAttribute("CNAME", "falcon-6204.portbuddy.dev."));
+        when(dirContext.getAttributes(eq("drz.sites.bd."), any(String[].class))).thenReturn(attrs);
+
+        final var spyService = spy(domainService);
+        doReturn(dirContext).when(spyService).createDnsContext(any());
+
+        final var verified = spyService.verifyCname(id, account, userId);
+
+        assertTrue(verified.isCnameVerified());
+        verify(domainRepository).save(domain);
+        verify(sslServiceClient).submitJob("drz.sites.bd", "user@example.com", true);
+        verify(dirContext).close();
+    }
+
+    @Test
+    void verifyCname_FallbackWhenFirstDnsProviderFails() throws Exception {
+        final var id = UUID.randomUUID();
+        final var userId = UUID.randomUUID();
+        final var domain = new DomainEntity();
+        domain.setId(id);
+        domain.setSubdomain("falcon-6204");
+        domain.setDomain("portbuddy.dev");
+        domain.setCustomDomain("drz.sites.bd");
+        domain.setAccount(account);
+
+        final var user = new UserEntity();
+        user.setId(userId);
+        user.setEmail("user@example.com");
+
+        when(domainRepository.findByIdAndAccount(id, account)).thenReturn(Optional.of(domain));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(domainRepository.save(any(DomainEntity.class))).thenAnswer(i -> i.getArguments()[0]);
+
+        final var failingContext = mock(DirContext.class);
+        when(failingContext.getAttributes(eq("drz.sites.bd."), any(String[].class)))
+            .thenThrow(new NamingException("DNS server failure"));
+
+        final var fallbackContext = mock(DirContext.class);
+        final var attrs = new BasicAttributes(true);
+        attrs.put(new BasicAttribute("CNAME", "falcon-6204.portbuddy.dev."));
+        when(fallbackContext.getAttributes(eq("drz.sites.bd."), any(String[].class))).thenReturn(attrs);
+
+        final var spyService = spy(domainService);
+        doAnswer(invocation -> {
+            final var env = invocation.<java.util.Hashtable<String, String>>getArgument(0);
+            if ("dns:".equals(env.get(Context.PROVIDER_URL))) {
+                return fallbackContext;
+            }
+            return failingContext;
+        }).when(spyService).createDnsContext(any());
+
+        final var verified = spyService.verifyCname(id, account, userId);
+
+        assertTrue(verified.isCnameVerified());
+        verify(failingContext).close();
+        verify(fallbackContext).close();
+        verify(sslServiceClient).submitJob("drz.sites.bd", "user@example.com", true);
+    }
+
+    @Test
+    void verifyCname_ThrowsWhenAllDnsProvidersFailOrMismatch() throws Exception {
+        final var id = UUID.randomUUID();
+        final var userId = UUID.randomUUID();
+        final var domain = new DomainEntity();
+        domain.setId(id);
+        domain.setSubdomain("falcon-6204");
+        domain.setDomain("portbuddy.dev");
+        domain.setCustomDomain("drz.sites.bd");
+        domain.setAccount(account);
+
+        final var user = new UserEntity();
+        user.setId(userId);
+        user.setEmail("user@example.com");
+
+        when(domainRepository.findByIdAndAccount(id, account)).thenReturn(Optional.of(domain));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        final var dirContext = mock(DirContext.class);
+        final var attrs = new BasicAttributes(true);
+        attrs.put(new BasicAttribute("CNAME", "other-domain.portbuddy.dev."));
+        when(dirContext.getAttributes(eq("drz.sites.bd."), any(String[].class))).thenReturn(attrs);
+
+        final var spyService = spy(domainService);
+        doReturn(dirContext).when(spyService).createDnsContext(any());
+
+        final var ex = assertThrows(RuntimeException.class,
+            () -> spyService.verifyCname(id, account, userId));
+        assertTrue(ex.getMessage().contains("CNAME verification failed"));
+        assertFalse(domain.isCnameVerified());
     }
 }
